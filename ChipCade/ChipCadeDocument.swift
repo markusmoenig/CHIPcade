@@ -9,31 +9,36 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 extension UTType {
-    static var exampleText: UTType {
-        UTType(importedAs: "com.example.plain-text")
+    static var ChipCadeDocument: UTType {
+        UTType(exportedAs: "com.chipcade.document")
     }
 }
 
 struct ChipCadeDocument: FileDocument {
-    var text: String
+    var game = Game()
 
-    init(text: String = "Hello, world!") {
-        self.text = text
+    init() {
     }
 
-    static var readableContentTypes: [UTType] { [.exampleText] }
+    static var readableContentTypes: [UTType] { [.ChipCadeDocument] }
 
     init(configuration: ReadConfiguration) throws {
         guard let data = configuration.file.regularFileContents,
-              let string = String(data: data, encoding: .utf8)
+              let g = try? JSONDecoder().decode(Game.self, from: data)
         else {
             throw CocoaError(.fileReadCorruptFile)
         }
-        text = string
+        game = g
     }
     
     func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
-        let data = text.data(using: .utf8)!
+        var data = Data()
+        
+        let encodedData = try? JSONEncoder().encode(game)
+        if let json = String(data: encodedData!, encoding: .utf8) {
+            data = json.data(using: .utf8)!
+        }
+        
         return .init(regularFileWithContents: data)
     }
 }

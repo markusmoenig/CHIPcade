@@ -13,5 +13,6 @@ struct ChipCadeApp: App {
         DocumentGroup(newDocument: ChipCadeDocument()) { file in
             ContentView(document: file.$document)
         }
+        .defaultSize(width: 1200, height: 800)
     }
 }

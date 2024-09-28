@@ -11,7 +11,7 @@ struct ContentView: View {
     @Binding var document: ChipCadeDocument
 
     var body: some View {
-        TextEditor(text: $document.text)
+        MemoryGridView(game: document.game, range: 0..<16 * 1024)
     }
 }
 
