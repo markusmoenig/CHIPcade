@@ -9,6 +9,107 @@ import SwiftUI
 import Combine
 
 struct MemoryGridView: View {
+    @ObservedObject var memoryItem: MemoryItem
+    
+    let columns: [GridItem] = Array(repeating: .init(.flexible()), count: 4) // 8 columns in the grid
+    let bytesPerLine: Int = 4  // Number of memory values displayed per line
+    let maxGridWidth: CGFloat = 300  // Maximum width for the grid view
+
+    var body: some View {
+        VStack {
+            Text("Memory for: \(memoryItem.name)")
+                .font(.headline)
+                .padding(.bottom, 10)
+
+            ScrollView {
+                ForEach(0..<memoryItem.memory.count / bytesPerLine, id: \.self) { lineIndex in
+                    HStack {
+                        // Display the memory address at the start of the line
+                        let lineStart = lineIndex * bytesPerLine
+                        Text(String(format: "%04X", lineStart))
+                            .font(.system(.body, design: .monospaced))
+                            .frame(width: 60, alignment: .leading)
+
+                        // TextField for the hex values in the line
+                        TextField(lineHexString(for: lineStart..<(lineStart + bytesPerLine)), text: Binding(
+                            get: { lineHexString(for: lineStart..<(lineStart + bytesPerLine)) },
+                            set: { newValue in
+                                let validatedValue = validateHexInput(newValue, range: lineStart..<(lineStart + bytesPerLine))
+                                updateBytes(for: lineStart..<(lineStart + bytesPerLine), with: validatedValue)
+                            }
+                        ))
+                        .font(.system(.body, design: .monospaced))
+                        .textFieldStyle(PlainTextFieldStyle())
+                        .frame(minWidth: 100, alignment: .trailing)
+                    }
+                    .padding(.vertical, 2)
+                }
+            }
+            .clipped()
+        }
+        .padding()
+        .frame(maxWidth: maxGridWidth)  // Apply max width constraint to the entire ScrollView
+    }
+
+    // MARK: - Helper Functions
+
+    // Converts a range of memory values to a hex string
+    func lineHexString(for range: Range<Int>) -> String {
+        return range.map { index in
+            memoryItem.memory[index].toHexString()
+        }.joined(separator: " ")
+    }
+
+    // Validates and cleans the hex input from the user
+    func validateHexInput(_ input: String, range: Range<Int>) -> [String] {
+        // Clean and ensure valid hex input per byte
+        let hexBytes = input
+            .split(separator: " ")
+            .map { String($0.prefix(4)) }  // Limiting to 4 characters for 16-bit values
+        return hexBytes.prefix(range.count).map { $0.uppercased() }
+    }
+
+    // Updates the memory values with new hex input
+    func updateBytes(for range: Range<Int>, with hexValues: [String]) {
+        for (index, hex) in hexValues.enumerated() {
+            if let newValue = UInt16(hex, radix: 16) {
+                memoryItem.memory[range.lowerBound + index] = .unsigned16Bit(newValue)
+            }
+        }
+    }
+}
+
+extension ChipCadeData {
+    // Convert ChipCadeData to a hex string
+    func toHexString() -> String {
+        switch self {
+        case .unsigned16Bit(let value):
+            return String(format: "%04X", value)
+        case .signed16Bit(let value):
+            return String(format: "%04X", UInt16(bitPattern: value))  // Treat as unsigned
+        case .float16Bit(let value):
+            return String(format: "%04X", value)
+        }
+    }
+}
+
+struct MemoryCellView: View {
+    var memoryData: ChipCadeData
+    
+    var body: some View {
+        Text(memoryData.description())
+            .font(.system(size: 12, weight: .medium, design: .monospaced))
+            .padding(8)
+            .frame(width: 60, height: 40)
+            .background(Color.gray.opacity(0.1))
+            .cornerRadius(5)
+            .overlay(RoundedRectangle(cornerRadius: 5)
+                        .stroke(Color.gray.opacity(0.5), lineWidth: 1))
+    }
+}
+
+/*
+struct MemoryGridView: View {
     @ObservedObject var game: Game
     let range: Range<Int> // Memory range to display
     let columns: Int = 8
@@ -68,3 +169,4 @@ struct MemoryGridView: View {
         return String(String.UnicodeScalarView(filtered))
     }
 }
+*/

@@ -68,11 +68,13 @@
       "size" : "256x256"
     },
     {
+      "filename" : "512.png",
       "idiom" : "mac",
       "scale" : "1x",
       "size" : "512x512"
     },
     {
+      "filename" : "ea3f8d5be812c7331a2f801b5d285c2b.webp.png",
       "idiom" : "mac",
       "scale" : "2x",
       "size" : "512x512"
