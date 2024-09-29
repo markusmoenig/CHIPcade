@@ -53,9 +53,13 @@ struct ContentView: View {
 //                    .frame(minWidth: 1280 / 2)
 //            }
 
-            Spacer()
-                .frame(minWidth: 1280 / 2)
-            
+//            Spacer()
+//                .frame(minWidth: 1280 / 2)
+  
+            MetalView(document.core)
+                .frame(minWidth: 1280 / 2, maxHeight: 720 / 2)
+
+
             VStack {
                 if let codeItem = selectedCodeItem {
                     List(Array(codeItem.codes.enumerated()), id: \.offset) { index, instruction in

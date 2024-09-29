@@ -16,7 +16,8 @@ extension UTType {
 
 struct ChipCadeDocument: FileDocument {
     var game = Game()
-
+    var core = Core()
+    
     init() {
     }
 
