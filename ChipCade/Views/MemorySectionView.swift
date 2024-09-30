@@ -28,18 +28,29 @@ struct MemorySectionView: View {
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                         .frame(width: 120)
                     } else {
-                        Text(memoryItems[index].name)
-                            .onTapGesture {
-                                selectedMemoryItem = memoryItems[index]
-                                selectedCodeItem = nil
+                        Button(action: {
+                            selectedMemoryItem = memoryItems[index]
+                            selectedCodeItem = nil
+                        }) {
+                            HStack {
+                                Text(memoryItems[index].name)
+                                    .foregroundColor(.primary)
+                                    .padding(.leading, 10) // Add padding to the left side
+                                Spacer()
                             }
-                            .padding(.vertical, 4)
-                            .background(selectedMemoryItem === memoryItems[index] ? Color.blue.opacity(0.2) : Color.clear)
+                            .padding(.vertical, 6) // Add vertical padding
+                            .background(
+                                RoundedRectangle(cornerRadius: 8) // Rounded background
+                                    .fill(selectedMemoryItem === memoryItems[index] ? Color.accentColor.opacity(0.2) : Color.clear)
+                            )
+                        }
+                        .buttonStyle(PlainButtonStyle()) // No button decoration
                     }
 
                     Spacer()
 
-                    // Rename and delete buttons for both platforms
+                    #if !os(macOS)
+                    // Only show rename and delete buttons on iOS
                     Button(action: {
                         startRenaming(item: memoryItems[index])
                     }) {
@@ -55,10 +66,10 @@ struct MemorySectionView: View {
                             .foregroundColor(.red)
                     }
                     .buttonStyle(BorderlessButtonStyle())
+                    #endif
                 }
                 .contextMenu {
                     // macOS context menu for renaming and deleting
-                    #if os(macOS)
                     Button(action: {
                         startRenaming(item: memoryItems[index])
                     }) {
@@ -73,25 +84,7 @@ struct MemorySectionView: View {
                         Image(systemName: "trash")
                     }
                     .foregroundColor(.red)
-                    #endif
                 }
-                #if os(iOS)
-                .swipeActions {
-                    // iOS swipe actions for deleting and renaming
-                    Button(role: .destructive) {
-                        deleteItem(at: index)
-                    } label: {
-                        Label("Delete", systemImage: "trash")
-                    }
-                    
-                    Button {
-                        startRenaming(item: memoryItems[index])
-                    } label: {
-                        Label("Rename", systemImage: "pencil")
-                    }
-                    .tint(.blue)
-                }
-                #endif
             }
         }
     }
@@ -105,29 +98,5 @@ struct MemorySectionView: View {
     private func deleteItem(at index: Int) {
         memoryItems.remove(at: index)
         selectedMemoryItem = nil
-    }
-}
-
-struct MemoryItemView: View {
-    @Binding var memoryItem: MemoryItem
-    @State private var isEditingName = false
-    
-    var body: some View {
-        HStack {
-            if isEditingName {
-                TextField("Name", text: $memoryItem.name, onCommit: {
-                    isEditingName = false
-                })
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-            } else {
-                Text(memoryItem.name)
-                    .onTapGesture {
-                        isEditingName = true
-                    }
-            }
-            //Spacer()
-//            Text("Start: \(memoryItem.startAddress)")
-            Text("Length: \(memoryItem.memory.count)")
-        }
     }
 }

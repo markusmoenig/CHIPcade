@@ -11,75 +11,73 @@ struct InstrMeta : Codable {
     
 }
 
-enum Instruction: Codable {
-    case ldi(InstrMeta?, Int8, ChipCadeData)
-    case push(InstrMeta?, ChipCadeData)
-    case nop(InstrMeta?)
-    
+enum InstructionType: String, Codable {
+    case ldi
+    case push
+    case nop
+}
+
+class Instruction: ObservableObject, Codable, Equatable {
+    var id: UUID
+
+    @Published var type: InstructionType
+
+    @Published var meta: InstrMeta? = nil
+
+    @Published var register1: Int8? = nil
+    @Published var register2: Int8? = nil
+    @Published var value: ChipCadeData? = nil
+
     enum CodingKeys: String, CodingKey {
+        case id
         case type
         case meta
-        case register
+        case register1
+        case register2
         case value
     }
-
-    enum InstructionType: String, Codable {
-        case ldi
-        case push
-        case nop
-    }
-
-    // Encoding
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-
-        // Encode the case type
-        switch self {
-        case .ldi(let meta, let register, let value):
-            try container.encode(InstructionType.ldi, forKey: .type)
-            try container.encodeIfPresent(meta, forKey: .meta)
-            try container.encode(register, forKey: .register)
-            try container.encode(value, forKey: .value)
-        case .push(let meta, let value):
-            try container.encode(InstructionType.push, forKey: .type)
-            try container.encodeIfPresent(meta, forKey: .meta)
-            try container.encode(value, forKey: .value)
-        case .nop(let meta):
-            try container.encode(InstructionType.nop, forKey: .type)
-            try container.encodeIfPresent(meta, forKey: .meta)
-        }
-    }
     
-    // Decoding
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        let type = try container.decode(InstructionType.self, forKey: .type)
+    init(_ type: InstructionType) {
+        id = UUID()
+        self.type = type
         
         switch type {
         case .ldi:
-            let meta = try container.decodeIfPresent(InstrMeta.self, forKey: .meta)
-            let register = try container.decode(Int8.self, forKey: .register)
-            let value = try container.decode(ChipCadeData.self, forKey: .value)
-            self = .ldi(meta, register, value)
-            
-        case .push:
-            let meta = try container.decodeIfPresent(InstrMeta.self, forKey: .meta)
-            let value = try container.decode(ChipCadeData.self, forKey: .value)
-            self = .push(meta, value)
-            
-        case .nop:
-            let meta = try container.decodeIfPresent(InstrMeta.self, forKey: .meta)
-            self = .nop(meta)
+            register1 = 0
+            value = .unsigned16Bit(0)
+        default: break
         }
     }
     
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(type, forKey: .type)
+        try container.encodeIfPresent(meta, forKey: .meta)
+        try container.encode(register1, forKey: .register1)
+        try container.encode(register2, forKey: .register2)
+        try container.encode(value, forKey: .value)
+    }
+    
+    // Decoding
+    required init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        id = try container.decode(UUID.self, forKey: .id)
+        type = try container.decode(InstructionType.self, forKey: .type)  // Correctly decode the enum type
+        meta = try container.decodeIfPresent(InstrMeta.self, forKey: .meta)
+        register1 = try container.decodeIfPresent(Int8.self, forKey: .register1)
+        register2 = try container.decodeIfPresent(Int8.self, forKey: .register2)
+        value = try container.decodeIfPresent(ChipCadeData.self, forKey: .value)
+    }
+    
     func format() -> String {
-        switch self {
-        case .ldi(_, let register, let value):
-            return "LDI \(register) \(value.toString())"
+        switch type {
+        case .ldi:
+            return "LDI \(register1!) \(value!.toString())"
             
-        case .push(_, let value):
-            return "PUSH \(value.toString())"
+        case .push:
+            return "PUSH \(value!.toString())"
             
         case .nop:
             return "NOP"
@@ -87,15 +85,19 @@ enum Instruction: Codable {
     }
     
     func toString() -> String {
-        switch self {
-        case .ldi(_, _, _):
+        switch type {
+        case .ldi:
             return "LDI"
             
-        case .push(_, _):
+        case .push:
             return "PUSH"
             
         case .nop:
             return "NOP"
         }
+    }
+    
+    static func == (lhs: Instruction, rhs: Instruction) -> Bool {
+        return lhs.id == rhs.id
     }
 }

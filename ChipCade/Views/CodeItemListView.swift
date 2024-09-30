@@ -14,7 +14,7 @@ struct CodeItemListView: View {
     @Binding var selectedInstructionIndex: Int?
         
     var body: some View {
-        List(Array(codeItem.codes.enumerated()), id: \.offset) { index, instruction in
+        List(Array(codeItem.codes.enumerated()), id: \.1.id) { index, instruction in
             let offset = String(format: "%04X", index)
             
             HStack {
@@ -33,28 +33,30 @@ struct CodeItemListView: View {
                 .contextMenu {
                     Section(header: Text("Instructions")) {
                         Button("NOP", action: {
-                            codeItem.codes[index] = .nop(nil)
+                            codeItem.codes[index] = Instruction(.nop)
                         })
                     }
                 }
                 
-                switch instruction {
-                case .ldi(let meta, let register, let value):
+                switch instruction.type {
+                case .ldi:
                     HStack {
                         Int8RegisterMenu(
                             selectedRegister: Binding(
-                                get: { register },
+                                get: { instruction.register1! },
                                 set: { newRegister in
-                                    codeItem.codes[index] = .ldi(meta, newRegister, value)
+                                    instruction.register1 = newRegister
+                                    codeItem.codes[index] = instruction
                                 }
                             )
                         )
                         
                         ChipCadeDataTextField(
                             chipCadeData: Binding(
-                                get: { value },
+                                get: { instruction.value! },
                                 set: { newValue in
-                                    codeItem.codes[index] = .ldi(meta, register, newValue)
+                                    instruction.value = newValue
+                                    codeItem.codes[index] = instruction
                                 }
                             )
                         )

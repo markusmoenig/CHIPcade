@@ -29,18 +29,30 @@ struct CodeSectionView: View {
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                         .frame(width: 120)
                     } else {
-                        Text(codeItems[index].name)
-                            .onTapGesture {
-                                selectedCodeItem = codeItems[index]
-                                selectedMemoryItem = nil
+                        Button(action: {
+                            selectedCodeItem = codeItems[index]
+                            selectedMemoryItem = nil
+                            print("\(index)")
+                        }) {
+                            HStack {
+                                Text(codeItems[index].name)
+                                    .foregroundColor(.primary)
+                                    .padding(.leading, 10) // Add padding to the left side
+                                Spacer()
                             }
-                            .padding(.vertical, 4)
-                            .background(selectedCodeItem === codeItems[index] ? Color.blue.opacity(0.2) : Color.clear)
+                            .padding(.vertical, 6) // Vertical padding to increase height
+                            .background(
+                                RoundedRectangle(cornerRadius: 8) // Rounded background
+                                    .fill(selectedCodeItem === codeItems[index] ? Color.accentColor.opacity(0.2) : Color.clear)
+                            )
+                        }
+                        .buttonStyle(PlainButtonStyle()) // No button decoration
                     }
 
                     Spacer()
 
-                    // Rename and delete buttons for both platforms
+                    #if !os(macOS)
+                    // Only show rename and delete buttons on iOS
                     Button(action: {
                         startRenaming(item: codeItems[index])
                     }) {
@@ -56,10 +68,10 @@ struct CodeSectionView: View {
                             .foregroundColor(.red)
                     }
                     .buttonStyle(BorderlessButtonStyle())
+                    #endif
                 }
                 .contextMenu {
-                    // macOS context menu for renaming and deleting
-                    #if os(macOS)
+                    // Context menu for renaming and deleting
                     Button(action: {
                         startRenaming(item: codeItems[index])
                     }) {
@@ -74,25 +86,7 @@ struct CodeSectionView: View {
                         Image(systemName: "trash")
                     }
                     .foregroundColor(.red)
-                    #endif
                 }
-                #if os(iOS)
-                .swipeActions {
-                    // iOS swipe actions for deleting and renaming
-                    Button(role: .destructive) {
-                        deleteItem(at: index)
-                    } label: {
-                        Label("Delete", systemImage: "trash")
-                    }
-                    
-                    Button {
-                        startRenaming(item: memoryItems[index])
-                    } label: {
-                        Label("Rename", systemImage: "pencil")
-                    }
-                    .tint(.blue)
-                }
-                #endif
             }
         }
     }

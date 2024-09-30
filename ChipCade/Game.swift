@@ -29,7 +29,7 @@ public class Game : ObservableObject, Codable
         case registers
         case palette
     }
-    
+        
     init() {
         self.codeItems = [CodeItem(name: "main")]
         self.spriteItems = []
@@ -57,7 +57,7 @@ public class Game : ObservableObject, Codable
         try container.encode(spriteItems, forKey: .spriteItems)
         try container.encode(dataItems, forKey: .dataItems)
         try container.encode(stack, forKey: .stack)
-        try container.encode(registers, forKey: .stack)
+        try container.encode(registers, forKey: .registers)
         try container.encode(palette, forKey: .palette)
     }
     
@@ -67,9 +67,11 @@ public class Game : ObservableObject, Codable
     }
     
     public func execute_instruction(codeItemIndex: Int, instructionIndex: Int) {
-        switch self.codeItems[codeItemIndex].codes[instructionIndex] {
-        case .ldi(_, let register, let value) : registers[Int(register)] = value
-        case .push(_, let value) : self.stack.append(value)
+        let instruction = self.codeItems[codeItemIndex].codes[instructionIndex]
+        
+        switch instruction.type {
+        case .ldi   : registers[Int(instruction.register1!)] = instruction.value!
+        case .push  : stack.append(instruction.value!)
         default: break
         }
     }

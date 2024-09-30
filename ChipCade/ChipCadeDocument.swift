@@ -24,12 +24,18 @@ struct ChipCadeDocument: FileDocument {
     static var readableContentTypes: [UTType] { [.ChipCadeDocument] }
 
     init(configuration: ReadConfiguration) throws {
-        guard let data = configuration.file.regularFileContents,
-              let g = try? JSONDecoder().decode(Game.self, from: data)
-        else {
+        guard let data = configuration.file.regularFileContents else {
+            throw CocoaError(.fileReadNoSuchFile) // Changed to reflect the issue better
+        }
+        
+        // Try decoding the Game object from the file
+        do {
+            let g = try JSONDecoder().decode(Game.self, from: data)
+            game = g
+        } catch {
+            print("Error: Failed to decode Game object. Details: \(error)")
             throw CocoaError(.fileReadCorruptFile)
         }
-        game = g
     }
     
     func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {

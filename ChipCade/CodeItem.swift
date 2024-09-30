@@ -22,7 +22,7 @@ class CodeItem : ObservableObject, Codable, Equatable, Identifiable {
     init(name: String) {
         id = UUID()
         self.name = name
-        codes = [.ldi(nil, 0, ChipCadeData.unsigned16Bit(0)),.nop(nil)]
+        codes = [Instruction(.ldi), Instruction(.nop)]
         currInstr = 0
     }
     
@@ -44,7 +44,7 @@ class CodeItem : ObservableObject, Codable, Equatable, Identifiable {
     
     // Grow the memory by a given amount
     func growMemory(by amount: Int) {
-        codes.append(contentsOf: Array(repeating: .nop(nil), count: amount))
+        //codes.append(contentsOf: Array(repeating: .nop(nil), count: amount))
     }
 
     // Read a value at a specific index
