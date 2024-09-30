@@ -116,48 +116,59 @@ enum ChipCadeData: Codable  {
     // MARK: - Static Function for 32-bit Color to 16-bit Conversion
 
     // Converts a 24-bit color (RGB) into a 16-bit unsigned value (RGB 5-6-5)
-    static func from32BitColor(red: UInt8, green: UInt8, blue: UInt8) -> ChipCadeData {
-        // Ignore the alpha channel and convert 8-bit color channels to 5-6-5 format
-        let red5 = UInt16(red >> 3)
-        let green6 = UInt16(green >> 2)
-        let blue5 = UInt16(blue >> 3)
-        
-        // Pack the 5-6-5 values into a 16-bit unsigned integer
-        let color16Bit = (red5 << 11) | (green6 << 5) | blue5
-        
-        return .unsigned16Bit(color16Bit)
-    }
-
-    // MARK: - Helper Functions for Float Conversion
-
-    // Convert 16-bit float to 32-bit float
     func float16ToFloat32(_ float16: UInt16) -> Float {
-        let sign = (float16 >> 15) & 0x1
-        let exponent = (float16 >> 10) & 0x1F
-        let mantissa = float16 & 0x3FF
+        let sign = UInt32((float16 >> 15) & 0x1)       // Cast to UInt32
+        let exponent = Int((float16 >> 10) & 0x1F)     // Keep as Int for calculation
+        let mantissa = UInt32(float16 & 0x3FF)         // Cast to UInt32
 
-        let float32Exponent = exponent == 0 ? 0 : exponent - 15 + 127
-        let float32Bits = (sign << 31) | (float32Exponent << 23) | (mantissa << 13)
+        var float32Exponent: Int
+        var float32Mantissa: UInt32
 
+        if exponent == 0 {
+            if mantissa == 0 {
+                // Zero (signed zero)
+                float32Exponent = 0
+                float32Mantissa = 0
+            } else {
+                // Subnormal number
+                float32Exponent = 127 - 15 + 1 // Adjust for subnormal exponent
+                float32Mantissa = mantissa << (23 - 10) // Normalize the mantissa
+            }
+        } else if exponent == 0x1F {
+            // Infinity or NaN
+            float32Exponent = 0xFF
+            float32Mantissa = mantissa != 0 ? mantissa << (23 - 10) : 0 // NaN or Infinity
+        } else {
+            // Normalized number
+            float32Exponent = exponent - 15 + 127
+            float32Mantissa = mantissa << (23 - 10)
+        }
+
+        let float32Bits = (sign << 31) | (UInt32(float32Exponent) << 23) | float32Mantissa
         return Float(bitPattern: UInt32(float32Bits))
     }
-
+    
     // Convert 32-bit float to 16-bit float
     func float32ToFloat16(_ value: Float) -> UInt16 {
         let bits = value.bitPattern
-        let sign = (bits >> 31) & 0x1
-        let exponent = (bits >> 23) & 0xFF
+        let sign = UInt16((bits >> 31) & 0x1)  // Cast sign to UInt16
+        let exponent = Int((bits >> 23) & 0xFF) - 127 + 15
         let mantissa = bits & 0x7FFFFF
 
-        var float16Exponent = exponent - 127 + 15
-        if float16Exponent < 0 {
-            float16Exponent = 0
-        } else if float16Exponent > 31 {
-            float16Exponent = 31
+        // Handle subnormal numbers (exponent < -14)
+        if exponent <= 0 {
+            // This is a subnormal number in 16-bit float
+            let float16Bits = UInt16((sign << 15) | UInt16((mantissa | 0x800000) >> (1 - exponent)))
+            return float16Bits
+        } else if exponent >= 31 {
+            // Handle overflow (exponent >= 31 means infinity or NaN in 16-bit float)
+            let float16Bits = UInt16((sign << 15) | UInt16(0x1F << 10))
+            return float16Bits
+        } else {
+            // Normal number
+            let float16Bits = UInt16((sign << 15) | UInt16(exponent << 10) | UInt16(mantissa >> 13))
+            return float16Bits
         }
-
-        let float16Bits = UInt16((sign << 15) | (float16Exponent << 10) | (mantissa >> 13))
-        return float16Bits
     }
 
     // MARK: - Description for Debugging
@@ -176,11 +187,12 @@ enum ChipCadeData: Codable  {
     func toString() -> String {
         switch self {
         case .unsigned16Bit(let unsignedVal):
-            return "\(unsignedVal)"
+            return "\(unsignedVal)U"
         case .signed16Bit(let signedVal):
-            return "\(signedVal)"
+            return "\(signedVal)S"
         case .float16Bit(let float16):
-            return String(format: "0x%04X", float16)
+            let float32 = float16ToFloat32(float16)
+            return String(format: "%.4fF", float32)
         }
     }
 }

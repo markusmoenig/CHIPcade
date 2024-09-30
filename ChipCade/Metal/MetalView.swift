@@ -11,13 +11,7 @@ import MetalKit
 
 public class ChipCadeView       : MTKView
 {
-    enum MetalViewType {
-        case Main, Nodes
-    }
-    
-    var viewType            : MetalViewType = .Main
-
-    var core                : Core!
+    var core                : MetalDraw2D!
 
     var keysDown            : [Float] = []
     
@@ -275,10 +269,10 @@ public class ChipCadeView       : MTKView
 
 #if os(OSX)
 struct MetalView: NSViewRepresentable {
-    var core                : Core!
+    var core                : MetalDraw2D!
     var trackingArea        : NSTrackingArea?
 
-    init(_ core: Core)
+    init(_ core: MetalDraw2D)
     {
         self.core = core
     }

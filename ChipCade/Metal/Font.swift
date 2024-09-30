@@ -37,15 +37,15 @@ class Font
     var uuid        = UUID()
     
     var name        : String
-    var core        : Core
+    var draw        : MetalDraw2D
     
     var atlas       : MTLTexture?
     var bmFont      : BMFont?
 
-    init(name: String, core: Core)
+    init(name: String, draw: MetalDraw2D)
     {
         self.name = name
-        self.core = core
+        self.draw = draw
                 
         atlas = loadTexture( name )
         
@@ -104,7 +104,7 @@ class Font
         
         let options: [MTKTextureLoader.Option : Any] = [.generateMipmaps : mipmaps, .SRGB : sRGB]
         
-        return try? core.textureLoader.newTexture(data: data, options: options)
+        return try? draw.textureLoader.newTexture(data: data, options: options)
     }
     
     func getLineHeight(_ fontScale: Float) -> Float
@@ -124,11 +124,11 @@ class Font
         return nil
     }
     
-    @discardableResult func getTextRect(text: String, scale: Float = 1.0, rectToUse: MMRect? = nil) -> MMRect
+    @discardableResult func getTextRect(text: String, scale: Float = 1.0, rectToUse: MRRect? = nil) -> MRRect
     {
-        var rect : MMRect
+        var rect : MRRect
         if rectToUse == nil {
-            rect = MMRect()
+            rect = MRRect()
         } else {
             rect = rectToUse!
         }

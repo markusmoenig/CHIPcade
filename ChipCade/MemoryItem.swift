@@ -64,5 +64,5 @@ class MemoryItem : ObservableObject, Codable, Equatable, Identifiable {
 }
 
 enum MemoryType: String, Codable {
-    case code, sprite, data, text
+    case code, sprite, data
 }

@@ -10,7 +10,6 @@ import SwiftUI
 struct ContentView: View {
     @Binding var document: ChipCadeDocument
     
-    // The selected code and memory item
     @State private var selectedCodeItem: CodeItem? = nil
     @State private var selectedMemoryItem: MemoryItem? = nil
     
@@ -23,103 +22,98 @@ struct ContentView: View {
         NavigationView {
             List {
                 // Code Section
-                CodeSectionView(title: "Code", codeItems: $document.game.codeItems, selectedCodeItem: $selectedCodeItem)
+                CodeSectionView(title: "Code", codeItems: $document.game.codeItems, selectedCodeItem: $selectedCodeItem, selectedMemoryItem: $selectedMemoryItem)
                 
                 // Sprite Section
-                MemorySectionView(title: "Sprites", memoryItems: $document.game.spriteItems, selectedMemoryItem: $selectedMemoryItem)
+                MemorySectionView(title: "Sprites", memoryItems: $document.game.spriteItems, selectedMemoryItem: $selectedMemoryItem, selectedCodeItem: $selectedCodeItem)
                 
                 // Data Section
-                MemorySectionView(title: "Data", memoryItems: $document.game.dataItems, selectedMemoryItem: $selectedMemoryItem)
+                MemorySectionView(title: "Data", memoryItems: $document.game.dataItems, selectedMemoryItem: $selectedMemoryItem, selectedCodeItem: $selectedCodeItem)
                 
-                // Text Section
-                MemorySectionView(title: "Text", memoryItems: $document.game.textItems, selectedMemoryItem: $selectedMemoryItem)
+                Button(action: {
+                    selectedCodeItem = nil
+                    selectedMemoryItem = nil
+                }) {
+                    Text("Palette")
+                }
             }
             .listStyle(SidebarListStyle())
             .frame(minWidth: 200, maxWidth: 250)
-            
-            // Show the opcode editor when an instruction is selected
-//            if let selectedInstructionIndex = instructions.firstIndex(where: { $0.id == selectedInstructionID }),
-//               let selectedMemoryItemIndex = document.game.codeItems.firstIndex(where: { $0.id == selectedMemoryItem?.id }) {
-//                
-//                let instructionStartIndex = selectedMemoryItemIndex * 4  // Adjust as needed for your memory layout
-//                
-//                Divider()
-//                OpcodeEditorView(selectedInstruction: $instructions[selectedInstructionIndex],
-//                                 memoryItem: $document.game.codeItems[selectedMemoryItemIndex],
-//                                 instructionIndex: instructionStartIndex)
-//                    .padding()
-//            } else {
-//                Spacer()
-//                    .frame(minWidth: 1280 / 2)
-//            }
-
-//            Spacer()
-//                .frame(minWidth: 1280 / 2)
   
-            MetalView(document.core)
-                .frame(minWidth: 1280 / 2, maxHeight: 720 / 2)
-
-
-            VStack {
-                if let codeItem = selectedCodeItem {
-                    List(Array(codeItem.codes.enumerated()), id: \.offset) { index, instruction in
-                        let offset = String(format: "%04X", index)
+            HStack {
+                VStack {
+                    
+                    Spacer()
+                    
+                    GeometryReader { geometry in
+                        let availableWidth = geometry.size.width
+                        let availableHeight = geometry.size.height
                         
-                        HStack {
-                            // Display the memory offset in hex format
-                            Text(String(offset))
-                                .font(.system(.body, design: .monospaced))
-                                .frame(width: 60, alignment: .leading) // Fixed width for alignment
-                            
-                            Button(action: {
-                                selectedInstruction = instruction
-                                selectedInstructionIndex = index
-                            }) {
-                                Text(instruction.format())
-                                    .frame(minWidth: 100)
-                            }
-                            
-                            /*
-                            
-                            // Show the instruction and make it selectable
-                            Text(instruction.format())
-                                .padding(.leading, 5)
-                                .onTapGesture {
-                                    selectedInstruction = instruction
-                                    selectedInstructionIndex = index
-                                }
-                                .background(selectedInstructionIndex == index ? Color.blue.opacity(0.3) : Color.clear) // Highlight selected item
-                                .cornerRadius(5)
-                             */
-                        }
+                        // Calculate the width and height while maintaining the 16:9 aspect ratio
+                        let aspectRatio: CGFloat = 16.0 / 9.0
+                        let width = min(availableWidth, availableHeight * aspectRatio)
+                        let height = width / aspectRatio
+                        
+                        MetalView(document.draw2D)
+                            .frame(width: width, height: height)
+                            .background(Color.black) // Optional background color for contrast
                     }
-                    .listStyle(PlainListStyle())  // Keep the list style simple and clean
-//                    .onChange(of: selectedInstruction) {
-//                        if let updatedInstruction = selectedInstruction {
-//                            if let index = instructions.firstIndex(where: { $0.id == updatedInstruction.id }) {
-//                                instructions[index] = updatedInstruction  // Update the instruction in the array
-//                            }
-//                        }
-//                    }
-                } else
-                if let memoryItem = selectedMemoryItem {
-                    MemoryGridView(memoryItem: memoryItem)
-                } else {
-                    Text("No memory item selected")
-                        .font(.headline)
-                        .foregroundColor(.gray)
-                        .padding()
+                    .aspectRatio(16.0 / 9.0, contentMode: .fit) // Enforces 16:9 ratio
+                    
+                    /*
+                     GeometryReader { geometry in
+                     let availableWidth = geometry.size.width
+                     let availableHeight = geometry.size.height
+                     
+                     // Calculate dimensions based on vertical space
+                     let aspectRatio: CGFloat = 16.0 / 9.0
+                     let heightBasedWidth = availableHeight * aspectRatio
+                     
+                     // Use height-based width if it fits, otherwise use width-based height
+                     let width = min(availableWidth, heightBasedWidth)
+                     let height = width / aspectRatio
+                     
+                     MetalView(document.draw2D)
+                     .frame(width: width, height: height)
+                     .background(Color.black)
+                     .cornerRadius(10)
+                     }*/
+                    
+                    Spacer()
+                    Divider()
+                    
+                    CPUView(game: document.game)
+                        .frame(maxHeight: 200) // Keep the CPU view smaller in height
                 }
                 
-                Spacer()
                 Divider()
+                
+                VStack {
+                    if let codeItem = selectedCodeItem {
+                        CodeItemListView(
+                            codeItem: codeItem,
+                            selectedInstruction: $selectedInstruction,
+                            selectedInstructionIndex: $selectedInstructionIndex
+                        )
+                    } else
+                    if let memoryItem = selectedMemoryItem {
+                        MemoryGridView(memoryItem: memoryItem)
+                    } else {
+                        PaletteView(game: document.game)
+                            .padding(0)
+                    }
 
-                StackView(game: document.game)
-                    .frame(height: 150)
+                    
+                    Spacer()
+                    Divider()
+                    
+                    StackView(game: document.game)
+                        .frame(height: 150)
+                }
+                .frame(maxWidth: 350)
             }
-            
-            
         }
+        
         .navigationTitle("Memory Items")
         .toolbar {
             // Toolbar button for adding a new MemoryItem
@@ -154,256 +148,6 @@ struct ContentView: View {
     }
 }
 
-struct CodeSectionView: View {
-    let title: String
-    @Binding var codeItems: [CodeItem]
-    @Binding var selectedCodeItem: CodeItem?
-
-    @State private var isRenaming: Bool = false
-    @State private var newName: String = ""
-
-    var body: some View {
-        Section(header: Text(title).font(.headline)) {
-            ForEach(codeItems.indices, id: \.self) { index in
-                HStack {
-                    if isRenaming && selectedCodeItem === codeItems[index] {
-                        TextField("New Name", text: $newName, onCommit: {
-                            codeItems[index].name = newName
-                            isRenaming = false
-                        })
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .frame(width: 120)
-                    } else {
-                        Text(codeItems[index].name)
-                            .onTapGesture {
-                                selectedCodeItem = codeItems[index]
-                            }
-                            .padding(.vertical, 4)
-                            .background(selectedCodeItem === codeItems[index] ? Color.blue.opacity(0.2) : Color.clear)
-                    }
-
-                    Spacer()
-
-                    // Rename and delete buttons for both platforms
-                    Button(action: {
-                        startRenaming(item: codeItems[index])
-                    }) {
-                        Image(systemName: "pencil")
-                    }
-                    .buttonStyle(BorderlessButtonStyle())
-                    .padding(.trailing, 8)
-
-                    Button(action: {
-                        deleteItem(at: index)
-                    }) {
-                        Image(systemName: "trash")
-                            .foregroundColor(.red)
-                    }
-                    .buttonStyle(BorderlessButtonStyle())
-                }
-                .contextMenu {
-                    // macOS context menu for renaming and deleting
-                    #if os(macOS)
-                    Button(action: {
-                        startRenaming(item: codeItems[index])
-                    }) {
-                        Text("Rename")
-                        Image(systemName: "pencil")
-                    }
-
-                    Button(action: {
-                        deleteItem(at: index)
-                    }) {
-                        Text("Delete")
-                        Image(systemName: "trash")
-                    }
-                    .foregroundColor(.red)
-                    #endif
-                }
-                #if os(iOS)
-                .swipeActions {
-                    // iOS swipe actions for deleting and renaming
-                    Button(role: .destructive) {
-                        deleteItem(at: index)
-                    } label: {
-                        Label("Delete", systemImage: "trash")
-                    }
-                    
-                    Button {
-                        startRenaming(item: memoryItems[index])
-                    } label: {
-                        Label("Rename", systemImage: "pencil")
-                    }
-                    .tint(.blue)
-                }
-                #endif
-            }
-        }
-    }
-
-    private func startRenaming(item: CodeItem) {
-        newName = item.name
-        selectedCodeItem = item
-        isRenaming = true
-    }
-
-    private func deleteItem(at index: Int) {
-        codeItems.remove(at: index)
-        selectedCodeItem = nil
-    }
-}
-
-struct MemorySectionView: View {
-    let title: String
-    @Binding var memoryItems: [MemoryItem]
-    @Binding var selectedMemoryItem: MemoryItem?
-
-    @State private var isRenaming: Bool = false
-    @State private var newName: String = ""
-
-    var body: some View {
-        Section(header: Text(title).font(.headline)) {
-            ForEach(memoryItems.indices, id: \.self) { index in
-                HStack {
-                    if isRenaming && selectedMemoryItem === memoryItems[index] {
-                        TextField("New Name", text: $newName, onCommit: {
-                            memoryItems[index].name = newName
-                            isRenaming = false
-                        })
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .frame(width: 120)
-                    } else {
-                        Text(memoryItems[index].name)
-                            .onTapGesture {
-                                selectedMemoryItem = memoryItems[index]
-                            }
-                            .padding(.vertical, 4)
-                            .background(selectedMemoryItem === memoryItems[index] ? Color.blue.opacity(0.2) : Color.clear)
-                    }
-
-                    Spacer()
-
-                    // Rename and delete buttons for both platforms
-                    Button(action: {
-                        startRenaming(item: memoryItems[index])
-                    }) {
-                        Image(systemName: "pencil")
-                    }
-                    .buttonStyle(BorderlessButtonStyle())
-                    .padding(.trailing, 8)
-
-                    Button(action: {
-                        deleteItem(at: index)
-                    }) {
-                        Image(systemName: "trash")
-                            .foregroundColor(.red)
-                    }
-                    .buttonStyle(BorderlessButtonStyle())
-                }
-                .contextMenu {
-                    // macOS context menu for renaming and deleting
-                    #if os(macOS)
-                    Button(action: {
-                        startRenaming(item: memoryItems[index])
-                    }) {
-                        Text("Rename")
-                        Image(systemName: "pencil")
-                    }
-
-                    Button(action: {
-                        deleteItem(at: index)
-                    }) {
-                        Text("Delete")
-                        Image(systemName: "trash")
-                    }
-                    .foregroundColor(.red)
-                    #endif
-                }
-                #if os(iOS)
-                .swipeActions {
-                    // iOS swipe actions for deleting and renaming
-                    Button(role: .destructive) {
-                        deleteItem(at: index)
-                    } label: {
-                        Label("Delete", systemImage: "trash")
-                    }
-                    
-                    Button {
-                        startRenaming(item: memoryItems[index])
-                    } label: {
-                        Label("Rename", systemImage: "pencil")
-                    }
-                    .tint(.blue)
-                }
-                #endif
-            }
-        }
-    }
-
-    private func startRenaming(item: MemoryItem) {
-        newName = item.name
-        selectedMemoryItem = item
-        isRenaming = true
-    }
-
-    private func deleteItem(at index: Int) {
-        memoryItems.remove(at: index)
-        selectedMemoryItem = nil
-    }
-}
-
-// StackView to display the stack with offsets
-struct StackView: View {
-    @ObservedObject var game : Game
-    
-    var body: some View {
-        VStack {
-            Text("Stack")
-                .font(.headline)
-                .foregroundColor(.gray)
-
-            List(Array(game.stack.enumerated()), id: \.offset) { index, data in
-                HStack {
-
-                    Text(String(format: "%04X", index))
-                        .font(.system(.body, design: .monospaced))
-                        .frame(width: 60, alignment: .leading)
-                    
-                    // Display the name or value of the MemoryItem
-                    Text(game.stack[index].description())
-                        .font(.system(.body, design: .monospaced))
-                        .padding(.leading, 5)
-                }
-            }
-            .frame(maxHeight: 150, alignment: .bottom)
-        }
-    }
-}
-
-struct MemoryItemView: View {
-    @Binding var memoryItem: MemoryItem
-    @State private var isEditingName = false
-    
-    var body: some View {
-        HStack {
-            if isEditingName {
-                TextField("Name", text: $memoryItem.name, onCommit: {
-                    isEditingName = false
-                })
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-            } else {
-                Text(memoryItem.name)
-                    .onTapGesture {
-                        isEditingName = true
-                    }
-            }
-            //Spacer()
-//            Text("Start: \(memoryItem.startAddress)")
-            Text("Length: \(memoryItem.memory.count)")
-        }
-    }
-}
-
 struct AddMemoryItemView: View {
     @ObservedObject var game: Game
     @Binding var selectedMemoryItem: MemoryItem?
@@ -429,7 +173,6 @@ struct AddMemoryItemView: View {
                     Text("Code").tag(MemoryType.code)
                     Text("Sprite").tag(MemoryType.sprite)
                     Text("Data").tag(MemoryType.data)
-                    Text("Text").tag(MemoryType.text)
                 }
                 .pickerStyle(SegmentedPickerStyle())
                 .padding(.bottom, 10)
@@ -466,8 +209,6 @@ struct AddMemoryItemView: View {
             game.spriteItems.append(newItem)
         case .data:
             game.dataItems.append(newItem)
-        case .text:
-            game.textItems.append(newItem)
         }
 
         // Automatically select the new memory item

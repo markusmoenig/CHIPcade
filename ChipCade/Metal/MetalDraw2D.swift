@@ -57,18 +57,22 @@ class MetalDraw2D
     
     var primitiveType   : MTLPrimitiveType = .triangle
     
+    var frameworkId     : String? = nil
+
     var textures        : [Int:MTLTexture] = [:]
     var textureIdCount  : Int = 1
     
     var target          : Int? = nil
     var texture         : Int? = nil
 
-//    var fonts           : [String:Font] = [:]
-//    var font            : Font! = nil
+    var textureLoader   : MTKTextureLoader!
+
+    var fonts           : [String:Font] = [:]
+    var font            : Font! = nil
 
     public init(_ frameworkId: String? = nil)
     {
-        //self.frameworkId = frameworkId
+        self.frameworkId = frameworkId
         
         viewportSize = vector_uint2( 0, 0 )
         
@@ -92,8 +96,8 @@ class MetalDraw2D
         viewportSize = vector_uint2( UInt32(metalView.bounds.width), UInt32(metalView.bounds.height) )
         commandQueue = device.makeCommandQueue()
         
-        //scaleFactor = metalView.game.scaleFactor
-                
+        textureLoader = MTKTextureLoader(device: device!)
+                    
         if let defaultLibrary = device.makeDefaultLibrary() {
 
             pipelineStateDesc = MTLRenderPipelineDescriptor()
@@ -135,13 +139,24 @@ class MetalDraw2D
         
         // Init the SDF fonts
         
-//        var font = Font(name: "OpenSans", game: metalView.game)
-//        fonts["opensans"] = font
-//        
-//        font = Font(name: "Square", game: metalView.game)
-//        fonts["square"] = font
-//        
-//        self.font = font
+        var font = Font(name: "OpenSans", draw: self)
+        fonts["opensans"] = font
+        
+        font = Font(name: "Square", draw: self)
+        fonts["square"] = font
+        
+        self.font = font
+    }
+    
+    public func draw()
+    {
+        encodeStart()
+        Clear(color: float4(0.125, 0.129, 0.137, 1))
+        startShape(type: .triangle)
+        drawRect(Rectangle(x: 10, y: 40, width: 200, height: 200), float4(1, 0, 1, 1), 0.0)
+        endShape()
+        drawText(position: float2(100, 100), text: "CHIPCADE", size: 30)
+        encodeEnd()
     }
     
     @discardableResult func encodeStart(_ clearColor: float4 = float4(0.125, 0.129, 0.137, 1)) -> MTLRenderCommandEncoder?
@@ -162,7 +177,7 @@ class MetalDraw2D
 //        renderPassDescriptor!.colorAttachments[0].loadAction = .clear
 //        renderPassDescriptor!.colorAttachments[0].clearColor = MTLClearColor( red: Double(clearColor.x), green: Double(clearColor.y), blue: Double(clearColor.z), alpha: Double(clearColor.w))
 //
-        renderPassDescriptor!.colorAttachments[0].loadAction = .load
+//        renderPassDescriptor!.colorAttachments[0].loadAction = .load
         
         if renderPassDescriptor != nil {
             renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor! )
@@ -301,7 +316,21 @@ class MetalDraw2D
         vertexCount = 0
     }
     
-    /*
+    func Clear(color: float4) {
+            
+        let size = viewSize
+        
+        startShape(type: .triangle)
+        addVertex(float2(size.x, size.y), float2(1.0, 0.0), color)
+        addVertex(float2(0, size.y), float2(0.0, 0.0), color)
+        addVertex(float2(0, 0), float2(0.0, 1.0), color)
+        
+        addVertex(float2(size.x, size.y), float2(1.0, 0.0), color)
+        addVertex(float2(0, 0), float2(0.0, 1.0), color)
+        addVertex(float2(size.x, 0), float2(1.0, 1.0), color)
+        endShape()
+    }
+    
     /// Draws the given text
     func drawText(position: float2, text: String, size: Float, color: float4 = float4(1,1,1,1))
     {
@@ -395,7 +424,7 @@ class MetalDraw2D
             rc.y = font.bmFont!.common.lineHeight
         }
         return rc
-    }*/
+    }
     
     /// Updates the view
     func update() {
@@ -465,12 +494,12 @@ class MetalDraw2D
         
         let options: [MTKTextureLoader.Option : Any] = [.generateMipmaps : mipmaps, .SRGB : sRGB]
         
-//        if let texture = try? metalView.game.textureLoader.newTexture(data: data, options: options) {
-//            let id = textureIdCount
-//            textures[id] = texture
-//            textureIdCount += 1
-//            return id
-//        }
+        if let texture = try? self.textureLoader.newTexture(data: data, options: options) {
+            let id = textureIdCount
+            textures[id] = texture
+            textureIdCount += 1
+            return id
+        }
         return nil
     }
     
