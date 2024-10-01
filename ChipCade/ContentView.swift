@@ -57,8 +57,9 @@ struct ContentView: View {
             .listStyle(SidebarListStyle())
             .frame(minWidth: 200, maxWidth: 250)
   
-            HStack {
-                VStack {
+            HStack(spacing: 0) {
+                
+                VStack(spacing: 0) {
                     
                     Spacer()
                     
@@ -69,53 +70,19 @@ struct ContentView: View {
                             selectedInstructionIndex: $selectedInstructionIndex
                         )
                     } else {
-                        GeometryReader { geometry in
-                            let availableWidth = geometry.size.width
-                            let availableHeight = geometry.size.height
-                            
-                            // Calculate the width and height while maintaining the 16:9 aspect ratio
-                            let aspectRatio: CGFloat = 16.0 / 9.0
-                            let width = min(availableWidth, availableHeight * aspectRatio)
-                            let height = width / aspectRatio
-                            
-                            MetalView(document.game, .Preview)
-                                .frame(width: width, height: height)
-                                .background(Color.black) // Optional background color for contrast
-                        }
-                        .aspectRatio(16.0 / 9.0, contentMode: .fit) // Enforces 16:9 ratio
+                        MetalView(document.game, .Preview)
                     }
-                    /*
-                     GeometryReader { geometry in
-                     let availableWidth = geometry.size.width
-                     let availableHeight = geometry.size.height
-                     
-                     // Calculate dimensions based on vertical space
-                     let aspectRatio: CGFloat = 16.0 / 9.0
-                     let heightBasedWidth = availableHeight * aspectRatio
-                     
-                     // Use height-based width if it fits, otherwise use width-based height
-                     let width = min(availableWidth, heightBasedWidth)
-                     let height = width / aspectRatio
-                     
-                     MetalView(document.draw2D)
-                     .frame(width: width, height: height)
-                     .background(Color.black)
-                     .cornerRadius(10)
-                     }*/
                     
                     Spacer()
                     Divider()
-                    
-//                    CPUView(game: document.game)
-//                        .frame(maxHeight: 200)
-                    
+
                     MetalView(document.game, .CPU)
                         .frame(maxHeight: 200)
                 }
                 
                 Divider()
                 
-                VStack {
+                VStack(spacing: 0) {
                     if let codeItem = selectedCodeItem {
                         if !previewIsLeftSide {
                             CodeItemListView(
@@ -124,20 +91,7 @@ struct ContentView: View {
                                 selectedInstructionIndex: $selectedInstructionIndex
                             )
                         } else {
-                            GeometryReader { geometry in
-                                let availableWidth = geometry.size.width
-                                let availableHeight = geometry.size.height
-                                
-                                // Calculate the width and height while maintaining the 16:9 aspect ratio
-                                let aspectRatio: CGFloat = 16.0 / 9.0
-                                let width = min(availableWidth, availableHeight * aspectRatio)
-                                let height = width / aspectRatio
-                                
-                                MetalView(document.game, .Preview)
-                                    .frame(width: width, height: height)
-                                    .background(Color.black) // Optional background color for contrast
-                            }
-                            .aspectRatio(16.0 / 9.0, contentMode: .fit) // Enforces 16:9 ratio
+                            MetalView(document.game, .Preview)
                         }
                     } else
                     if let memoryItem = selectedMemoryItem {
