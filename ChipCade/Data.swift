@@ -100,6 +100,20 @@ enum ChipCadeData: Codable  {
         }
     }
     
+    // Convert to 32-bit float
+    func toFloat32Bit() -> Float {
+        switch self {
+        case .unsigned16Bit(let unsignedVal):
+            return Float(unsignedVal)
+
+        case .signed16Bit(let signedVal):
+            return Float(signedVal)
+
+        case .float16Bit(let float16):
+            return float16ToFloat32(float16)
+        }
+    }
+    
     // Converts to UInt16, if possible
     func toUInt16() -> UInt16? {
         switch self {
@@ -192,7 +206,7 @@ enum ChipCadeData: Codable  {
             return "\(signedVal)S"
         case .float16Bit(let float16):
             let float32 = float16ToFloat32(float16)
-            return String(format: "%.4fF", float32)
+            return String(format: "%.3fF", float32)
         }
     }
 }

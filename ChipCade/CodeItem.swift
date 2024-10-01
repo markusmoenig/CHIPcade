@@ -13,7 +13,6 @@ class CodeItem : ObservableObject, Codable, Equatable, Identifiable {
 
     @Published var codes: [Instruction]
     @Published var name: String
-    @Published var currInstr: Int
 
     private enum CodingKeys: String, CodingKey {
         case id, codes, name, currInstr
@@ -23,7 +22,6 @@ class CodeItem : ObservableObject, Codable, Equatable, Identifiable {
         id = UUID()
         self.name = name
         codes = [Instruction(.ldi), Instruction(.nop)]
-        currInstr = 0
     }
     
     required public init(from decoder: Decoder) throws {
@@ -31,7 +29,6 @@ class CodeItem : ObservableObject, Codable, Equatable, Identifiable {
         id = try container.decode(UUID.self, forKey: .id)
         codes = try container.decode([Instruction].self, forKey: .codes)
         name = try container.decode(String.self, forKey: .name)
-        currInstr = try container.decode(Int.self, forKey: .currInstr)
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -39,7 +36,6 @@ class CodeItem : ObservableObject, Codable, Equatable, Identifiable {
         try container.encode(id, forKey: .id)
         try container.encode(codes, forKey: .codes)
         try container.encode(name, forKey: .name)
-        try container.encode(currInstr, forKey: .currInstr)
     }
     
     // Grow the memory by a given amount
@@ -55,6 +51,37 @@ class CodeItem : ObservableObject, Codable, Equatable, Identifiable {
     // Write a value at a specific index
     func writeCode(at index: Int, value: Instruction) {
         codes[index] = value
+    }
+    
+    // Duplicate an instruction at a given index
+    func duplicate(at index: Int) {
+        guard index >= 0 && index < codes.count else { return }
+        let clonedInstruction = codes[index].clone()
+        codes.insert(clonedInstruction, at: index + 1)
+    }
+
+    // Delete an instruction at a given index
+    func delete(at index: Int) {
+        guard index >= 0 && index < codes.count else { return }
+        codes.remove(at: index)
+    }
+    
+    // Insert a new instruction before a given index
+    func insertBefore(at index: Int, instruction: Instruction) {
+        if codes.isEmpty {
+            codes.insert(instruction, at: 0)
+        } else if index >= 0 && index <= codes.count {
+            codes.insert(instruction, at: index)
+        }
+    }
+
+    // Insert a new instruction after a given index
+    func insertAfter(at index: Int, instruction: Instruction) {
+        if codes.isEmpty {
+            codes.insert(instruction, at: 0)
+        } else if index >= 0 && index < codes.count {
+            codes.insert(instruction, at: index + 1)
+        }
     }
     
     static func == (lhs: CodeItem, rhs: CodeItem) -> Bool {

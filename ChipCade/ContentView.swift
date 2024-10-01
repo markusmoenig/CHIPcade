@@ -18,6 +18,8 @@ struct ContentView: View {
 
     @State private var showingAddMemoryItemPopover = false
 
+    @State private var previewIsLeftSide = false
+
     var body: some View {
         NavigationView {
             List {
@@ -60,21 +62,28 @@ struct ContentView: View {
                     
                     Spacer()
                     
-                    GeometryReader { geometry in
-                        let availableWidth = geometry.size.width
-                        let availableHeight = geometry.size.height
-                        
-                        // Calculate the width and height while maintaining the 16:9 aspect ratio
-                        let aspectRatio: CGFloat = 16.0 / 9.0
-                        let width = min(availableWidth, availableHeight * aspectRatio)
-                        let height = width / aspectRatio
-                        
-                        MetalView(document.game, .Preview)
-                            .frame(width: width, height: height)
-                            .background(Color.black) // Optional background color for contrast
+                    if let codeItem = selectedCodeItem, previewIsLeftSide == true {
+                        CodeItemListView(
+                            codeItem: codeItem,
+                            selectedInstruction: $selectedInstruction,
+                            selectedInstructionIndex: $selectedInstructionIndex
+                        )
+                    } else {
+                        GeometryReader { geometry in
+                            let availableWidth = geometry.size.width
+                            let availableHeight = geometry.size.height
+                            
+                            // Calculate the width and height while maintaining the 16:9 aspect ratio
+                            let aspectRatio: CGFloat = 16.0 / 9.0
+                            let width = min(availableWidth, availableHeight * aspectRatio)
+                            let height = width / aspectRatio
+                            
+                            MetalView(document.game, .Preview)
+                                .frame(width: width, height: height)
+                                .background(Color.black) // Optional background color for contrast
+                        }
+                        .aspectRatio(16.0 / 9.0, contentMode: .fit) // Enforces 16:9 ratio
                     }
-                    .aspectRatio(16.0 / 9.0, contentMode: .fit) // Enforces 16:9 ratio
-                    
                     /*
                      GeometryReader { geometry in
                      let availableWidth = geometry.size.width
@@ -108,11 +117,28 @@ struct ContentView: View {
                 
                 VStack {
                     if let codeItem = selectedCodeItem {
-                        CodeItemListView(
-                            codeItem: codeItem,
-                            selectedInstruction: $selectedInstruction,
-                            selectedInstructionIndex: $selectedInstructionIndex
-                        )
+                        if !previewIsLeftSide {
+                            CodeItemListView(
+                                codeItem: codeItem,
+                                selectedInstruction: $selectedInstruction,
+                                selectedInstructionIndex: $selectedInstructionIndex
+                            )
+                        } else {
+                            GeometryReader { geometry in
+                                let availableWidth = geometry.size.width
+                                let availableHeight = geometry.size.height
+                                
+                                // Calculate the width and height while maintaining the 16:9 aspect ratio
+                                let aspectRatio: CGFloat = 16.0 / 9.0
+                                let width = min(availableWidth, availableHeight * aspectRatio)
+                                let height = width / aspectRatio
+                                
+                                MetalView(document.game, .Preview)
+                                    .frame(width: width, height: height)
+                                    .background(Color.black) // Optional background color for contrast
+                            }
+                            .aspectRatio(16.0 / 9.0, contentMode: .fit) // Enforces 16:9 ratio
+                        }
                     } else
                     if let memoryItem = selectedMemoryItem {
                         MemoryGridView(memoryItem: memoryItem)
@@ -134,16 +160,38 @@ struct ContentView: View {
         
         .navigationTitle("Memory Items")
         .toolbar {
-            // Toolbar button for adding a new MemoryItem
-            ToolbarItem(placement: .primaryAction) {
+            
+            ToolbarItemGroup(placement: .primaryAction) {
+                
                 Button(action: {
                     document.game.execute()
                 }) {
                     Label("Play", systemImage: "play")
                 }
-            }
-            // Toolbar button for adding a new MemoryItem
-            ToolbarItem(placement: .primaryAction) {
+                
+                Button(action: {
+                    document.game.execute_instruction()
+                    document.game.currInstructionIndex += 1
+                    selectedInstructionIndex = document.game.currInstructionIndex
+                    document.game.cpuRender.update()
+                }) {
+                    Label("Step", systemImage: "playpause")
+                }
+                
+                Spacer()
+                
+                Button(action: {
+                    previewIsLeftSide.toggle()
+                }) {
+                    Label("Swap", systemImage: "rectangle.2.swap")
+                }
+                .keyboardShortcut("R")
+
+                editMenu
+                
+                Spacer()
+
+                // Toolbar button for adding a new MemoryItem
                 Button(action: {
                     showingAddMemoryItemPopover.toggle() // Toggle popover visibility
                 }) {
@@ -157,15 +205,96 @@ struct ContentView: View {
         .onAppear {
             selectedCodeItem = document.game.codeItems[0]
         }
-        // React to changes in selectedMemoryItem to decode instructions
-//        .onChange(of: selectedMemoryItem) {
-//            if let memoryItem = selectedMemoryItem, memoryItem.type == .code {
-//                // Decode instructions every time a new memory item is selected
-//                instructions = Instruction.decodeInstructions(from: memoryItem.memory)
-//                selectedInstructionID = nil
-//                selectedInstruction = nil
-//            }
-//        }
+        .onChange(of: selectedInstructionIndex) {
+            if let selectedInstructionIndex = selectedInstructionIndex {
+                document.game.currInstructionIndex = selectedInstructionIndex
+            }
+            document.game.cpuRender.update()
+        }
+        .onChange(of: selectedCodeItem) {
+            document.game.currInstructionIndex = 0
+            selectedInstructionIndex = 0
+            document.game.selectionState = .code
+        }
+    }
+    
+    var editMenu : some View {
+        Menu {
+            Section(header: Text("Instructions")) {
+                
+                
+                Menu("Change To") {
+                    Menu("Register") {
+                        Button("LDI", action: {
+                            if let selectedCodeItem = selectedCodeItem, let selectedInstructionIndex = selectedInstructionIndex {
+                                selectedCodeItem.writeCode(at: selectedInstructionIndex, value: Instruction(.ldi))
+                            }
+                        })
+                    }
+                    
+                    Menu("GCP") {
+                        Button("RECT", action: {
+                            if let selectedCodeItem = selectedCodeItem, let selectedInstructionIndex = selectedInstructionIndex {
+                                selectedCodeItem.writeCode(at: selectedInstructionIndex, value: Instruction(.rect))
+                            }
+                        })
+                    }
+                    
+                    Button("NOP", action: {
+                        if let selectedCodeItem = selectedCodeItem, let selectedInstructionIndex = selectedInstructionIndex {
+                            selectedCodeItem.writeCode(at: selectedInstructionIndex, value: Instruction(.nop))
+                        }
+                    })
+                    
+                }
+                
+                Menu("Insert NOP") {
+                    Button("Before", action: {
+                        if let selectedCodeItem = selectedCodeItem {
+                            if let selectedInstructionIndex = selectedInstructionIndex {
+                                let nopInstruction = Instruction(.nop)
+                                selectedCodeItem.insertBefore(at: selectedInstructionIndex, instruction: nopInstruction)
+                            }
+                        }
+                    })
+                    .keyboardShortcut("I", modifiers: [.shift])
+                    
+                    Button("After", action: {
+                        if let selectedCodeItem = selectedCodeItem {
+                            if let selectedInstructionIndex = selectedInstructionIndex {
+                                let nopInstruction = Instruction(.nop)
+                                selectedCodeItem.insertAfter(at: selectedInstructionIndex, instruction: nopInstruction)
+                            }
+                        }
+                    })
+                    .keyboardShortcut("I")
+                }
+                
+                Button("Duplicate", action: {
+                    if let selectedCodeItem = selectedCodeItem {
+                        if let selectedInstructionIndex = selectedInstructionIndex {
+                            selectedCodeItem.duplicate(at: selectedInstructionIndex)
+                        }
+                    }
+                })
+                .keyboardShortcut("D")
+                
+                Divider()
+                
+                Button("Delete", action: {
+                    if let selectedCodeItem = selectedCodeItem {
+                        if let selectedInstructionIndex = selectedInstructionIndex {
+                            selectedCodeItem.delete(at: selectedInstructionIndex)
+                        }
+                    }
+                })
+                .keyboardShortcut("X")
+            }
+        }
+        label: {
+            Label("Edit", systemImage: "pencil")
+            //Text("\(document.core.project!.size.x) x \(document.core.project!.size.y)")
+        }
     }
 }
 

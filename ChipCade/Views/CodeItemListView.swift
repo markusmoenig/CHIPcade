@@ -21,7 +21,10 @@ struct CodeItemListView: View {
                 Text(offset)
                     .font(.system(.body, design: .monospaced))
                     .frame(width: 50, alignment: .leading)
-                    .foregroundStyle( index == codeItem.currInstr ? .primary : .secondary)
+                    .foregroundStyle( index == selectedInstructionIndex ? .primary : .secondary)
+                    .onTapGesture {
+                        selectedInstructionIndex = index
+                    }
                 
                 Button(action: {
                     selectedInstruction = instruction
@@ -31,11 +34,25 @@ struct CodeItemListView: View {
                         .frame(minWidth: 60)
                 }
                 .contextMenu {
-                    Section(header: Text("Instructions")) {
-                        Button("NOP", action: {
-                            codeItem.codes[index] = Instruction(.nop)
+                    Section(header: Text("Register")) {
+                        Button("LDI", action: {
+                            codeItem.codes[index] = Instruction(.ldi)
                         })
                     }
+                    Section(header: Text("GCP")) {
+                        Button("RECT", action: {
+                            codeItem.codes[index] = Instruction(.rect)
+                        })
+                    }
+//                    Section(header: Text("Instructions")) {
+//                        Button("NOP", action: {
+//                            codeItem.codes[index] = Instruction(.nop)
+//                        })
+//                    }
+                    
+                    Button("NOP", action: {
+                        codeItem.codes[index] = Instruction(.nop)
+                    })
                 }
                 
                 switch instruction.type {

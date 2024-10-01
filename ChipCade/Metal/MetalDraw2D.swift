@@ -145,18 +145,18 @@ class MetalDraw2D
         var font = Font(name: "OpenSans", draw: self)
         fonts["opensans"] = font
         
+        self.font = font
+
         font = Font(name: "Square", draw: self)
         fonts["square"] = font
-        
-        self.font = font
     }
     
     public func draw()
     {
         encodeStart()
-        Clear(color: float4(0.125, 0.129, 0.137, 1))
+        clear(color: float4(0.125, 0.129, 0.137, 1))
         startShape(type: .triangle)
-        drawRect(Rectangle(x: 10, y: 40, width: 200, height: 200), float4(1, 0, 1, 1), 0.0)
+        drawRect(10, 40, 200, 200, float4(1, 0, 1, 1), 0.0)
         endShape()
         drawText(position: float2(100, 100), text: "CHIPCADE", size: 30)
         encodeEnd()
@@ -237,7 +237,7 @@ class MetalDraw2D
         vertexCount += 1
     }
     
-    func drawRect(_ rect: Rectangle,_ c: float4, _ rot: Float) {
+    func drawRect(_ x: Float, _ y: Float, _ width: Float, _ height: Float,_ c: float4, _ rot: Float) {
         
         //        right, bottom, 1.0, 0.0,
         //        left, bottom, 0.0, 0.0,
@@ -249,13 +249,13 @@ class MetalDraw2D
         
         if rot == 0.0 {
             let arr : [Float ] = [
-                xToMetal(rect.x + rect.width), yToMetal(rect.y + rect.height), 1.0, 0.0, c.x, c.y, c.z, c.w,
-                xToMetal(rect.x), yToMetal(rect.y + rect.height), 0.0, 0.0, c.x, c.y, c.z, c.w,
-                xToMetal(rect.x), yToMetal(rect.y), 0.0, 1.0, c.x, c.y, c.z, c.w,
+                xToMetal(x + width), yToMetal(y + height), 1.0, 0.0, c.x, c.y, c.z, c.w,
+                xToMetal(x), yToMetal(y + height), 0.0, 0.0, c.x, c.y, c.z, c.w,
+                xToMetal(x), yToMetal(y), 0.0, 1.0, c.x, c.y, c.z, c.w,
                  
-                xToMetal(rect.x + rect.width), yToMetal(rect.y + rect.height), 1.0, 0.0, c.x, c.y, c.z, c.w,
-                xToMetal(rect.x), yToMetal(rect.y), 0.0, 1.0, c.x, c.y, c.z, c.w,
-                xToMetal(rect.x + rect.width), yToMetal(rect.y), 1.0, 1.0, c.x, c.y, c.z, c.w,
+                xToMetal(x + width), yToMetal(y + height), 1.0, 0.0, c.x, c.y, c.z, c.w,
+                xToMetal(x), yToMetal(y), 0.0, 1.0, c.x, c.y, c.z, c.w,
+                xToMetal(x + width), yToMetal(y), 1.0, 1.0, c.x, c.y, c.z, c.w,
             ]
             
             vertexData.append(contentsOf: arr)
@@ -265,8 +265,8 @@ class MetalDraw2D
             let radians = rot.degreesToRadians
             let cos = cos(radians)
             let sin = sin(radians)
-            let cx = rect.x + rect.width / 2.0
-            let cy = rect.y + rect.height / 2.0
+            let cx = x + width / 2.0
+            let cy = y + height / 2.0
 
             func rotate(x : Float, y : Float) -> (Float, Float) {
                 let nx = (cos * (x - cx)) + (sin * (y - cy)) + cx
@@ -274,10 +274,10 @@ class MetalDraw2D
                 return (nx, ny)
             }
 
-            let topLeft = rotate(x: rect.x, y: rect.y)
-            let topRight = rotate(x: rect.x + rect.width, y: rect.y)
-            let bottomLeft = rotate(x: rect.x, y: rect.y + rect.height)
-            let bottomRight = rotate(x: rect.x + rect.width, y: rect.y + rect.height)
+            let topLeft = rotate(x: x, y: y)
+            let topRight = rotate(x: x + width, y: y)
+            let bottomLeft = rotate(x: x, y: y + height)
+            let bottomRight = rotate(x: x + width, y: y + height)
             
             let arr : [Float ] = [
                 xToMetal(bottomRight.0), yToMetal(bottomRight.1), 1.0, 0.0, c.x, c.y, c.z, c.w,
@@ -319,8 +319,7 @@ class MetalDraw2D
         vertexCount = 0
     }
     
-    func Clear(color: float4) {
-            
+    func clear(color: float4) {
         let size = viewSize
         
         startShape(type: .triangle)

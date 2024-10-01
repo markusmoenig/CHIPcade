@@ -7,17 +7,18 @@
 
 import Foundation
 
-struct InstrMeta : Codable {
+public struct InstrMeta : Codable {
     
 }
 
-enum InstructionType: String, Codable {
+public enum InstructionType: String, Codable {
     case ldi
     case push
     case nop
+    case rect
 }
 
-class Instruction: ObservableObject, Codable, Equatable {
+public class Instruction: ObservableObject, Codable, Equatable {
     var id: UUID
 
     @Published var type: InstructionType
@@ -49,7 +50,7 @@ class Instruction: ObservableObject, Codable, Equatable {
         }
     }
     
-    func encode(to encoder: Encoder) throws {
+    public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
         try container.encode(type, forKey: .type)
@@ -60,7 +61,7 @@ class Instruction: ObservableObject, Codable, Equatable {
     }
     
     // Decoding
-    required init(from decoder: Decoder) throws {
+    public required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
         id = try container.decode(UUID.self, forKey: .id)
@@ -74,16 +75,33 @@ class Instruction: ObservableObject, Codable, Equatable {
     func format() -> String {
         switch type {
         case .ldi:
-            return "LDI \(register1!) \(value!.toString())"
+            return "LDI R\(register1!) \(value!.toString())"
             
         case .push:
             return "PUSH \(value!.toString())"
             
         case .nop:
             return "NOP"
+            
+        case .rect:
+            return "RECT"
         }
     }
     
+    func description() -> String {
+        switch type {
+        case .ldi:
+            return "Loads an immediate value into a register"
+            
+        case .push:
+            return "PUSH"
+            
+        case .nop:
+            return "No operation (does nothing)"
+        case .rect:
+            return "Draws a rectangle: R0 = X, R1 = Y, R2 = Width, R3 = Height, R4 = Palette Index"
+        }
+    }
     func toString() -> String {
         switch type {
         case .ldi:
@@ -94,10 +112,22 @@ class Instruction: ObservableObject, Codable, Equatable {
             
         case .nop:
             return "NOP"
+            
+        case .rect:
+            return "RECT"
         }
     }
     
-    static func == (lhs: Instruction, rhs: Instruction) -> Bool {
+    func clone() -> Instruction {
+        let clonedInstruction = Instruction(self.type)        
+        clonedInstruction.meta = self.meta
+        clonedInstruction.register1 = self.register1
+        clonedInstruction.register2 = self.register2
+        clonedInstruction.value = self.value
+        return clonedInstruction
+    }
+    
+    public static func == (lhs: Instruction, rhs: Instruction) -> Bool {
         return lhs.id == rhs.id
     }
 }

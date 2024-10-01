@@ -8,6 +8,12 @@
 import Combine
 import SwiftUI
 
+public enum SelectionState {
+    case code
+    case sprite
+    case data
+}
+
 public class Game : ObservableObject, Codable
 {
     @Published var codeItems: [CodeItem]
@@ -19,14 +25,16 @@ public class Game : ObservableObject, Codable
     @Published var palette: [float4]
 
     // The instruction pointer
-    @Published var currCodeItemIndex: UInt = 0
-    @Published var currInstructionIndex: UInt = 0
+    @Published var currCodeItemIndex: Int = 0
+    @Published var currInstructionIndex: Int = 0
     var callStack: [UInt] = []
 
     // Drawing widgets
-    var previewRender = MetalDraw2D();
+    var render = MetalDraw2D();
     var cpuRender = MetalDraw2D();
     var cpuWidget = CPUWidget()
+    
+    var selectionState: SelectionState = .code
 
     private enum CodingKeys: String, CodingKey {
         case memory
@@ -70,30 +78,70 @@ public class Game : ObservableObject, Codable
     }
     
     public func execute() {
-        self.stack = []
-        self.callStack = []
+        stack = []
+        callStack = []
         
-        execute_instruction(codeItemIndex: currCodeItemIndex, instructionIndex: currInstructionIndex)
+        currCodeItemIndex = 0
+        currInstructionIndex = 0
+        
+        execute_instruction()
     }
     
-    public func execute_instruction(codeItemIndex: UInt, instructionIndex: UInt) {
-        let instruction = self.codeItems[Int(codeItemIndex)].codes[Int(instructionIndex)]
+    public func execute_instruction() {
         
-        switch instruction.type {
-        case .ldi   : registers[Int(instruction.register1!)] = instruction.value!
-        case .push  : stack.append(instruction.value!)
-        default: break
+        if let instruction = get_instruction() {
+            switch instruction.type {
+            case .ldi   : registers[Int(instruction.register1!)] = instruction.value!
+            case .push  : stack.append(instruction.value!)
+            case .rect  :
+                let x : Float = registers[0].toFloat32Bit()
+                let y : Float = registers[1].toFloat32Bit()
+                let width : Float = registers[2].toFloat32Bit()
+                let height : Float = registers[3].toFloat32Bit()
+                let index : Int = Int(registers[4].toFloat32Bit())
+
+                if index >= 0 && index < palette.count {
+                    let color = palette[index]
+                    render.encodeStart()
+                    render.drawRect(x, y, width, height, color, 0.0)
+                    render.encodeEnd()
+                }
+                
+            default: break
+            }
         }
+    }
+    
+    // Gets the current instruction
+    public func get_instruction() -> Instruction? {
+        // Check if the currCodeItemIndex is within bounds
+        guard currCodeItemIndex >= 0 && currCodeItemIndex < codeItems.count else {
+            return nil
+        }
+
+        let codeItem = codeItems[currCodeItemIndex]
+
+        // Check if the currInstructionIndex is within bounds for the selected codeItem
+        guard currInstructionIndex >= 0 && currInstructionIndex < codeItem.codes.count else {
+            return nil
+        }
+
+        return codeItem.codes[currInstructionIndex]
+    }
+    
+    // Method to find a CodeItem by name
+    func get_codeItem(byName name: String) -> CodeItem? {
+        return codeItems.first { $0.name == name }
     }
     
     public func drawPreview()
     {
-        previewRender.draw()
+        render.draw()
     }
     
     public func drawCPU()
     {
-        cpuWidget.draw(draw2D: cpuRender)
+        cpuWidget.draw(draw2D: cpuRender, game: self)
     }
     
     // From https://lospec.com/palette-list/duel
