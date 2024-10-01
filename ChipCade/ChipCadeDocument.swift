@@ -16,19 +16,18 @@ extension UTType {
 
 struct ChipCadeDocument: FileDocument {
     var game = Game()
-    var draw2D = MetalDraw2D()
 
     init() {
     }
 
     static var readableContentTypes: [UTType] { [.ChipCadeDocument] }
+    static var writableContentTypes: [UTType] { [.ChipCadeDocument] }
 
     init(configuration: ReadConfiguration) throws {
         guard let data = configuration.file.regularFileContents else {
             throw CocoaError(.fileReadNoSuchFile) // Changed to reflect the issue better
         }
         
-        // Try decoding the Game object from the file
         do {
             let g = try JSONDecoder().decode(Game.self, from: data)
             game = g

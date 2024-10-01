@@ -48,26 +48,23 @@ struct MemorySectionView: View {
                     }
 
                     Spacer()
-
-                    #if !os(macOS)
-                    // Only show rename and delete buttons on iOS
-                    Button(action: {
-                        startRenaming(item: memoryItems[index])
-                    }) {
-                        Image(systemName: "pencil")
-                    }
-                    .buttonStyle(BorderlessButtonStyle())
-                    .padding(.trailing, 8)
-
-                    Button(action: {
-                        deleteItem(at: index)
-                    }) {
-                        Image(systemName: "trash")
-                            .foregroundColor(.red)
-                    }
-                    .buttonStyle(BorderlessButtonStyle())
-                    #endif
                 }
+                #if os(iOS)
+                .swipeActions {
+                    Button(role: .destructive) {
+                        deleteItem(at: index)
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                    
+                    Button {
+                        startRenaming(item: memoryItems[index])
+                    } label: {
+                        Label("Rename", systemImage: "pencil")
+                    }
+                    .tint(.blue)
+                }
+                #endif
                 .contextMenu {
                     // macOS context menu for renaming and deleting
                     Button(action: {

@@ -15,10 +15,18 @@ public class Game : ObservableObject, Codable
     @Published var dataItems: [MemoryItem]
     
     @Published var stack: [ChipCadeData]
-
     @Published var registers: [ChipCadeData]
-
     @Published var palette: [float4]
+
+    // The instruction pointer
+    @Published var currCodeItemIndex: UInt = 0
+    @Published var currInstructionIndex: UInt = 0
+    var callStack: [UInt] = []
+
+    // Drawing widgets
+    var previewRender = MetalDraw2D();
+    var cpuRender = MetalDraw2D();
+    var cpuWidget = CPUWidget()
 
     private enum CodingKeys: String, CodingKey {
         case memory
@@ -31,7 +39,7 @@ public class Game : ObservableObject, Codable
     }
         
     init() {
-        self.codeItems = [CodeItem(name: "main")]
+        self.codeItems = [CodeItem(name: "init"), CodeItem(name: "update"), CodeItem(name: "draw")]
         self.spriteItems = []
         self.dataItems = []
         self.registers = [.unsigned16Bit(0), .unsigned16Bit(0), .unsigned16Bit(0), .unsigned16Bit(0), .unsigned16Bit(0), .unsigned16Bit(0), .unsigned16Bit(0), .unsigned16Bit(0)]
@@ -63,17 +71,29 @@ public class Game : ObservableObject, Codable
     
     public func execute() {
         self.stack = []
-        execute_instruction(codeItemIndex: 0, instructionIndex: 0)
+        self.callStack = []
+        
+        execute_instruction(codeItemIndex: currCodeItemIndex, instructionIndex: currInstructionIndex)
     }
     
-    public func execute_instruction(codeItemIndex: Int, instructionIndex: Int) {
-        let instruction = self.codeItems[codeItemIndex].codes[instructionIndex]
+    public func execute_instruction(codeItemIndex: UInt, instructionIndex: UInt) {
+        let instruction = self.codeItems[Int(codeItemIndex)].codes[Int(instructionIndex)]
         
         switch instruction.type {
         case .ldi   : registers[Int(instruction.register1!)] = instruction.value!
         case .push  : stack.append(instruction.value!)
         default: break
         }
+    }
+    
+    public func drawPreview()
+    {
+        previewRender.draw()
+    }
+    
+    public func drawCPU()
+    {
+        cpuWidget.draw(draw2D: cpuRender)
     }
     
     // From https://lospec.com/palette-list/duel

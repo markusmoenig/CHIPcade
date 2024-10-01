@@ -11,7 +11,13 @@ import MetalKit
 
 public class ChipCadeView       : MTKView
 {
-    var core                : MetalDraw2D!
+    enum MetalViewType {
+        case Preview, CPU
+    }
+    
+    var viewType            : MetalViewType = .Preview
+    
+    var game                : Game!
 
     var keysDown            : [Float] = []
     
@@ -153,14 +159,14 @@ public class ChipCadeView       : MTKView
             lastX = Float(translation.x)
             lastY = Float(translation.y)
             
-            core.nodesWidget.scrollWheel(delta)
+//            core.nodesWidget.scrollWheel(delta)
         }
     }
     
     var firstTouch      : Bool = false
     @objc func handlePinchGesture(_ recognizer: UIPinchGestureRecognizer)
     {
-        core.nodesWidget.pinchGesture(Float(recognizer.scale), firstTouch)
+//        core.nodesWidget.pinchGesture(Float(recognizer.scale), firstTouch)
         firstTouch = false
     }
     
@@ -176,7 +182,7 @@ public class ChipCadeView       : MTKView
         if let touch = touches.first {
             let point = touch.location(in: self)
             setMousePos(Float(point.x), Float(point.y))
-            core.nodesWidget.touchDown(mousePos)
+//            core.nodesWidget.touchDown(mousePos)
         }
     }
     
@@ -184,7 +190,7 @@ public class ChipCadeView       : MTKView
         if let touch = touches.first {
             let point = touch.location(in: self)
             setMousePos(Float(point.x), Float(point.y))
-            core.nodesWidget.touchMoved(mousePos)
+//            core.nodesWidget.touchMoved(mousePos)
         }
     }
     
@@ -193,7 +199,7 @@ public class ChipCadeView       : MTKView
         if let touch = touches.first {
             let point = touch.location(in: self)
             setMousePos(Float(point.x), Float(point.y))
-            core.nodesWidget.touchUp(mousePos)
+//            core.nodesWidget.touchUp(mousePos)
         }
     }
     
@@ -269,12 +275,15 @@ public class ChipCadeView       : MTKView
 
 #if os(OSX)
 struct MetalView: NSViewRepresentable {
-    var core                : MetalDraw2D!
+    var game                : Game!
     var trackingArea        : NSTrackingArea?
 
-    init(_ core: MetalDraw2D)
+    var viewType            : ChipCadeView.MetalViewType
+
+    init(_ game: Game, _ viewType: ChipCadeView.MetalViewType)
     {
-        self.core = core
+        self.game = game
+        self.viewType = viewType
     }
     
     func makeCoordinator() -> Coordinator {
@@ -283,7 +292,7 @@ struct MetalView: NSViewRepresentable {
     
     func makeNSView(context: NSViewRepresentableContext<MetalView>) -> MTKView {
         let mtkView = ChipCadeView()
-        mtkView.core = core
+        mtkView.game = game
         mtkView.delegate = context.coordinator
         mtkView.preferredFramesPerSecond = 60
         mtkView.enableSetNeedsDisplay = true
@@ -296,7 +305,12 @@ struct MetalView: NSViewRepresentable {
         mtkView.enableSetNeedsDisplay = true
         mtkView.isPaused = true
         
-        core.setupView(mtkView)
+        if viewType == .Preview {
+            game.previewRender.setupView(mtkView)
+        } else
+        if viewType == .CPU {
+            game.cpuRender.setupView(mtkView)
+        }
         
         return mtkView
     }
@@ -320,20 +334,29 @@ struct MetalView: NSViewRepresentable {
         
         func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
         }
+    
         
         func draw(in view: MTKView) {
-            parent.core.draw()
+            if parent.viewType == .Preview {
+                parent.game.drawPreview()
+            } else
+            if parent.viewType == .CPU {
+                parent.game.drawCPU()
+            }
         }
     }
 }
 #else
 struct MetalView: UIViewRepresentable {
     typealias UIViewType = MTKView
-    var core             : Core!
+    var core             : MetalDraw2D!
 
-    init(_ core: Core)
+    var viewType            : ChipCadeView.MetalViewType
+
+    init(_ core: MetalDraw2D, _ viewType: ChipCadeView.MetalViewType)
     {
         self.core = core
+        self.viewType = viewType
     }
     
     func makeCoordinator() -> Coordinator {
@@ -341,7 +364,7 @@ struct MetalView: UIViewRepresentable {
     }
     
     func makeUIView(context: UIViewRepresentableContext<MetalView>) -> MTKView {
-        let mtkView = DMTKView()
+        let mtkView = ChipCadeView()
         mtkView.core = core
         mtkView.delegate = context.coordinator
         mtkView.preferredFramesPerSecond = 60
@@ -355,7 +378,12 @@ struct MetalView: UIViewRepresentable {
         mtkView.enableSetNeedsDisplay = true
         mtkView.isPaused = true
                 
-        core.setupView(mtkView)
+        if viewType == .Preview {
+            core.setupView(mtkView)
+        } else
+        if viewType == .CPU {
+            core.setupCPUView(mtkView)
+        }
         
         return mtkView
     }
@@ -381,7 +409,12 @@ struct MetalView: UIViewRepresentable {
         }
         
         func draw(in view: MTKView) {
-            parent.core.draw()
+            if parent.viewType == .Preview {
+                parent.core.draw()
+            } else
+            if parent.viewType == .CPU {
+                parent.core.cpuWidget.draw()
+            }
         }
     }
 }

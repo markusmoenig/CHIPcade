@@ -33,8 +33,12 @@ struct PaletteView: View {
                                 .frame(width: colorBlockSize, height: colorBlockSize)
                                 .border(selectedColorIndex == index ? Color.primary : Color.black, width: selectedColorIndex == index ? 2 : 1)
                                 .onTapGesture {
-                                    selectedColorIndex = index
-                                    showingColorPicker.toggle()
+                                    if selectedColorIndex == index {
+                                        showingColorPicker = true // Keep picker open for the same color
+                                    } else {
+                                        selectedColorIndex = index
+                                        showingColorPicker = true // Show picker for new selection
+                                    }
                                 }
                         }
                     }

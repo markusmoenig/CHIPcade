@@ -30,12 +30,27 @@ struct ContentView: View {
                 // Data Section
                 MemorySectionView(title: "Data", memoryItems: $document.game.dataItems, selectedMemoryItem: $selectedMemoryItem, selectedCodeItem: $selectedCodeItem)
                 
+                #if !os(iOS)
+                Divider()
+                #endif
+                
                 Button(action: {
                     selectedCodeItem = nil
                     selectedMemoryItem = nil
                 }) {
-                    Text("Palette")
+                    HStack {
+                        Text("Palette")
+                            .foregroundColor(.primary)
+                            .padding(.leading, 10)
+                        Spacer()
+                    }
+                    .padding(.vertical, 6)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill((selectedCodeItem == nil && selectedMemoryItem == nil) ? Color.accentColor.opacity(0.2) : Color.clear)
+                    )
                 }
+                .buttonStyle(PlainButtonStyle())
             }
             .listStyle(SidebarListStyle())
             .frame(minWidth: 200, maxWidth: 250)
@@ -54,7 +69,7 @@ struct ContentView: View {
                         let width = min(availableWidth, availableHeight * aspectRatio)
                         let height = width / aspectRatio
                         
-                        MetalView(document.draw2D)
+                        MetalView(document.game, .Preview)
                             .frame(width: width, height: height)
                             .background(Color.black) // Optional background color for contrast
                     }
@@ -82,8 +97,11 @@ struct ContentView: View {
                     Spacer()
                     Divider()
                     
-                    CPUView(game: document.game)
-                        .frame(maxHeight: 200) // Keep the CPU view smaller in height
+//                    CPUView(game: document.game)
+//                        .frame(maxHeight: 200)
+                    
+                    MetalView(document.game, .CPU)
+                        .frame(maxHeight: 200)
                 }
                 
                 Divider()
@@ -106,7 +124,7 @@ struct ContentView: View {
                     
                     Spacer()
                     Divider()
-                    
+                        
                     StackView(game: document.game)
                         .frame(height: 150)
                 }
@@ -135,6 +153,9 @@ struct ContentView: View {
                     AddMemoryItemView(game: document.game, selectedMemoryItem: $selectedMemoryItem)
                 }
             }
+        }
+        .onAppear {
+            selectedCodeItem = document.game.codeItems[0]
         }
         // React to changes in selectedMemoryItem to decode instructions
 //        .onChange(of: selectedMemoryItem) {

@@ -32,7 +32,6 @@ struct CodeSectionView: View {
                         Button(action: {
                             selectedCodeItem = codeItems[index]
                             selectedMemoryItem = nil
-                            print("\(index)")
                         }) {
                             HStack {
                                 Text(codeItems[index].name)
@@ -40,36 +39,33 @@ struct CodeSectionView: View {
                                     .padding(.leading, 10) // Add padding to the left side
                                 Spacer()
                             }
-                            .padding(.vertical, 6) // Vertical padding to increase height
+                            .padding(.vertical, 2)
                             .background(
-                                RoundedRectangle(cornerRadius: 8) // Rounded background
+                                RoundedRectangle(cornerRadius: 8)
                                     .fill(selectedCodeItem === codeItems[index] ? Color.accentColor.opacity(0.2) : Color.clear)
                             )
                         }
-                        .buttonStyle(PlainButtonStyle()) // No button decoration
+                        .buttonStyle(PlainButtonStyle())
                     }
 
                     Spacer()
-
-                    #if !os(macOS)
-                    // Only show rename and delete buttons on iOS
-                    Button(action: {
-                        startRenaming(item: codeItems[index])
-                    }) {
-                        Image(systemName: "pencil")
-                    }
-                    .buttonStyle(BorderlessButtonStyle())
-                    .padding(.trailing, 8)
-
-                    Button(action: {
-                        deleteItem(at: index)
-                    }) {
-                        Image(systemName: "trash")
-                            .foregroundColor(.red)
-                    }
-                    .buttonStyle(BorderlessButtonStyle())
-                    #endif
                 }
+                #if os(iOS)
+                .swipeActions {
+                    Button(role: .destructive) {
+                        deleteItem(at: index)
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                    
+                    Button {
+                        startRenaming(item: codeItems[index])
+                    } label: {
+                        Label("Rename", systemImage: "pencil")
+                    }
+                    .tint(.blue)
+                }
+                #endif
                 .contextMenu {
                     // Context menu for renaming and deleting
                     Button(action: {

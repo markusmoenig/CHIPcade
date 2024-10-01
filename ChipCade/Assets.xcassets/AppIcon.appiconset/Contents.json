@@ -1,6 +1,7 @@
 {
   "images" : [
     {
+      "filename" : "Mac3-2-01.png",
       "idiom" : "universal",
       "platform" : "ios",
       "size" : "1024x1024"
@@ -12,6 +13,7 @@
           "value" : "dark"
         }
       ],
+      "filename" : "Mac3-01 3.png",
       "idiom" : "universal",
       "platform" : "ios",
       "size" : "1024x1024"
@@ -23,6 +25,7 @@
           "value" : "tinted"
         }
       ],
+      "filename" : "Mac3-01 4.png",
       "idiom" : "universal",
       "platform" : "ios",
       "size" : "1024x1024"
@@ -63,18 +66,19 @@
       "size" : "256x256"
     },
     {
+      "filename" : "Mac last2-01 4.png",
       "idiom" : "mac",
       "scale" : "2x",
       "size" : "256x256"
     },
     {
-      "filename" : "512.png",
+      "filename" : "Mac last2-01 3.png",
       "idiom" : "mac",
       "scale" : "1x",
       "size" : "512x512"
     },
     {
-      "filename" : "ea3f8d5be812c7331a2f801b5d285c2b.webp.png",
+      "filename" : "Mac last2-01 2.png",
       "idiom" : "mac",
       "scale" : "2x",
       "size" : "512x512"

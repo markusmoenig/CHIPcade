@@ -70,6 +70,9 @@ class MetalDraw2D
     var fonts           : [String:Font] = [:]
     var font            : Font! = nil
 
+    var cpuView         : ChipCadeView!
+    var cpuWidget       : CPUWidget!
+
     public init(_ frameworkId: String? = nil)
     {
         self.frameworkId = frameworkId
