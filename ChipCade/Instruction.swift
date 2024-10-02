@@ -7,8 +7,45 @@
 
 import Foundation
 
-public struct InstrMeta : Codable {
+public class InstrMeta : Codable {
     
+    var comment: String = ""
+    var name: String = ""
+    
+    var breakpoint: Bool = false
+    
+    enum CodingKeys: String, CodingKey {
+        case comment
+        case name
+        case breakpoint
+    }
+    
+    init() {
+    }
+    
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(comment, forKey: .comment)
+        try container.encode(name, forKey: .name)
+        try container.encode(breakpoint, forKey: .breakpoint)
+    }
+    
+    public required init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        comment = try container.decode(String.self, forKey: .comment)
+        name = try container.decode(String.self, forKey: .name)
+        breakpoint = try container.decode(Bool.self, forKey: .breakpoint)
+    }
+    
+    func clone() -> InstrMeta {
+        let clonedMeta = InstrMeta()
+        clonedMeta.comment = self.comment
+        clonedMeta.name = self.name
+        clonedMeta.breakpoint = self.breakpoint
+        
+        return clonedMeta
+    }
 }
 
 public enum InstructionType: String, Codable {
@@ -23,7 +60,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
 
     @Published var type: InstructionType
 
-    @Published var meta: InstrMeta? = nil
+    @Published var meta: InstrMeta = InstrMeta()
 
     @Published var register1: Int8? = nil
     @Published var register2: Int8? = nil
@@ -66,7 +103,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
 
         id = try container.decode(UUID.self, forKey: .id)
         type = try container.decode(InstructionType.self, forKey: .type)  // Correctly decode the enum type
-        meta = try container.decodeIfPresent(InstrMeta.self, forKey: .meta)
+        meta = try container.decode(InstrMeta.self, forKey: .meta)
         register1 = try container.decodeIfPresent(Int8.self, forKey: .register1)
         register2 = try container.decodeIfPresent(Int8.self, forKey: .register2)
         value = try container.decodeIfPresent(ChipCadeData.self, forKey: .value)
@@ -119,11 +156,13 @@ public class Instruction: ObservableObject, Codable, Equatable {
     }
     
     func clone() -> Instruction {
-        let clonedInstruction = Instruction(self.type)        
-        clonedInstruction.meta = self.meta
+        let clonedInstruction = Instruction(self.type)
+        clonedInstruction.meta = self.meta.clone()
         clonedInstruction.register1 = self.register1
         clonedInstruction.register2 = self.register2
-        clonedInstruction.value = self.value
+        if let value = value {
+            clonedInstruction.value = value.clone()
+        }
         return clonedInstruction
     }
     

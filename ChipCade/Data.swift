@@ -184,6 +184,18 @@ enum ChipCadeData: Codable  {
             return float16Bits
         }
     }
+    
+    // Clones the data
+    func clone() -> ChipCadeData {
+        switch self {
+        case .unsigned16Bit(let unsignedVal):
+            return .unsigned16Bit(unsignedVal)
+        case .signed16Bit(let signedVal):
+            return .signed16Bit(signedVal)
+        case .float16Bit(let float16):
+            return .float16Bit(float16)
+        }
+    }
 
     // MARK: - Description for Debugging
 

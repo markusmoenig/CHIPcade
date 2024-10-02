@@ -34,9 +34,8 @@ public class CPUWidget    : ObservableObject
                 draw2D.drawText(position: float2(reg_x + Float(i) * reg_width + 16, reg_y), text: "\(game.registers[i].toString())", size: 12, color: sec)
             }
             
-            if let instruction = game.get_instruction() {
+            if let instruction = game.getInstruction() {
                 draw2D.drawText(position: float2(100, 100), text: instruction.format(), size: 30)
-                
                 draw2D.drawText(position: float2(20, 180), text: instruction.description(), size: 14, color: prim)
             }
         }

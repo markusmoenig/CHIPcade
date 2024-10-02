@@ -8,6 +8,11 @@
 import Combine
 import SwiftUI
 
+public enum GameState {
+    case running
+    case paused
+}
+
 public enum SelectionState {
     case code
     case sprite
@@ -30,10 +35,16 @@ public class Game : ObservableObject, Codable
     var callStack: [UInt] = []
 
     // Drawing widgets
+    
     var render = MetalDraw2D();
     var cpuRender = MetalDraw2D();
     var cpuWidget = CPUWidget()
     
+    var gcp = GCP()
+    var cpu = CPU()
+    
+    var state = GameState.paused
+
     var selectionState: SelectionState = .code
 
     private enum CodingKeys: String, CodingKey {
@@ -83,37 +94,23 @@ public class Game : ObservableObject, Codable
         
         currCodeItemIndex = 0
         currInstructionIndex = 0
-        
-        execute_instruction()
+
+        while let instruction = getInstruction() {
+            cpu.executeInstruction(instruction: instruction, game: self, gcp: gcp)
+            currInstructionIndex += 1
+        }
+        render.update()
     }
     
-    public func execute_instruction() {
-        
-        if let instruction = get_instruction() {
-            switch instruction.type {
-            case .ldi   : registers[Int(instruction.register1!)] = instruction.value!
-            case .push  : stack.append(instruction.value!)
-            case .rect  :
-                let x : Float = registers[0].toFloat32Bit()
-                let y : Float = registers[1].toFloat32Bit()
-                let width : Float = registers[2].toFloat32Bit()
-                let height : Float = registers[3].toFloat32Bit()
-                let index : Int = Int(registers[4].toFloat32Bit())
-
-                if index >= 0 && index < palette.count {
-                    let color = palette[index]
-                    render.encodeStart()
-                    render.drawRect(x, y, width, height, color, 0.0)
-                    render.encodeEnd()
-                }
-                
-            default: break
-            }
+    public func executeInstruction() {
+        if let instruction = getInstruction() {
+            cpu.executeInstruction(instruction: instruction, game: self, gcp: gcp)
+            render.update()
         }
     }
     
     // Gets the current instruction
-    public func get_instruction() -> Instruction? {
+    public func getInstruction() -> Instruction? {
         // Check if the currCodeItemIndex is within bounds
         guard currCodeItemIndex >= 0 && currCodeItemIndex < codeItems.count else {
             return nil
@@ -136,7 +133,7 @@ public class Game : ObservableObject, Codable
     
     public func drawPreview()
     {
-        render.draw()
+        gcp.draw(draw2D: render)
     }
     
     public func drawCPU()

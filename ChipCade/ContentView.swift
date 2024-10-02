@@ -124,7 +124,7 @@ struct ContentView: View {
                 }
                 
                 Button(action: {
-                    document.game.execute_instruction()
+                    document.game.executeInstruction()
                     document.game.currInstructionIndex += 1
                     selectedInstructionIndex = document.game.currInstructionIndex
                     document.game.cpuRender.update()

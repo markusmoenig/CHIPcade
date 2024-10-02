@@ -30,3 +30,29 @@ extension Double {
         (self / 180) * Double.pi
     }
 }
+
+// To be able to expose Float4s in a public enum
+public struct GCPFloat4 {
+    public var x: Float
+    public var y: Float
+    public var z: Float
+    public var w: Float
+    
+    public init(_ x: Float, _ y: Float, _ z: Float, _ w: Float) {
+        self.x = x
+        self.y = y
+        self.z = z
+        self.w = w
+    }
+    
+    public init(simd: SIMD4<Float>) {
+        self.x = simd.x
+        self.y = simd.y
+        self.z = simd.z
+        self.w = simd.w
+    }
+    
+    public var simd: SIMD4<Float> {
+        return float4(x, y, z, w)
+    }
+}
