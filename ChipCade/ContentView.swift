@@ -216,8 +216,8 @@ struct ContentView: View {
                     Button("After", action: {
                         if let selectedCodeItem = selectedCodeItem {
                             if let selectedInstructionIndex = selectedInstructionIndex {
-                                let nopInstruction = Instruction(.nop)
-                                selectedCodeItem.insertAfter(at: selectedInstructionIndex, instruction: nopInstruction)
+                                let nopInstruction = Instruction(.ldi)
+                                selectedCodeItem.insertAfter(at: selectedInstructionIndex, instruction: nopInstruction.clone())
                             }
                         }
                     })

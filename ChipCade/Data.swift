@@ -213,12 +213,12 @@ enum ChipCadeData: Codable  {
     func toString() -> String {
         switch self {
         case .unsigned16Bit(let unsignedVal):
-            return "\(unsignedVal)U"
+            return "\(unsignedVal)u"
         case .signed16Bit(let signedVal):
-            return "\(signedVal)S"
+            return "\(signedVal)s"
         case .float16Bit(let float16):
             let float32 = float16ToFloat32(float16)
-            return String(format: "%.3fF", float32)
+            return String(format: "%.3ff", float32)
         }
     }
 }

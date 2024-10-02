@@ -56,8 +56,9 @@ public enum InstructionType: String, Codable {
 }
 
 public class Instruction: ObservableObject, Codable, Equatable {
-    var id: UUID
-
+    
+    var id: UUID = UUID()
+    
     @Published var type: InstructionType
 
     @Published var meta: InstrMeta = InstrMeta()
@@ -76,7 +77,6 @@ public class Instruction: ObservableObject, Codable, Equatable {
     }
     
     init(_ type: InstructionType) {
-        id = UUID()
         self.type = type
         
         switch type {
