@@ -28,8 +28,8 @@ struct PaletteView: View {
                     let columns = Array(repeating: GridItem(.fixed(colorBlockSize), spacing: spacing), count: numberOfColumns)
 
                     LazyVGrid(columns: columns, spacing: spacing) {
-                        ForEach(0..<game.palette.count, id: \.self) { index in
-                            game.color(at: index)
+                        ForEach(0..<game.data.palette.count, id: \.self) { index in
+                            game.data.color(at: index)
                                 .frame(width: colorBlockSize, height: colorBlockSize)
                                 .border(selectedColorIndex == index ? Color.primary : Color.black, width: selectedColorIndex == index ? 2 : 1)
                                 .onTapGesture {
@@ -59,10 +59,10 @@ struct PaletteView: View {
             if let selectedIndex = selectedColorIndex, showingColorPicker {
                 ColorPicker("Select Color", selection: Binding(
                     get: {
-                        game.color(at: selectedIndex)
+                        game.data.color(at: selectedIndex)
                     },
                     set: { newColor in
-                        game.updateColor(at: selectedIndex, to: newColor)
+                        game.data.updateColor(at: selectedIndex, to: newColor)
                     }
                 ))
                 .frame(width: 200)

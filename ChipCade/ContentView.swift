@@ -9,7 +9,8 @@ import SwiftUI
 
 struct ContentView: View {
     @Binding var document: ChipCadeDocument
-    
+    @StateObject private var game: Game = Game()
+
     @State private var selectedCodeItem: CodeItem? = nil
     @State private var selectedMemoryItem: MemoryItem? = nil
     
@@ -20,17 +21,20 @@ struct ContentView: View {
 
     @State private var previewIsLeftSide = false
 
+    @State private var searchText: String = ""
+    @State private var filteredResults: [(index: Int, instruction: Instruction)] = []
+    
     var body: some View {
         NavigationView {
             List {
                 // Code Section
-                CodeSectionView(title: "Code", codeItems: $document.game.codeItems, selectedCodeItem: $selectedCodeItem, selectedMemoryItem: $selectedMemoryItem)
+                CodeSectionView(title: "Code", codeItems: $document.game.data.codeItems, selectedCodeItem: $selectedCodeItem, selectedMemoryItem: $selectedMemoryItem)
                 
                 // Sprite Section
-                MemorySectionView(title: "Sprites", memoryItems: $document.game.spriteItems, selectedMemoryItem: $selectedMemoryItem, selectedCodeItem: $selectedCodeItem)
+                MemorySectionView(title: "Sprites", memoryItems: $document.game.data.spriteItems, selectedMemoryItem: $selectedMemoryItem, selectedCodeItem: $selectedCodeItem)
                 
                 // Data Section
-                MemorySectionView(title: "Data", memoryItems: $document.game.dataItems, selectedMemoryItem: $selectedMemoryItem, selectedCodeItem: $selectedCodeItem)
+                MemorySectionView(title: "Data", memoryItems: $document.game.data.dataItems, selectedMemoryItem: $selectedMemoryItem, selectedCodeItem: $selectedCodeItem)
                 
                 #if !os(iOS)
                 Divider()
@@ -110,9 +114,7 @@ struct ContentView: View {
                 }
                 .frame(maxWidth: 350)
             }
-        }
-        
-        .navigationTitle("Memory Items")
+        }        
         .toolbar {
             
             ToolbarItemGroup(placement: .primaryAction) {
@@ -140,8 +142,6 @@ struct ContentView: View {
                     Label("Swap", systemImage: "rectangle.2.swap")
                 }
                 .keyboardShortcut("R")
-
-                editMenu
                 
                 Spacer()
 
@@ -157,98 +157,44 @@ struct ContentView: View {
             }
         }
         .onAppear {
-            selectedCodeItem = document.game.codeItems[0]
+            selectedCodeItem = document.game.data.codeItems[0]
         }
+        
         .onChange(of: selectedInstructionIndex) {
             if let selectedInstructionIndex = selectedInstructionIndex {
                 document.game.currInstructionIndex = selectedInstructionIndex
             }
             document.game.cpuRender.update()
         }
+        
         .onChange(of: selectedCodeItem) {
             document.game.currInstructionIndex = 0
             selectedInstructionIndex = 0
             document.game.selectionState = .code
         }
-    }
-    
-    var editMenu : some View {
-        Menu {
-            Section(header: Text("Instructions")) {
-                
-                
-                Menu("Change To") {
-                    Menu("Register") {
-                        Button("LDI", action: {
-                            if let selectedCodeItem = selectedCodeItem, let selectedInstructionIndex = selectedInstructionIndex {
-                                selectedCodeItem.writeCode(at: selectedInstructionIndex, value: Instruction(.ldi))
-                            }
-                        })
-                    }
-                    
-                    Menu("GCP") {
-                        Button("RECT", action: {
-                            if let selectedCodeItem = selectedCodeItem, let selectedInstructionIndex = selectedInstructionIndex {
-                                selectedCodeItem.writeCode(at: selectedInstructionIndex, value: Instruction(.rect))
-                            }
-                        })
-                    }
-                    
-                    Button("NOP", action: {
-                        if let selectedCodeItem = selectedCodeItem, let selectedInstructionIndex = selectedInstructionIndex {
-                            selectedCodeItem.writeCode(at: selectedInstructionIndex, value: Instruction(.nop))
-                        }
-                    })
-                    
-                }
-                
-                Menu("Insert NOP") {
-                    Button("Before", action: {
-                        if let selectedCodeItem = selectedCodeItem {
-                            if let selectedInstructionIndex = selectedInstructionIndex {
-                                let nopInstruction = Instruction(.nop)
-                                selectedCodeItem.insertBefore(at: selectedInstructionIndex, instruction: nopInstruction)
-                            }
-                        }
-                    })
-                    .keyboardShortcut("I", modifiers: [.shift])
-                    
-                    Button("After", action: {
-                        if let selectedCodeItem = selectedCodeItem {
-                            if let selectedInstructionIndex = selectedInstructionIndex {
-                                let nopInstruction = Instruction(.ldi)
-                                selectedCodeItem.insertAfter(at: selectedInstructionIndex, instruction: nopInstruction.clone())
-                            }
-                        }
-                    })
-                    .keyboardShortcut("I")
-                }
-                
-                Button("Duplicate", action: {
-                    if let selectedCodeItem = selectedCodeItem {
-                        if let selectedInstructionIndex = selectedInstructionIndex {
-                            selectedCodeItem.duplicate(at: selectedInstructionIndex)
-                        }
-                    }
-                })
-                .keyboardShortcut("D")
-                
-                Divider()
-                
-                Button("Delete", action: {
-                    if let selectedCodeItem = selectedCodeItem {
-                        if let selectedInstructionIndex = selectedInstructionIndex {
-                            selectedCodeItem.delete(at: selectedInstructionIndex)
-                        }
-                    }
-                })
-                .keyboardShortcut("X")
+        
+        .searchable(text: $searchText) {
+            ForEach(searchResults, id: \.self) { result in
+                Text("\(result)").searchCompletion(result)
             }
         }
-        label: {
-            Label("Edit", systemImage: "pencil")
-            //Text("\(document.core.project!.size.x) x \(document.core.project!.size.y)")
+    }
+    
+    var searchResults: [String] {
+        var results : [String] = []
+
+        let query = searchText.lowercased()
+        
+        for codeItem in document.game.data.codeItems {
+            for (_, instruction) in codeItem.codes.enumerated() {
+                if instruction.meta.marker.lowercased().contains(query.lowercased()) {
+                    results.append(instruction.meta.marker.lowercased())
+                }
+            }
         }
+        
+        //document.model.searchResultsChanged.send(results)
+        return results
     }
 }
 
@@ -308,11 +254,11 @@ struct AddMemoryItemView: View {
         // Add the new memory item to the appropriate section
         switch selectedType {
         case .code:
-            game.codeItems.append(newCodeItem)
+            game.data.codeItems.append(newCodeItem)
         case .sprite:
-            game.spriteItems.append(newItem)
+            game.data.spriteItems.append(newItem)
         case .data:
-            game.dataItems.append(newItem)
+            game.data.dataItems.append(newItem)
         }
 
         // Automatically select the new memory item

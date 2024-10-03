@@ -72,6 +72,8 @@ class MetalDraw2D
 
     var cpuView         : ChipCadeView!
     var cpuWidget       : CPUWidget!
+    
+    var id              = UUID()
 
     public init(_ frameworkId: String? = nil)
     {
@@ -88,6 +90,8 @@ class MetalDraw2D
     
     public func setupView(_ metalView: ChipCadeView)
     {
+        guard self.metalView == nil else { return }
+        
         self.metalView = metalView
         #if os(iOS)
         metalView.layer.isOpaque = false
@@ -148,7 +152,7 @@ class MetalDraw2D
         self.font = font
 
         font = Font(name: "Square", draw: self)
-        fonts["square"] = font
+        fonts["square"] = font        
     }
     
     public func draw()
@@ -430,6 +434,12 @@ class MetalDraw2D
     
     /// Updates the view
     func update() {
+                
+        guard metalView != nil else {
+            print("metalView \(id) is nil during update")
+            return
+        }
+        
         metalView.enableSetNeedsDisplay = true
         #if os(OSX)
         let nsrect : NSRect = NSRect(x:0, y: 0, width: metalView.frame.width, height: metalView.frame.height)

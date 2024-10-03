@@ -11,17 +11,17 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		DD72F1282CA82DC00054826E /* ChipCade.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ChipCade.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		DD72F1282CA82DC00054826E /* CHIPcade.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CHIPcade.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		DD72F1882CAC25790054826E /* Design.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Design.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		DD72F1382CA82DC00054826E /* Exceptions for "ChipCade" folder in "ChipCade" target */ = {
+		DD72F1382CA82DC00054826E /* Exceptions for "ChipCade" folder in "CHIPcade" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 			);
-			target = DD72F1272CA82DC00054826E /* ChipCade */;
+			target = DD72F1272CA82DC00054826E /* CHIPcade */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -29,7 +29,7 @@
 		DD72F12A2CA82DC00054826E /* ChipCade */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				DD72F1382CA82DC00054826E /* Exceptions for "ChipCade" folder in "ChipCade" target */,
+				DD72F1382CA82DC00054826E /* Exceptions for "ChipCade" folder in "CHIPcade" target */,
 			);
 			path = ChipCade;
 			sourceTree = "<group>";
@@ -59,7 +59,7 @@
 		DD72F1292CA82DC00054826E /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				DD72F1282CA82DC00054826E /* ChipCade.app */,
+				DD72F1282CA82DC00054826E /* CHIPcade.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -67,9 +67,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		DD72F1272CA82DC00054826E /* ChipCade */ = {
+		DD72F1272CA82DC00054826E /* CHIPcade */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = DD72F1392CA82DC00054826E /* Build configuration list for PBXNativeTarget "ChipCade" */;
+			buildConfigurationList = DD72F1392CA82DC00054826E /* Build configuration list for PBXNativeTarget "CHIPcade" */;
 			buildPhases = (
 				DD72F1242CA82DC00054826E /* Sources */,
 				DD72F1252CA82DC00054826E /* Frameworks */,
@@ -82,11 +82,11 @@
 			fileSystemSynchronizedGroups = (
 				DD72F12A2CA82DC00054826E /* ChipCade */,
 			);
-			name = ChipCade;
+			name = CHIPcade;
 			packageProductDependencies = (
 			);
 			productName = ChipCade;
-			productReference = DD72F1282CA82DC00054826E /* ChipCade.app */;
+			productReference = DD72F1282CA82DC00054826E /* CHIPcade.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -104,7 +104,7 @@
 					};
 				};
 			};
-			buildConfigurationList = DD72F1232CA82DC00054826E /* Build configuration list for PBXProject "ChipCade" */;
+			buildConfigurationList = DD72F1232CA82DC00054826E /* Build configuration list for PBXProject "CHIPcade" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -118,7 +118,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				DD72F1272CA82DC00054826E /* ChipCade */,
+				DD72F1272CA82DC00054826E /* CHIPcade */,
 			);
 		};
 /* End PBXProject section */
@@ -159,7 +159,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = ChipCade/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = CHIPCade;
+				INFOPLIST_KEY_CFBundleDisplayName = CHIPcade;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -203,7 +203,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = ChipCade/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = CHIPCade;
+				INFOPLIST_KEY_CFBundleDisplayName = CHIPcade;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -350,7 +350,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		DD72F1232CA82DC00054826E /* Build configuration list for PBXProject "ChipCade" */ = {
+		DD72F1232CA82DC00054826E /* Build configuration list for PBXProject "CHIPcade" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				DD72F13C2CA82DC00054826E /* Debug */,
@@ -359,7 +359,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		DD72F1392CA82DC00054826E /* Build configuration list for PBXNativeTarget "ChipCade" */ = {
+		DD72F1392CA82DC00054826E /* Build configuration list for PBXNativeTarget "CHIPcade" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				DD72F13A2CA82DC00054826E /* Debug */,

@@ -22,8 +22,8 @@ public class CPU {
             let height : Float = game.registers[3].toFloat32Bit()
             let index : Int = Int(game.registers[4].toFloat32Bit())
 
-            if index >= 0 && index < game.palette.count {
-                let color = game.palette[index]
+            if index >= 0 && index < game.data.palette.count {
+                let color = game.data.palette[index]
                 let cmd : GCPCmd = .rect(x: x, y: y, width: width, height: height, color: GCPFloat4(simd: color), rot: 0.0)
                 gcp.addCmd(cmd)
             }

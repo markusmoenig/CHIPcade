@@ -79,20 +79,6 @@ struct MemoryGridView: View {
     }
 }
 
-extension ChipCadeData {
-    // Convert ChipCadeData to a hex string
-    func toHexString() -> String {
-        switch self {
-        case .unsigned16Bit(let value):
-            return String(format: "%04X", value)
-        case .signed16Bit(let value):
-            return String(format: "%04X", UInt16(bitPattern: value))  // Treat as unsigned
-        case .float16Bit(let value):
-            return String(format: "%04X", value)
-        }
-    }
-}
-
 struct MemoryCellView: View {
     var memoryData: ChipCadeData
     

@@ -221,4 +221,26 @@ enum ChipCadeData: Codable  {
             return String(format: "%.3ff", float32)
         }
     }
+    
+    func toHexString() -> String {
+        switch self {
+        case .unsigned16Bit(let value):
+            return String(format: "0x%04X", value)
+        case .signed16Bit(let value):
+            return String(format: "0x%04X", UInt16(bitPattern: value))  // Convert signed to hex
+        case .float16Bit(let value):
+            return String(format: "0x%04X", value)  // Treat the raw bits as hex
+        }
+    }
+
+    func toBinaryString() -> String {
+        switch self {
+        case .unsigned16Bit(let value):
+            return String(value, radix: 2)
+        case .signed16Bit(let value):
+            return String(UInt16(bitPattern: value), radix: 2)  // Convert signed to binary
+        case .float16Bit(let value):
+            return String(value, radix: 2)  // Treat the raw bits as binary
+        }
+    }
 }
