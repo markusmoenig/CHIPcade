@@ -61,11 +61,7 @@ public class Game : ObservableObject
     }
     
     public func execute() {
-        stack = []
-        callStack = []
-        
-        currCodeItemIndex = 0
-        currInstructionIndex = 0
+        self.reset()
 
         while let instruction = getInstruction() {
             cpu.executeInstruction(instruction: instruction, game: self, gcp: gcp)
@@ -111,5 +107,13 @@ public class Game : ObservableObject
     public func drawCPU()
     {
         cpuWidget.draw(draw2D: cpuRender, game: self)
+    }
+    
+    public func reset() {
+        stack = []
+        callStack = []
+        
+        currCodeItemIndex = 0
+        currInstructionIndex = 0
     }
 }

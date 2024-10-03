@@ -30,6 +30,8 @@ struct ChipCadeDocument: FileDocument {
 
     init(configuration: ReadConfiguration) throws {
         game = globalGame
+        game.reset()
+        
         guard let data = configuration.file.regularFileContents else {
             throw CocoaError(.fileReadNoSuchFile) // Changed to reflect the issue better
         }

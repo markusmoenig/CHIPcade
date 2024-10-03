@@ -390,35 +390,6 @@ struct MetalView: UIViewRepresentable {
     }
     
     func updateUIView(_ uiView: MTKView, context: UIViewRepresentableContext<MetalView>) {
-        
-//        
-//        if viewType == .Preview {
-//            
-//            if game.render.metalView !== uiView {
-//                game.render.setupView(uiView as! ChipCadeView)
-//            }
-//        } else
-//        if viewType == .CPU {
-//            if game.cpuRender.metalView !== uiView {
-//                game.cpuRender.setupView(uiView as! ChipCadeView)
-//            }
-//        }
-
-    
-        
-//        if let chipCadeView = uiView as? ChipCadeView {
-//            if viewType == .Preview {
-//                render = MetalDraw2D()
-//                game.render = render
-//                render.setupView(chipCadeView)
-//            } else
-//            if viewType == .CPU {
-//                cpuRender = MetalDraw2D()
-//                game.cpuRender = cpuRender
-//                cpuRender.setupView(chipCadeView)
-//            }
-//            
-//        }
     }
     
     class Coordinator : NSObject, MTKViewDelegate {
@@ -439,9 +410,6 @@ struct MetalView: UIViewRepresentable {
         }
         
         func draw(in view: MTKView) {
-            
-//            if let chipCadeView = metalView as? ChipCadeView {
-
             if parent.viewType == .Preview {
                 parent.game.drawPreview()
             } else
