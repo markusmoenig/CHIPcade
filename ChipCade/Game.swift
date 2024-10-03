@@ -21,6 +21,8 @@ public enum SelectionState {
 
 public class Game : ObservableObject
 {
+    static var shared = Game()
+    
     @Published var data: GameData
     
     @Published var stack: [ChipCadeData]
@@ -33,7 +35,6 @@ public class Game : ObservableObject
 
     // Drawing widgets
     
-    var render = MetalDraw2D();
     var cpuRender = MetalDraw2D();
     
     var cpuWidget = CPUWidget()
@@ -55,25 +56,55 @@ public class Game : ObservableObject
     }
         
     init() {
-        self.data = .init()
-        self.registers = [.unsigned16Bit(0), .unsigned16Bit(0), .unsigned16Bit(0), .unsigned16Bit(0), .unsigned16Bit(0), .unsigned16Bit(0), .unsigned16Bit(0), .unsigned16Bit(0)]
-        self.stack = []
+        data = .init()
+        registers = [.unsigned16Bit(0), .unsigned16Bit(0), .unsigned16Bit(0), .unsigned16Bit(0), .unsigned16Bit(0), .unsigned16Bit(0), .unsigned16Bit(0), .unsigned16Bit(0)]
+        stack = []
     }
     
-    public func execute() {
-        self.reset()
-
+    // Start playback, execute init
+    public func play() {
+        reset()
+        
+        state = .running
+        gcp.draw2D.metalView.enableSetNeedsDisplay = false
+        gcp.draw2D.metalView.isPaused = false
+        
+        // init
         while let instruction = getInstruction() {
             cpu.executeInstruction(instruction: instruction, game: self, gcp: gcp)
             currInstructionIndex += 1
         }
-        render.update()
     }
     
+    // Start playback, execute init
+    public func stop() {
+        reset()
+        
+        state = .paused
+        gcp.draw2D.metalView.enableSetNeedsDisplay = true
+        gcp.draw2D.metalView.isPaused = true
+        
+        cpuRender.update()
+    }
+    
+    // Called when running from the updater
+    public func update() {
+        currCodeItemIndex = 1
+        currInstructionIndex = 0
+        
+        // init
+        while let instruction = getInstruction() {
+            cpu.executeInstruction(instruction: instruction, game: self, gcp: gcp)
+            currInstructionIndex += 1
+        }
+        cpuRender.update()
+    }
+    
+    // Execute the current instruction
     public func executeInstruction() {
         if let instruction = getInstruction() {
             cpu.executeInstruction(instruction: instruction, game: self, gcp: gcp)
-            render.update()
+            gcp.draw2D.update()
         }
     }
     
@@ -94,14 +125,21 @@ public class Game : ObservableObject
         return codeItem.codes[currInstructionIndex]
     }
     
-    // Method to find a CodeItem by name
+    // Returns the codeItem of a given name
     func getCodeItem(byName name: String) -> CodeItem? {
         return data.codeItems.first { $0.name == name }
     }
     
+    // Returns the codeItem of a given name
+    func getCodeItemIndex(byItem item: CodeItem) -> Int? {
+        return data.codeItems.firstIndex { $0 === item }    }
+    
     public func drawPreview()
     {
-        gcp.draw(draw2D: render)
+        if state == .running {
+            update()
+        }
+        gcp.draw()
     }
     
     public func drawCPU()

@@ -120,9 +120,9 @@ struct ContentView: View {
             ToolbarItemGroup(placement: .primaryAction) {
                 
                 Button(action: {
-                    document.game.execute()
+                    document.game.play()
                 }) {
-                    Label("Play", systemImage: "play")
+                    Label("Play", systemImage: "play.fill")
                 }
                 
                 Button(action: {
@@ -132,6 +132,12 @@ struct ContentView: View {
                     document.game.cpuRender.update()
                 }) {
                     Label("Step", systemImage: "playpause")
+                }
+                
+                Button(action: {
+                    document.game.stop()
+                }) {
+                    Label("Stop", systemImage: "stop.fill")
                 }
                 
                 Spacer()
@@ -168,6 +174,11 @@ struct ContentView: View {
         }
         
         .onChange(of: selectedCodeItem) {
+            if let selectedCodeItem = selectedCodeItem {
+                if let index = document.game.getCodeItemIndex(byItem: selectedCodeItem) {
+                    document.game.currCodeItemIndex = index
+                }
+            }
             document.game.currInstructionIndex = 0
             selectedInstructionIndex = 0
             document.game.selectionState = .code

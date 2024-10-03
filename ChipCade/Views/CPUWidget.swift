@@ -27,16 +27,17 @@ public class CPUWidget    : ObservableObject
         
         if game.selectionState == .code {
             
-            let reg_x : Float = 10, reg_y : Float = 20, reg_width : Float = 60
+            let reg_x : Float = 20, reg_y : Float = 15//, reg_width : Float = 60
+            let pPL : Float = 22.0
             
             for i in 0..<8 {
-                draw2D.drawText(position: float2(reg_x + Float(i) * reg_width, reg_y), text: "R\(i)", size: 12, color: prim)
-                draw2D.drawText(position: float2(reg_x + Float(i) * reg_width + 16, reg_y), text: "\(game.registers[i].toString())", size: 12, color: sec)
+                draw2D.drawText(position: float2(reg_x, reg_y + Float(i) * pPL), text: "R\(i)", size: 12, color: prim)
+                draw2D.drawText(position: float2(reg_x + 16, reg_y + Float(i) * pPL), text: "\(game.registers[i].toString())", size: 12, color: sec)
             }
             
             if let instruction = game.getInstruction() {
-                draw2D.drawText(position: float2(100, 100), text: instruction.format(), size: 30)
-                draw2D.drawText(position: float2(20, 180), text: instruction.description(), size: 14, color: prim)
+                draw2D.drawText(position: float2(100, 80), text: instruction.format(), size: 30)
+                draw2D.drawText(position: float2(100, 180), text: instruction.description(), size: 14, color: prim)
             }
         }
         

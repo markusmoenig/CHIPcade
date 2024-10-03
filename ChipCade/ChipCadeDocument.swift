@@ -14,14 +14,12 @@ extension UTType {
     }
 }
 
-var globalGame = Game()
-
 struct ChipCadeDocument: FileDocument {
     
     var game : Game
     
     init() {
-        game = globalGame
+        game = Game.shared
         game.data = .init()
     }
 
@@ -29,7 +27,7 @@ struct ChipCadeDocument: FileDocument {
     static var writableContentTypes: [UTType] { [.ChipCadeDocument] }
 
     init(configuration: ReadConfiguration) throws {
-        game = globalGame
+        game = Game.shared
         game.reset()
         
         guard let data = configuration.file.regularFileContents else {

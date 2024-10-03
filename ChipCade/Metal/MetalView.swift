@@ -307,7 +307,7 @@ struct MetalView: NSViewRepresentable {
         mtkView.isPaused = true
         
         if viewType == .Preview {
-            game.render.setupView(mtkView)
+            game.gcp.draw2D.setupView(mtkView)
         } else
         if viewType == .CPU {
             game.cpuRender.setupView(mtkView)
@@ -380,7 +380,7 @@ struct MetalView: UIViewRepresentable {
         mtkView.isPaused = true
                 
         if viewType == .Preview {
-            game.render.setupView(mtkView)
+            game.gcp.draw2D.setupView(mtkView)
         } else
         if viewType == .CPU {
             game.cpuRender.setupView(mtkView)
