@@ -48,48 +48,16 @@ vertex VertexOut poly2DVertex(uint vertexID [[ vertex_id ]],
 
 fragment float4 poly2DFragment(VertexOut in [[stage_in]],
                                constant RectUniform *data [[ buffer(0) ]],
-                               texture2d<float> inTexture [[ texture(1) ]] )
+                               texture2d<float> inTexture [[ texture(1) ]],
+                               sampler textureSampler [[sampler(0)]])
 {
     float4 color = in.color;
     
     if (data->hasTexture == 1) {
-        constexpr sampler textureSampler (mag_filter::linear,
-                                          min_filter::linear);
         float2 uv = in.textureCoordinate;
         uv.y = 1 - uv.y;
         color = float4(inTexture.sample(textureSampler, uv));
     }
-    /*
-    float2 uv = in.textureCoordinate * ( data->size );
-    uv -= float2( data->size / 2.0 );
-            
-    float2 d = abs( uv ) - data->size / 2 + data->onion + data->round;
-    float dist = length(max(d,float2(0))) + min(max(d.x,d.y),0.0) - data->round;
-    
-    if (data->onion > 0.0)
-        dist = abs(dist) - data->onion;
-    
-    const float mask = m4mFillMask( dist );
-    float4 col = float4( data->fillColor.xyz, data->fillColor.w * mask);
-    
-    if (data->hasTexture == 1 && col.w > 0.0) {
-        constexpr sampler textureSampler (mag_filter::linear,
-                                          min_filter::linear);
-        
-        float2 uv = in.textureCoordinate;
-        uv.y = 1 - uv.y;
-        uv = m4mRotateCCWPivot(uv, data->rotation, 0.5);
-
-        float4 sample = float4(inTexture.sample(textureSampler, uv));
-        
-        col.xyz = sample.xyz;
-        col.w = col.w * sample.w;
-    }
-    
-    float borderMask = m4mBorderMask(dist, data->borderSize);
-    float4 borderColor = data->borderColor;
-    borderColor.w *= borderMask;
-    col = mix( col, borderColor, borderMask );*/
     
     return color;
 }
@@ -422,18 +390,21 @@ fragment float4 m4mGridDrawable(RasterizerData in [[stage_in]],
 }*/
 
 // Copy texture
-fragment float4 m4mCopyTextureDrawable(RasterizerData in [[stage_in]],
+fragment float4 m4mCopyTextureDrawable(VertexOut in [[stage_in]],
                                 constant TextureUniform *data [[ buffer(0) ]],
                                 texture2d<half, access::read> inTexture [[ texture(1) ]])
 {
-    float2 uv = in.textureCoordinate * data->size;
-    uv.y = data->size.y - uv.y;
-    
+    float2 uv = in.textureCoordinate;// * data->size;
+    //uv.y = data->size.y - uv.y;
+    uv.y = 1 - uv.y;
+
     const half4 colorSample = inTexture.read(uint2(uv));
     float4 sample = float4( colorSample );
 
-    sample.w *= data->globalAlpha;
+    //sample.w *= data->globalAlpha;
 
+    
+//    return sample;
     return float4(sample.x / sample.w, sample.y / sample.w, sample.z / sample.w, sample.w);
 }
 

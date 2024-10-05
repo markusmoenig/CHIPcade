@@ -13,13 +13,13 @@ struct MemoryGridView: View {
     
     let columns: [GridItem] = Array(repeating: .init(.flexible()), count: 4) // 8 columns in the grid
     let bytesPerLine: Int = 4  // Number of memory values displayed per line
-    let maxGridWidth: CGFloat = 300  // Maximum width for the grid view
+    //let maxGridWidth: CGFloat = 300  // Maximum width for the grid view
 
     var body: some View {
         VStack {
-            Text("Memory for: \(memoryItem.name)")
-                .font(.headline)
-                .padding(.bottom, 10)
+//            Text("Memory for: \(memoryItem.name)")
+//                .font(.headline)
+//                .padding(.bottom, 10)
 
             ScrollView {
                 ForEach(0..<memoryItem.memory.count / bytesPerLine, id: \.self) { lineIndex in
@@ -48,7 +48,7 @@ struct MemoryGridView: View {
             .clipped()
         }
         .padding()
-        .frame(maxWidth: maxGridWidth)  // Apply max width constraint to the entire ScrollView
+        //.frame(maxWidth: maxGridWidth)  // Apply max width constraint to the entire ScrollView
     }
 
     // MARK: - Helper Functions

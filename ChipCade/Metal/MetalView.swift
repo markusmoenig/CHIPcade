@@ -12,10 +12,10 @@ import MetalKit
 public class ChipCadeView       : MTKView
 {
     enum MetalViewType {
-        case Preview, CPU
+        case Game, CPU
     }
     
-    var viewType            : MetalViewType = .Preview
+    var viewType            : MetalViewType = .Game
     
     var game                : Game!
 
@@ -306,8 +306,8 @@ struct MetalView: NSViewRepresentable {
         mtkView.enableSetNeedsDisplay = true
         mtkView.isPaused = true
         
-        if viewType == .Preview {
-            game.gcp.draw2D.setupView(mtkView)
+        if viewType == .Game {
+            game.gcp.setupView(mtkView)
         } else
         if viewType == .CPU {
             game.cpuRender.setupView(mtkView)
@@ -338,8 +338,8 @@ struct MetalView: NSViewRepresentable {
     
         
         func draw(in view: MTKView) {
-            if parent.viewType == .Preview {
-                parent.game.drawPreview()
+            if parent.viewType == .Game {
+                parent.game.drawGame()
             } else
             if parent.viewType == .CPU {
                 parent.game.drawCPU()
@@ -379,8 +379,8 @@ struct MetalView: UIViewRepresentable {
         mtkView.enableSetNeedsDisplay = true
         mtkView.isPaused = true
                 
-        if viewType == .Preview {
-            game.gcp.draw2D.setupView(mtkView)
+        if viewType == .Game {
+            game.gcp.setupView(mtkView)
         } else
         if viewType == .CPU {
             game.cpuRender.setupView(mtkView)
@@ -410,8 +410,8 @@ struct MetalView: UIViewRepresentable {
         }
         
         func draw(in view: MTKView) {
-            if parent.viewType == .Preview {
-                parent.game.drawPreview()
+            if parent.viewType == .Game {
+                parent.game.drawGame()
             } else
             if parent.viewType == .CPU {
                 parent.game.drawCPU()

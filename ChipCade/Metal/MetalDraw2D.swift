@@ -48,6 +48,7 @@ class MetalDraw2D
     
     var polyState       : MTLRenderPipelineState? = nil
     var textState       : MTLRenderPipelineState? = nil
+    var copyState       : MTLRenderPipelineState? = nil
 
     var scaleFactor     : Float
     var viewSize        = float2(0,0)
@@ -69,6 +70,10 @@ class MetalDraw2D
 
     var fonts           : [String:Font] = [:]
     var font            : Font! = nil
+
+    var nearestSampler  : MTLSamplerState!
+    var linearSampler   : MTLSamplerState!
+    var currentSampler  : MTLSamplerState!
 
     var cpuView         : ChipCadeView!
     var cpuWidget       : CPUWidget!
@@ -142,7 +147,25 @@ class MetalDraw2D
             
             function = defaultLibrary.makeFunction( name: "m4mTextDrawable" )
             textState = createNewPipelineState(function)
+            
+            function = defaultLibrary.makeFunction( name: "m4mCopyTextureDrawable" )
+            copyState = createNewPipelineState(function)
         }
+        
+        // Create linear and nearest samplers
+        let linearSamplerDescriptor = MTLSamplerDescriptor()
+        linearSamplerDescriptor.minFilter = .linear
+        linearSamplerDescriptor.magFilter = .linear
+
+        linearSampler = device.makeSamplerState(descriptor: linearSamplerDescriptor)
+
+        let nearestSamplerDescriptor = MTLSamplerDescriptor()
+        nearestSamplerDescriptor.minFilter = .nearest
+        nearestSamplerDescriptor.magFilter = .nearest
+
+        currentSampler = linearSampler
+        
+        nearestSampler = device.makeSamplerState(descriptor: nearestSamplerDescriptor)
         
         // Init the SDF fonts
         
@@ -155,16 +178,16 @@ class MetalDraw2D
         fonts["square"] = font        
     }
     
-    public func draw()
-    {
-        encodeStart()
-        clear(color: float4(0.125, 0.129, 0.137, 1))
-        startShape(type: .triangle)
-        drawRect(10, 40, 200, 200, float4(1, 0, 1, 1), 0.0)
-        endShape()
-        drawText(position: float2(100, 100), text: "CHIPCADE", size: 30)
-        encodeEnd()
-    }
+//    public func draw()
+//    {
+//        encodeStart()
+//        clear(color: float4(0.125, 0.129, 0.137, 1))
+//        startShape(type: .triangle)
+//        drawRect(10, 40, 200, 200, float4(1, 0, 1, 1), 0.0)
+//        endShape()
+//        drawText(position: float2(100, 100), text: "CHIPCADE", size: 30)
+//        encodeEnd()
+//    }
     
     @discardableResult func encodeStart(_ clearColor: float4 = float4(0.125, 0.129, 0.137, 1)) -> MTLRenderCommandEncoder?
     {
@@ -185,6 +208,7 @@ class MetalDraw2D
 //        renderPassDescriptor!.colorAttachments[0].clearColor = MTLClearColor( red: Double(clearColor.x), green: Double(clearColor.y), blue: Double(clearColor.z), alpha: Double(clearColor.w))
 //
 //        renderPassDescriptor!.colorAttachments[0].loadAction = .load
+//        renderPassDescriptor!.colorAttachments[0].storeAction = .store
         
         if renderPassDescriptor != nil {
             renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor! )
@@ -215,16 +239,15 @@ class MetalDraw2D
                 //}
                 commandBuffer.present(drawable)
                 commandBuffer.commit()
+//                commandBuffer.waitUntilCompleted()
             }
         } else {
             commandBuffer.commit()
         }
     }
     
-    func startShape(type: MTLPrimitiveType) {
-        
+    func startShape(type: MTLPrimitiveType = .triangle) {
         primitiveType = type
-        
         vertexData = []
         vertexCount = 0
     }
@@ -241,7 +264,7 @@ class MetalDraw2D
         vertexCount += 1
     }
     
-    func drawRect(_ x: Float, _ y: Float, _ width: Float, _ height: Float,_ c: float4, _ rot: Float) {
+    func drawRect(_ x: Float, _ y: Float, _ width: Float, _ height: Float,_ c: float4 = float4(0, 0, 0, 1), _ rot: Float = 0.0) {
         
         //        right, bottom, 1.0, 0.0,
         //        left, bottom, 0.0, 0.0,
@@ -299,7 +322,6 @@ class MetalDraw2D
     }
     
     func endShape() {
-        
         if !vertexData.isEmpty {
             var data = RectUniform()
             data.hasTexture = 0;
@@ -314,7 +336,8 @@ class MetalDraw2D
                 }
             }
             renderEncoder.setFragmentBytes(&data, length: MemoryLayout<RectUniform>.stride, index: 0)
-            
+            renderEncoder.setFragmentSamplerState(linearSampler, index: 0)
+
             renderEncoder.setRenderPipelineState(polyState!)
             renderEncoder.drawPrimitives(type: primitiveType, vertexStart: 0, vertexCount: vertexCount)
         }
@@ -325,7 +348,7 @@ class MetalDraw2D
     
     func clear(color: float4) {
         let size = viewSize
-        
+                
         startShape(type: .triangle)
         addVertex(float2(size.x, size.y), float2(1.0, 0.0), color)
         addVertex(float2(0, size.y), float2(0.0, 0.0), color)
@@ -335,6 +358,89 @@ class MetalDraw2D
         addVertex(float2(0, 0), float2(0.0, 1.0), color)
         addVertex(float2(size.x, 0), float2(1.0, 1.0), color)
         endShape()
+    }
+    
+    func copyTexture()
+    {
+        if texture != nil {
+            if let texture = textures[texture!] {
+                
+                let width : Float = Float(texture.width)
+                let height: Float = Float(texture.height)
+
+                var data = TextureUniform()
+                data.screenSize.x = Float(texture.width)
+                data.screenSize.y = Float(texture.height)
+                data.pos.x = 0
+                data.pos.y = 0
+                data.size.x = width * scaleFactor
+                data.size.y = height * scaleFactor
+                data.globalAlpha = 1
+                
+                //let rect = MRRect(0, 0, width, height, scale: 1)
+                let color = float4(1,0,0,1)
+                
+//                vertexData = [
+//                    xToMetal(rect.x + rect.width), yToMetal(rect.y + rect.height), 1.0, 0.0, c.x, c.y, c.z, c.w,
+//                    xToMetal(rect.x), yToMetal(rect.y + rect.height), 0.0, 0.0, c.x, c.y, c.z, c.w,
+//                    xToMetal(rect.x), yToMetal(rect.y), 0.0, 1.0, c.x, c.y, c.z, c.w,
+//                     
+//                    xToMetal(rect.x + rect.width), yToMetal(rect.y + rect.height), 1.0, 0.0, c.x, c.y, c.z, c.w,
+//                    xToMetal(rect.x), yToMetal(rect.y), 0.0, 1.0, c.x, c.y, c.z, c.w,
+//                    xToMetal(rect.x + rect.width), yToMetal(rect.y), 1.0, 1.0, c.x, c.y, c.z, c.w,
+//                ]
+//                vertexCount = 6
+                
+                let size = viewSize
+                startShape(type: .triangle)
+                addVertex(float2(size.x, size.y), float2(1.0, 0.0), color)
+                addVertex(float2(0, size.y), float2(0.0, 0.0), color)
+                addVertex(float2(0, 0), float2(0.0, 1.0), color)
+                
+                addVertex(float2(size.x, size.y), float2(1.0, 0.0), color)
+                addVertex(float2(0, 0), float2(0.0, 1.0), color)
+                addVertex(float2(size.x, 0), float2(1.0, 1.0), color)
+                
+                renderEncoder.setVertexBytes(vertexData, length: vertexData.count * MemoryLayout<Float>.stride, index: 0)
+                renderEncoder.setVertexBytes(&viewportSize, length: MemoryLayout<vector_uint2>.stride, index: 1)
+
+                renderEncoder.setFragmentBytes(&data, length: MemoryLayout<TextureUniform>.stride, index: 0)
+
+                renderEncoder.setRenderPipelineState(copyState!)
+                renderEncoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 6)
+                
+                vertexData = []
+                vertexCount = 0
+                /*
+                
+                let width : Float = Float(texture!.width)
+                let height: Float = Float(texture.height)
+                
+                var settings = TextureUniform()
+                settings.screenSize.x = Float(texture.width)//screenWidth
+                settings.screenSize.y = Float(texture.height)//screenHeight
+                settings.pos.x = 0
+                settings.pos.y = 0
+                settings.size.x = width * scaleFactor
+                settings.size.y = height * scaleFactor
+                settings.globalAlpha = 1
+                
+                let rect = MMRect( 0, 0, width, height, scale: scaleFactor )
+                let vertexData = createVertexData(texture: texture, rect: rect)
+                
+                var viewportSize = vector_uint2( UInt32(texture.width), UInt32(texture.height))
+                
+                renderEncoder.setVertexBytes(vertexData, length: vertexData.count * MemoryLayout<Float>.stride, index: 0)
+                renderEncoder.setVertexBytes(&viewportSize, length: MemoryLayout<vector_uint2>.stride, index: 1)
+                
+                renderEncoder.setFragmentBytes(&settings, length: MemoryLayout<TextureUniform>.stride, index: 0)
+                renderEncoder.setFragmentTexture(texture, index: 1)
+                
+                renderEncoder.setRenderPipelineState(metalStates.getState(state: .CopyTexture))
+                renderEncoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 6)
+                */
+            }
+        }
     }
     
     /// Draws the given text
@@ -365,7 +471,7 @@ class MetalDraw2D
                 xToMetal(rect.x + rect.width), yToMetal(rect.y), 1.0, 1.0, c.x, c.y, c.z, c.w,
             ]
             vertexCount = 6
-
+            
             renderEncoder.setVertexBytes(vertexData, length: vertexData.count * MemoryLayout<Float>.stride, index: 0)
             renderEncoder.setVertexBytes(&viewportSize, length: MemoryLayout<vector_uint2>.stride, index: 1)
 
@@ -374,6 +480,9 @@ class MetalDraw2D
 
             renderEncoder.setRenderPipelineState(textState!)
             renderEncoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 6)
+            
+            vertexData = []
+            vertexCount = 0
         }
         
         if let font = font {
@@ -434,7 +543,7 @@ class MetalDraw2D
     
     /// Updates the view
     func update() {
-                
+
         guard metalView != nil else {
             print("metalView \(id) is nil during update")
             return
@@ -457,17 +566,41 @@ class MetalDraw2D
         textureDescriptor.pixelFormat = MTLPixelFormat.bgra8Unorm
         textureDescriptor.width = width == 0 ? 1 : width
         textureDescriptor.height = height == 0 ? 1 : height
-        
-        textureDescriptor.usage = MTLTextureUsage.unknown
+                
+        //textureDescriptor.usage = MTLTextureUsage.unknown
+        textureDescriptor.usage = [.renderTarget, .shaderRead]
         
         guard let texture = device.makeTexture(descriptor: textureDescriptor) else {
             return nil
         }
         
+        print("Creating Texture \(textureIdCount): \(texture.width)x\(texture.height)")
+        
         let id = textureIdCount
         textures[id] = texture
         textureIdCount += 1
         return id
+    }
+    
+    /// Resize all textures to the view size
+    func syncTexturesToView() {
+        let viewWidth = Int(metalView.frame.width)
+        let viewHeight = Int(metalView.frame.height)
+        
+        textureIdCount = 1
+        
+        for index in 1...textures.count {
+            textureIdCount = index
+            if textures[index]!.width != viewWidth || textures[index]!.height != viewHeight {
+                _ = createTexture(width: viewWidth, height: viewHeight)
+            }
+        }
+        
+//        for texture in textures.values {
+//            if texture.width != viewWidth || texture.height != viewHeight {
+//                _ = createTexture(width: viewWidth, height: viewHeight)
+//            }
+//        }
     }
     
     /// Sets the render target

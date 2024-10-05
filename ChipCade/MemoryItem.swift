@@ -14,16 +14,14 @@ class MemoryItem : ObservableObject, Codable, Equatable, Identifiable {
     @Published var memory: [ChipCadeData]
 
     @Published var name: String
-    @Published var type: MemoryType
 
     private enum CodingKeys: String, CodingKey {
         case id, memory, name, startAddress, type
     }
     
-    init(name: String, length: Int, type: MemoryType) {
+    init(name: String, length: Int) {
         self.id = UUID()
         self.name = name
-        self.type = type
         self.memory = Array(repeating: .unsigned16Bit(0), count: length)  // Default to unsigned16Bit
     }
     
@@ -32,7 +30,6 @@ class MemoryItem : ObservableObject, Codable, Equatable, Identifiable {
         id = try container.decode(UUID.self, forKey: .id)
         memory = try container.decode([ChipCadeData].self, forKey: .memory)
         name = try container.decode(String.self, forKey: .name)
-        type = try container.decode(MemoryType.self, forKey: .type)
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -40,7 +37,6 @@ class MemoryItem : ObservableObject, Codable, Equatable, Identifiable {
         try container.encode(id, forKey: .id)
         try container.encode(memory, forKey: .memory)
         try container.encode(name, forKey: .name)
-        try container.encode(type, forKey: .type)
     }
     
     // Grow the memory by a given amount
@@ -61,8 +57,4 @@ class MemoryItem : ObservableObject, Codable, Equatable, Identifiable {
     static func == (lhs: MemoryItem, rhs: MemoryItem) -> Bool {
         return lhs.id == rhs.id
     }
-}
-
-enum MemoryType: String, Codable {
-    case code, sprite, data
 }

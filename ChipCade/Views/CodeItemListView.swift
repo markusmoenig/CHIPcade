@@ -15,7 +15,7 @@ struct CodeItemListView: View {
     @State private var isPopoverPresented = false
     @State private var instructionName: String = ""
     @State private var instructionComment: String = ""
-    
+        
     var body: some View {
         
         VStack(spacing: 0) {
@@ -94,15 +94,43 @@ struct CodeItemListView: View {
                                 selectedInstructionIndex = index
                             }
                         
-                        Button(action: {
-                            selectedInstruction = instruction
-                            selectedInstructionIndex = index
-                        }) {
-                            Text(instruction.toString())
-                                .frame(minWidth: 60)
-                        }
+//                        Button(action: {
+//                            selectedInstruction = instruction
+//                            selectedInstructionIndex = index
+//                        }) {
+//                            Text(instruction.toString())
+//                                .frame(minWidth: 60)
+//                        }
+                        
+                        InstructionTextFieldView(instruction: $codeItem.codes[index])
                         
                         switch instruction.type {
+                        case .inc, .dec:
+                            HStack {
+                                Int8RegisterMenu(
+                                    selectedRegister: Binding(
+                                        get: { instruction.register1! },
+                                        set: { newRegister in
+                                            instruction.register1 = newRegister
+                                            codeItem.codes[index] = instruction
+                                        }
+                                    )
+                                )                                
+                            }
+                        case .ld:
+                            HStack {
+                                Int8RegisterMenu(
+                                    selectedRegister: Binding(
+                                        get: { instruction.register1! },
+                                        set: { newRegister in
+                                            instruction.register1 = newRegister
+                                            codeItem.codes[index] = instruction
+                                        }
+                                    )
+                                )
+                                
+                                MemoryAddressTextField(instruction: instruction)
+                            }
                         case .ldi:
                             HStack {
                                 Int8RegisterMenu(
@@ -125,6 +153,20 @@ struct CodeItemListView: View {
                                     )
                                 )
                             }
+                        case .st:
+                            HStack {
+                                MemoryAddressTextField(instruction: instruction)
+
+                                Int8RegisterMenu(
+                                    selectedRegister: Binding(
+                                        get: { instruction.register1! },
+                                        set: { newRegister in
+                                            instruction.register1 = newRegister
+                                            codeItem.codes[index] = instruction
+                                        }
+                                    )
+                                )
+                            }
                         default: Text("");
                         }
                     }
@@ -139,9 +181,29 @@ struct CodeItemListView: View {
                 
                 Menu("Change To") {
                     Menu("CPU") {
+                        Button("LD", action: {
+                            if let selectedInstructionIndex = selectedInstructionIndex {
+                                codeItem.writeCode(at: selectedInstructionIndex, value: Instruction(.ld))
+                            }
+                        })
                         Button("LDI", action: {
                             if let selectedInstructionIndex = selectedInstructionIndex {
                                 codeItem.writeCode(at: selectedInstructionIndex, value: Instruction(.ldi))
+                            }
+                        })
+                        Button("ST", action: {
+                            if let selectedInstructionIndex = selectedInstructionIndex {
+                                codeItem.writeCode(at: selectedInstructionIndex, value: Instruction(.st))
+                            }
+                        })
+                        Button("INC", action: {
+                            if let selectedInstructionIndex = selectedInstructionIndex {
+                                codeItem.writeCode(at: selectedInstructionIndex, value: Instruction(.inc))
+                            }
+                        })
+                        Button("DEC", action: {
+                            if let selectedInstructionIndex = selectedInstructionIndex {
+                                codeItem.writeCode(at: selectedInstructionIndex, value: Instruction(.dec))
                             }
                         })
                     }

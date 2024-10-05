@@ -132,9 +132,11 @@ public class Game : ObservableObject
     
     // Returns the codeItem of a given name
     func getCodeItemIndex(byItem item: CodeItem) -> Int? {
-        return data.codeItems.firstIndex { $0 === item }    }
+        return data.codeItems.firstIndex { $0 === item }
+    }
     
-    public func drawPreview()
+    // Draw the game
+    public func drawGame()
     {
         if state == .running {
             update()

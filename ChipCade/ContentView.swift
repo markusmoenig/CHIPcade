@@ -74,7 +74,7 @@ struct ContentView: View {
                             selectedInstructionIndex: $selectedInstructionIndex
                         )
                     } else {
-                        MetalView(document.game, .Preview)
+                        MetalView(document.game, .Game)
                     }
                     
                     Spacer()
@@ -95,7 +95,7 @@ struct ContentView: View {
                                 selectedInstructionIndex: $selectedInstructionIndex
                             )
                         } else {
-                            MetalView(document.game, .Preview)
+                            MetalView(document.game, .Game)
                         }
                     } else
                     if let memoryItem = selectedMemoryItem {
@@ -116,6 +116,27 @@ struct ContentView: View {
             }
         }        
         .toolbar {
+            
+            ToolbarItem(placement: .navigation) {
+                Menu {
+                    
+                    Button("Add Code Module", action: {
+                        let item = CodeItem(name: "New Code Module")
+                        document.game.data.codeItems.append(item)
+                        selectedCodeItem = item
+                    })
+                    
+                    Button("Add Data Module", action: {
+                        let item = MemoryItem(name: "Data", length: 1024)
+                        document.game.data.dataItems.append(item)
+                        selectedCodeItem = nil
+                        selectedMemoryItem = item
+                    })
+                }
+                label: {
+                    Label("Add", systemImage: "plus")
+                }
+            }
             
             ToolbarItemGroup(placement: .primaryAction) {
                 
@@ -152,14 +173,14 @@ struct ContentView: View {
                 Spacer()
 
                 // Toolbar button for adding a new MemoryItem
-                Button(action: {
-                    showingAddMemoryItemPopover.toggle() // Toggle popover visibility
-                }) {
-                    Label("Add Memory Item", systemImage: "plus")
-                }
-                .popover(isPresented: $showingAddMemoryItemPopover) {
-                    AddMemoryItemView(game: document.game, selectedMemoryItem: $selectedMemoryItem)
-                }
+//                Button(action: {
+//                    showingAddMemoryItemPopover.toggle() // Toggle popover visibility
+//                }) {
+//                    Label("Add Memory Item", systemImage: "plus")
+//                }
+//                .popover(isPresented: $showingAddMemoryItemPopover) {
+//                    AddMemoryItemView(game: document.game, selectedMemoryItem: $selectedMemoryItem)
+//                }
             }
         }
         .onAppear {
@@ -215,7 +236,7 @@ struct AddMemoryItemView: View {
     @Environment(\.presentationMode) var presentationMode
     
     @State private var name: String = "New Memory Item"
-    @State private var selectedType: MemoryType = .code
+    //@State private var selectedType: MemoryType = .code
     @State private var length: Int = 64
 
     var body: some View {
@@ -230,13 +251,13 @@ struct AddMemoryItemView: View {
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .padding(.bottom, 10)
                 
-                Picker("Type", selection: $selectedType) {
-                    Text("Code").tag(MemoryType.code)
-                    Text("Sprite").tag(MemoryType.sprite)
-                    Text("Data").tag(MemoryType.data)
-                }
-                .pickerStyle(SegmentedPickerStyle())
-                .padding(.bottom, 10)
+//                Picker("Type", selection: $selectedType) {
+//                    Text("Code").tag(MemoryType.code)
+//                    Text("Sprite").tag(MemoryType.sprite)
+//                    Text("Data").tag(MemoryType.data)
+//                }
+//                .pickerStyle(SegmentedPickerStyle())
+//                .padding(.bottom, 10)
                 
 //                Text("Length: \(length) bytes")
 //                Stepper(value: $length, in: 1...1024) {
@@ -259,18 +280,18 @@ struct AddMemoryItemView: View {
     }
     
     private func addMemoryItem() {
-        let newItem = MemoryItem(name: name, length: length, type: selectedType)
+        let newItem = MemoryItem(name: name, length: length)
         let newCodeItem = CodeItem(name: name)
 
         // Add the new memory item to the appropriate section
-        switch selectedType {
-        case .code:
-            game.data.codeItems.append(newCodeItem)
-        case .sprite:
-            game.data.spriteItems.append(newItem)
-        case .data:
-            game.data.dataItems.append(newItem)
-        }
+//        switch selectedType {
+//        case .code:
+//            game.data.codeItems.append(newCodeItem)
+//        case .sprite:
+//            game.data.spriteItems.append(newItem)
+//        case .data:
+//            game.data.dataItems.append(newItem)
+//        }
 
         // Automatically select the new memory item
         selectedMemoryItem = newItem

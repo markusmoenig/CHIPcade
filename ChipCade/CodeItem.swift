@@ -21,7 +21,7 @@ class CodeItem : ObservableObject, Codable, Equatable, Identifiable {
     init(name: String) {
         id = UUID()
         self.name = name
-        codes = [Instruction(.ldi), Instruction(.nop)]
+        codes = [Instruction(.nop)]
     }
     
     required public init(from decoder: Decoder) throws {

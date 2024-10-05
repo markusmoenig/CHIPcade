@@ -19,9 +19,9 @@ class GameData: Codable {
     }
     
     init() {
-        self.codeItems = [CodeItem(name: "init"), CodeItem(name: "update")]
+        self.codeItems = [CodeItem(name: "Init"), CodeItem(name: "Update")]
         self.spriteItems = []
-        self.dataItems = []
+        self.dataItems = [MemoryItem(name: "Data", length: 1024)]
         self.palette = GameData.defaultPalette()
     }
     

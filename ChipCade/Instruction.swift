@@ -48,11 +48,23 @@ public class InstrMeta : Codable {
     }
 }
 
-public enum InstructionType: String, Codable {
+public enum InstructionType: String, Codable, CaseIterable {
+    case dec
+    case inc
+    case ld
     case ldi
     case push
     case nop
     case rect
+    case st
+    
+    static func fromString(_ string: String) -> InstructionType? {
+        return InstructionType.allCases.first { $0.toString().lowercased() == string.lowercased() }
+    }
+    
+    func toString() -> String {
+        return self.rawValue.uppercased()
+    }
 }
 
 public class Instruction: ObservableObject, Codable, Equatable {
@@ -67,6 +79,9 @@ public class Instruction: ObservableObject, Codable, Equatable {
     @Published var register2: Int8? = nil
     @Published var value: ChipCadeData? = nil
 
+    @Published var memory: String? = nil
+    @Published var memoryOffset: Int? = nil
+
     enum CodingKeys: String, CodingKey {
         case id
         case type
@@ -74,12 +89,24 @@ public class Instruction: ObservableObject, Codable, Equatable {
         case register1
         case register2
         case value
+        case memory
+        case memoryOffset
     }
     
     init(_ type: InstructionType) {
         self.type = type
         
         switch type {
+        case .inc, .dec:
+            register1 = 0
+        case .ld:
+            register1 = 0
+            memory = "Data"
+            memoryOffset = 0
+        case .st:
+            register1 = 0
+            memory = "Data"
+            memoryOffset = 0
         case .ldi:
             register1 = 0
             value = .unsigned16Bit(0)
@@ -92,9 +119,11 @@ public class Instruction: ObservableObject, Codable, Equatable {
         try container.encode(id, forKey: .id)
         try container.encode(type, forKey: .type)
         try container.encodeIfPresent(meta, forKey: .meta)
-        try container.encode(register1, forKey: .register1)
-        try container.encode(register2, forKey: .register2)
-        try container.encode(value, forKey: .value)
+        try container.encodeIfPresent(register1, forKey: .register1)
+        try container.encodeIfPresent(register2, forKey: .register2)
+        try container.encodeIfPresent(value, forKey: .value)
+        try container.encodeIfPresent(memory, forKey: .memory)
+        try container.encodeIfPresent(memoryOffset, forKey: .memoryOffset)
     }
     
     // Decoding
@@ -107,10 +136,21 @@ public class Instruction: ObservableObject, Codable, Equatable {
         register1 = try container.decodeIfPresent(Int8.self, forKey: .register1)
         register2 = try container.decodeIfPresent(Int8.self, forKey: .register2)
         value = try container.decodeIfPresent(ChipCadeData.self, forKey: .value)
+        memory = try container.decodeIfPresent(String.self, forKey: .memory)
+        memoryOffset = try container.decodeIfPresent(Int.self, forKey: .memoryOffset)
     }
     
     func format() -> String {
         switch type {
+        case .dec:
+            return "DEC R\(register1!)"
+            
+        case .inc:
+            return "INC R\(register1!)"
+            
+        case .ld:
+            return "LD R\(register1!) \(memory!) + \(memoryOffset!)"
+            
         case .ldi:
             return "LDI R\(register1!) \(value!.toString())"
             
@@ -122,36 +162,62 @@ public class Instruction: ObservableObject, Codable, Equatable {
             
         case .rect:
             return "RECT"
+            
+        case .st:
+            return "ST \(memory!) + \(memoryOffset!) R\(register1!)"
         }
     }
     
     func description() -> String {
         switch type {
+        case .dec:
+            return "Decreases the register by 1"
+        case .inc:
+            return "Increases the register by 1"
+        case .ld:
+            return "Load memory into a register"
         case .ldi:
-            return "Loads an immediate value into a register"
-            
+            return "Load an immediate value into a register"
         case .push:
             return "PUSH"
             
         case .nop:
-            return "No operation (does nothing)"
+            return "No operation"
         case .rect:
-            return "Draws a rectangle: R0 = X, R1 = Y, R2 = Width, R3 = Height, R4 = Palette Index"
+            return "Draw a rectangle: R0 = X, R1 = Y, R2 = Width, R3 = Height, R4 = Palette Index"
+        case .st:
+            return "Store to memory from a register"
         }
     }
+    
     func toString() -> String {
+        self.type.toString()
+    }
+    
+    func registers() -> (Int8?, [Int8]) {
+        var dest : Int8? = nil
+        var source : [Int8] = []
+        
         switch type {
-        case .ldi:
-            return "LDI"
-            
-        case .push:
-            return "PUSH"
-            
-        case .nop:
-            return "NOP"
-            
+        case .ldi, .ld, .dec, .inc:
+            dest = register1!
         case .rect:
-            return "RECT"
+            source = [0, 1, 2, 3, 4]
+        case .st:
+            source = [register1!]
+        default: break;
+        }
+        
+        return (dest, source)
+    }
+    
+    /// Returns true if this is an instruction of the GCP
+    func isGCP() -> Bool {
+        switch type {
+        case .rect:
+            return true
+        default:
+            return false
         }
     }
     

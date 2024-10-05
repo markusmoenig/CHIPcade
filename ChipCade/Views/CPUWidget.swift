@@ -24,6 +24,19 @@ public class CPUWidget    : ObservableObject
         
         let prim = colorToFloat4(Color.primary)
         let sec = colorToFloat4(Color.secondary)
+        let red = colorToFloat4(Color.red)
+        let green = colorToFloat4(Color.green)
+
+        var dest : Int8? = nil
+        var source : [Int8] = []
+        
+        if let instruction = game.getInstruction() {
+            //draw2D.drawText(position: float2(100, 80), text: instruction.format(), size: 30)
+            draw2D.drawText(position: float2(100, 180), text: "\(instruction.toString()): \(instruction.description())", size: 14, color: prim)
+            let regs = instruction.registers()
+            dest = regs.0
+            source = regs.1
+        }
         
         if game.selectionState == .code {
             
@@ -31,13 +44,18 @@ public class CPUWidget    : ObservableObject
             let pPL : Float = 22.0
             
             for i in 0..<8 {
-                draw2D.drawText(position: float2(reg_x, reg_y + Float(i) * pPL), text: "R\(i)", size: 12, color: prim)
-                draw2D.drawText(position: float2(reg_x + 16, reg_y + Float(i) * pPL), text: "\(game.registers[i].toString())", size: 12, color: sec)
-            }
-            
-            if let instruction = game.getInstruction() {
-                draw2D.drawText(position: float2(100, 80), text: instruction.format(), size: 30)
-                draw2D.drawText(position: float2(100, 180), text: instruction.description(), size: 14, color: prim)
+                var color = prim
+                if let dest = dest {
+                    if dest == i {
+                        color = red
+                    }
+                }
+                if source.contains(Int8(i)) {
+                    color = green
+                }
+                
+                draw2D.drawText(position: float2(reg_x, reg_y + Float(i) * pPL), text: "R\(i)", size: 15, color: color)
+                draw2D.drawText(position: float2(reg_x + 24, reg_y + Float(i) * pPL), text: "\(game.registers[i].toString())", size: 15, color: sec)
             }
         }
         
