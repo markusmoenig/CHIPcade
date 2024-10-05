@@ -244,3 +244,60 @@ enum ChipCadeData: Codable  {
         }
     }
 }
+
+// INC / DEC
+
+extension ChipCadeData {
+
+    // Increment function
+    mutating func inc(flags: CPUFlags) {
+        switch self {
+        case .unsigned16Bit(let value):
+            let newValue = value &+ 1 // Wrap-around if it exceeds UInt16.max
+            flags.setZeroFlag(newValue == 0)
+            flags.setCarryFlag(newValue < value) // Carry occurs if the value wrapped around
+            self = .unsigned16Bit(newValue)
+
+        case .signed16Bit(let value):
+            let newValue = Int16(clamping: value &+ 1)
+            flags.setZeroFlag(newValue == 0)
+            flags.setOverflowFlag(value == Int16.max) // Overflow if incrementing max value
+            flags.setNegativeFlag(newValue < 0)
+            self = .signed16Bit(newValue)
+
+        case .float16Bit(let float16):
+            let float32 = float16ToFloat32(float16)
+            let newFloat32 = float32 + 1.0
+            flags.setZeroFlag(newFloat32 == 0)
+            flags.setNegativeFlag(newFloat32 < 0)
+            let newFloat16 = float32ToFloat16(newFloat32)
+            self = .float16Bit(newFloat16)
+        }
+    }
+
+    // Decrement function
+    mutating func dec(flags: CPUFlags) {
+        switch self {
+        case .unsigned16Bit(let value):
+            let newValue = value &- 1 // Wrap-around if it goes below 0
+            flags.setZeroFlag(newValue == 0)
+            flags.setCarryFlag(value == 0) // Carry occurs if decrementing 0
+            self = .unsigned16Bit(newValue)
+
+        case .signed16Bit(let value):
+            let newValue = Int16(clamping: value &- 1)
+            flags.setZeroFlag(newValue == 0)
+            flags.setOverflowFlag(value == Int16.min) // Overflow if decrementing min value
+            flags.setNegativeFlag(newValue < 0)
+            self = .signed16Bit(newValue)
+
+        case .float16Bit(let float16):
+            let float32 = float16ToFloat32(float16)
+            let newFloat32 = float32 - 1.0
+            flags.setZeroFlag(newFloat32 == 0)
+            flags.setNegativeFlag(newFloat32 < 0)
+            let newFloat16 = float32ToFloat16(newFloat32)
+            self = .float16Bit(newFloat16)
+        }
+    }
+}

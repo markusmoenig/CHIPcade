@@ -4,9 +4,14 @@
 
 ### Instruction Set
 
-16bit processor with 8 registers, flags? and a stack.
+16bit processor with 8 registers, flags and a stack.
 
-- LDI Rd, Value. Load an immediate value to the register.
+- **LDI Rd, Memory Address**. Load memory to the destination register.
+- **LDI Rd, Value.** Load an immediate value to the destination register.
+- **ST Memory Addres, Rs.** Store the source register at the destination memory address.
+
+- **INC Rd**. Increase the destination register by 1.
+- **DEC Rd**. Decrease the destination register by 1.
 
 ## GCP (Graphical Co-Processor)
 

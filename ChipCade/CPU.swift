@@ -13,6 +13,14 @@ public class CPU {
     public func executeInstruction(instruction: Instruction, game: Game, gcp: GCP) {
         
         switch instruction.type {
+        case .inc   :  game.registers[Int(instruction.register1!)].inc(flags: game.flags)
+        case .dec   :  game.registers[Int(instruction.register1!)].dec(flags: game.flags)
+        case .ld    :
+            if let value = game.getMemoryValue(memoryItemName: instruction.memory!, offset: instruction.memoryOffset!) {
+                game.registers[Int(instruction.register1!)] = value
+            } else {
+                // Error: Invalid Memory Address
+            }
         case .ldi   : game.registers[Int(instruction.register1!)] = instruction.value!
         case .push  : game.stack.append(instruction.value!)
         case .rect  :
@@ -28,6 +36,10 @@ public class CPU {
                 gcp.addCmd(cmd)
             }
             
+        case .st    :
+            if game.setMemoryValue(memoryItemName: instruction.memory!, offset: instruction.memoryOffset!, value: instruction.value!) {
+                // Error: Invalid Memory Address
+            }
         default: break
         }
     }

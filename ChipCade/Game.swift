@@ -28,6 +28,8 @@ public class Game : ObservableObject
     @Published var stack: [ChipCadeData]
     @Published var registers: [ChipCadeData]
 
+    @Published var flags = CPUFlags()
+    
     // The instruction pointer
     @Published var currCodeItemIndex: Int = 0
     @Published var currInstructionIndex: Int = 0
@@ -135,6 +137,27 @@ public class Game : ObservableObject
         return data.codeItems.firstIndex { $0 === item }
     }
     
+    // Get the memory value at the given address
+    func getMemoryValue(memoryItemName: String, offset: Int) -> ChipCadeData? {
+        if let memoryItem = data.getMemoryItem(name: memoryItemName) {
+            if offset < memoryItem.memory.count {
+                return memoryItem.memory[offset]
+            }
+        }
+        return nil
+    }
+    
+    // Set the memory value at the given address
+    func setMemoryValue(memoryItemName: String, offset: Int, value: ChipCadeData) -> Bool {
+        if let memoryItem = data.getMemoryItem(name: memoryItemName) {
+            if offset < memoryItem.memory.count {
+                memoryItem.memory[offset] = value
+                return false
+            }
+        }
+        return true
+    }
+    
     // Draw the game
     public func drawGame()
     {
@@ -152,6 +175,12 @@ public class Game : ObservableObject
     public func reset() {
         stack = []
         callStack = []
+        
+        flags.clearFlags()
+        
+        for i in 0...7 {
+            registers[i] = ChipCadeData.unsigned16Bit(0)
+        }
         
         currCodeItemIndex = 0
         currInstructionIndex = 0

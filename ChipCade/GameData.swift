@@ -43,6 +43,15 @@ class GameData: Codable {
         try container.encode(palette, forKey: .palette)
     }
     
+    // Get memory item.
+    func getMemoryItem(name: String) -> MemoryItem? {
+        if let foundItem = dataItems.first(where: { $0.name == name }) {
+            return foundItem
+        }
+
+        return nil
+    }
+    
     // From https://lospec.com/palette-list/duel
     static func defaultPalette() -> [float4] {
         let hexColors = [
