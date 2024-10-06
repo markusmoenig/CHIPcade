@@ -53,7 +53,7 @@ class GameData: ObservableObject, Codable {
     }
     
     // Method to add a new CodeItem with undo/redo support
-    func addCodeItem(named name: String, using undoManager: UndoManager?, setSelectedItem: @escaping (CodeItem) -> Void) {
+    func addCodeItem(named name: String, using undoManager: UndoManager?, setSelectedItem: @escaping (CodeItem?) -> Void) {
         let newItem = CodeItem(name: name)
         codeItems.append(newItem)
 
@@ -64,6 +64,12 @@ class GameData: ObservableObject, Codable {
         undoManager?.registerUndo(withTarget: self) { targetSelf in
             if let index = targetSelf.codeItems.firstIndex(of: newItem) {
                 targetSelf.codeItems.remove(at: index)
+
+                // Set the selected item to the first item or nil if the list is empty
+                let newSelectedItem = targetSelf.codeItems.first
+                setSelectedItem(newSelectedItem)
+
+                // Register redo action to re-add the CodeItem
                 undoManager?.registerUndo(withTarget: targetSelf) { redoSelf in
                     redoSelf.codeItems.insert(newItem, at: index)
                     setSelectedItem(newItem)  // Set as selected again after redo
@@ -74,7 +80,7 @@ class GameData: ObservableObject, Codable {
     }
     
     // Method to add a new DataItem with undo/redo support
-    func addDataItem(named name: String, length: Int, using undoManager: UndoManager?, setSelectedItem: @escaping (MemoryItem) -> Void) {
+    func addDataItem(named name: String, length: Int, using undoManager: UndoManager?, setSelectedItem: @escaping (MemoryItem?) -> Void) {
         let newItem = MemoryItem(name: name, length: length)
         dataItems.append(newItem)
 
@@ -85,6 +91,11 @@ class GameData: ObservableObject, Codable {
         undoManager?.registerUndo(withTarget: self) { targetSelf in
             if let index = targetSelf.dataItems.firstIndex(of: newItem) {
                 targetSelf.dataItems.remove(at: index)
+                
+                // Set the selected item to the first item or nil if the list is empty
+                let newSelectedItem = targetSelf.dataItems.first
+                setSelectedItem(newSelectedItem)
+                
                 undoManager?.registerUndo(withTarget: targetSelf) { redoSelf in
                     redoSelf.dataItems.insert(newItem, at: index)
                     setSelectedItem(newItem)  // Set as selected again after redo
