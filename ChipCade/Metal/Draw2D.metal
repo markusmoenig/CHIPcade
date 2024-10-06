@@ -394,17 +394,14 @@ fragment float4 m4mCopyTextureDrawable(VertexOut in [[stage_in]],
                                 constant TextureUniform *data [[ buffer(0) ]],
                                 texture2d<half, access::read> inTexture [[ texture(1) ]])
 {
-    float2 uv = in.textureCoordinate;// * data->size;
-    //uv.y = data->size.y - uv.y;
-    uv.y = 1 - uv.y;
+    float2 uv = in.textureCoordinate * data->size;
+    uv.y = data->size.y - uv.y;
 
     const half4 colorSample = inTexture.read(uint2(uv));
     float4 sample = float4( colorSample );
 
-    //sample.w *= data->globalAlpha;
-
+    sample.w *= data->globalAlpha;
     
-//    return sample;
     return float4(sample.x / sample.w, sample.y / sample.w, sample.z / sample.w, sample.w);
 }
 

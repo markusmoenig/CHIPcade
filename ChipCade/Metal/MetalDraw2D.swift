@@ -378,7 +378,7 @@ class MetalDraw2D
                 data.globalAlpha = 1
                 
                 //let rect = MRRect(0, 0, width, height, scale: 1)
-                let color = float4(1,0,0,1)
+                let color = float4(0,0,0,1)
                 
 //                vertexData = [
 //                    xToMetal(rect.x + rect.width), yToMetal(rect.y + rect.height), 1.0, 0.0, c.x, c.y, c.z, c.w,
@@ -405,6 +405,7 @@ class MetalDraw2D
                 renderEncoder.setVertexBytes(&viewportSize, length: MemoryLayout<vector_uint2>.stride, index: 1)
 
                 renderEncoder.setFragmentBytes(&data, length: MemoryLayout<TextureUniform>.stride, index: 0)
+                renderEncoder.setFragmentTexture(texture, index: 1)
 
                 renderEncoder.setRenderPipelineState(copyState!)
                 renderEncoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 6)

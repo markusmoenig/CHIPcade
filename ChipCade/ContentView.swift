@@ -150,7 +150,8 @@ struct ContentView: View {
                 }) {
                     Label("Play", systemImage: "play.fill")
                 }
-                
+                .keyboardShortcut("R")
+
                 Button(action: {
                     document.game.executeInstruction()
                     document.game.currInstructionIndex += 1
@@ -173,7 +174,6 @@ struct ContentView: View {
                 }) {
                     Label("Swap", systemImage: "rectangle.2.swap")
                 }
-                .keyboardShortcut("R")
                 
                 Spacer()
 

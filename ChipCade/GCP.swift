@@ -39,8 +39,8 @@ public class GCP {
         draw2D.syncTexturesToView()
         
         let targetLayer = 1
-        let width = Int(draw2D.metalView.frame.width)
-        let height = Int(draw2D.metalView.frame.height)
+//        let width = Int(draw2D.metalView.frame.width)
+//        let height = Int(draw2D.metalView.frame.height)
         
         draw2D.setTarget(id: targetLayer)
         draw2D.setTexture(id: 0)
@@ -71,9 +71,9 @@ public class GCP {
         
         //draw2D.currentSampler = draw2D.nearestSampler
 
-        draw2D.startShape(type: .triangle)
-        draw2D.drawRect(0, 0, Float(width), Float(height))
-        draw2D.endShape()
+//        draw2D.startShape(type: .triangle)
+//        draw2D.drawRect(0, 0, Float(width), Float(height))
+//        draw2D.endShape()
         
         draw2D.copyTexture()
         
