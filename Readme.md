@@ -2,11 +2,18 @@
 
 ## CPU
 
-### Instruction Set
-
 16bit processor with 8 registers, flags and a stack.
 
-- **LDI Rd, Memory Address**. Load memory to the destination register.
+### Flags
+
+- **Zero Flag (ZF)**. Set when the result of an operation is zero.
+- **Carry Flag (CF)**. Set when an arithmetic operation results in an unsigned overflow (carry out of the most significant bit) or underflow (borrow into the most significant bit).
+- **Overflow Flag (OF)**. Set when an arithmetic operation results in signed overflow (when the result exceeds the range of the signed data type).
+- ** Negative Flag (NF)**. Set when the result of an operation is negative (for signed operations).
+
+### Instruction Set
+
+- **LD Rd, Memory Address**. Load memory to the destination register.
 - **LDI Rd, Value.** Load an immediate value to the destination register.
 - **ST Memory Addres, Rs.** Store the source register at the destination memory address.
 

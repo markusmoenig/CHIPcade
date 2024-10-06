@@ -9,7 +9,6 @@ import SwiftUI
 
 struct ContentView: View {
     @Binding var document: ChipCadeDocument
-    @StateObject private var game: Game = Game()
 
     @State private var selectedCodeItem: CodeItem? = nil
     @State private var selectedMemoryItem: MemoryItem? = nil
@@ -24,17 +23,19 @@ struct ContentView: View {
     @State private var searchText: String = ""
     @State private var filteredResults: [(index: Int, instruction: Instruction)] = []
     
+    @Environment(\.undoManager) var undoManager
+
     var body: some View {
         NavigationView {
             List {
                 // Code Section
-                CodeSectionView(title: "Code", codeItems: $document.game.data.codeItems, selectedCodeItem: $selectedCodeItem, selectedMemoryItem: $selectedMemoryItem)
+                CodeSectionView(title: "Code", gameData: $document.game.data, codeItems: $document.game.data.codeItems, selectedCodeItem: $selectedCodeItem, selectedMemoryItem: $selectedMemoryItem)
                 
                 // Sprite Section
-                MemorySectionView(title: "Sprites", memoryItems: $document.game.data.spriteItems, selectedMemoryItem: $selectedMemoryItem, selectedCodeItem: $selectedCodeItem)
+                MemorySectionView(title: "Sprites", gameData: $document.game.data, memoryItems: $document.game.data.spriteItems, selectedMemoryItem: $selectedMemoryItem, selectedCodeItem: $selectedCodeItem)
                 
                 // Data Section
-                MemorySectionView(title: "Data", memoryItems: $document.game.data.dataItems, selectedMemoryItem: $selectedMemoryItem, selectedCodeItem: $selectedCodeItem)
+                MemorySectionView(title: "Data", gameData: $document.game.data, memoryItems: $document.game.data.dataItems, selectedMemoryItem: $selectedMemoryItem, selectedCodeItem: $selectedCodeItem)
                 
                 #if !os(iOS)
                 Divider()
@@ -121,16 +122,17 @@ struct ContentView: View {
                 Menu {
                     
                     Button("Add Code Module", action: {
-                        let item = CodeItem(name: "New Code Module")
-                        document.game.data.codeItems.append(item)
-                        selectedCodeItem = item
+                        document.game.data.addCodeItem(named: "New Code Module", using: undoManager) { newItem in
+                            selectedCodeItem = newItem
+                            selectedMemoryItem = nil
+                        }
                     })
                     
                     Button("Add Data Module", action: {
-                        let item = MemoryItem(name: "Data", length: 1024)
-                        document.game.data.dataItems.append(item)
-                        selectedCodeItem = nil
-                        selectedMemoryItem = item
+                        document.game.data.addDataItem(named: "Data", length: 1024, using: undoManager) { newItem in
+                            selectedCodeItem = nil
+                            selectedMemoryItem = newItem
+                        }
                     })
                 }
                 label: {

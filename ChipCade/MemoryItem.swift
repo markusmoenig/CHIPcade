@@ -39,6 +39,18 @@ class MemoryItem : ObservableObject, Codable, Equatable, Identifiable {
         try container.encode(name, forKey: .name)
     }
     
+    func rename(to newName: String, using undoManager: UndoManager?) {
+        let previousName = self.name
+        self.name = newName
+
+        // Register undo action to restore the previous name
+        undoManager?.registerUndo(withTarget: self) { targetSelf in
+            self.objectWillChange.send()
+            targetSelf.rename(to: previousName, using: undoManager)
+        }
+        undoManager?.setActionName("Rename Code Item")
+    }
+    
     // Grow the memory by a given amount
     func growMemory(by amount: Int) {
         memory.append(contentsOf: Array(repeating: .unsigned16Bit(0), count: amount))

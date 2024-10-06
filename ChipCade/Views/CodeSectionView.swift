@@ -10,6 +10,7 @@ import SwiftUI
 struct CodeSectionView: View {
     let title: String
 
+    @Binding var gameData: GameData
     @Binding var codeItems: [CodeItem]
     @Binding var selectedCodeItem: CodeItem?
     @Binding var selectedMemoryItem: MemoryItem?
@@ -17,13 +18,16 @@ struct CodeSectionView: View {
     @State private var isRenaming: Bool = false
     @State private var newName: String = ""
 
+    @Environment(\.undoManager) var undoManager
+
     var body: some View {
         Section(header: Text(title).font(.headline)) {
             ForEach(codeItems.indices, id: \.self) { index in
                 HStack {
                     if isRenaming && selectedCodeItem === codeItems[index] {
                         TextField("New Name", text: $newName, onCommit: {
-                            codeItems[index].name = newName
+                            //codeItems[index].name = newName
+                            codeItems[index].rename(to: newName, using: undoManager)
                             isRenaming = false
                         })
                         .textFieldStyle(RoundedBorderTextFieldStyle())
@@ -76,7 +80,7 @@ struct CodeSectionView: View {
                     }
 
                     Button(action: {
-                        deleteItem(at: index)
+                        gameData.deleteCodeItem(at: index, using: undoManager)
                     }) {
                         Text("Delete")
                         Image(systemName: "trash")

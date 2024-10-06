@@ -16,6 +16,8 @@ struct CodeItemListView: View {
     @State private var instructionName: String = ""
     @State private var instructionComment: String = ""
         
+    @Environment(\.undoManager) var undoManager
+
     var body: some View {
         
         VStack(spacing: 0) {
@@ -102,7 +104,7 @@ struct CodeItemListView: View {
 //                                .frame(minWidth: 60)
 //                        }
                         
-                        InstructionTextFieldView(instruction: $codeItem.codes[index])
+                        InstructionTextFieldView(instruction: $codeItem.codes[index], codeItem: codeItem, index: index)
                         
                         switch instruction.type {
                         case .inc, .dec:
@@ -183,27 +185,27 @@ struct CodeItemListView: View {
                     Menu("CPU") {
                         Button("LD", action: {
                             if let selectedInstructionIndex = selectedInstructionIndex {
-                                codeItem.writeCode(at: selectedInstructionIndex, value: Instruction(.ld))
+                                codeItem.writeCode(at: selectedInstructionIndex, value: Instruction(.ld), using: undoManager)
                             }
                         })
                         Button("LDI", action: {
                             if let selectedInstructionIndex = selectedInstructionIndex {
-                                codeItem.writeCode(at: selectedInstructionIndex, value: Instruction(.ldi))
+                                codeItem.writeCode(at: selectedInstructionIndex, value: Instruction(.ldi), using: undoManager)
                             }
                         })
                         Button("ST", action: {
                             if let selectedInstructionIndex = selectedInstructionIndex {
-                                codeItem.writeCode(at: selectedInstructionIndex, value: Instruction(.st))
+                                codeItem.writeCode(at: selectedInstructionIndex, value: Instruction(.st), using: undoManager)
                             }
                         })
                         Button("INC", action: {
                             if let selectedInstructionIndex = selectedInstructionIndex {
-                                codeItem.writeCode(at: selectedInstructionIndex, value: Instruction(.inc))
+                                codeItem.writeCode(at: selectedInstructionIndex, value: Instruction(.inc), using: undoManager)
                             }
                         })
                         Button("DEC", action: {
                             if let selectedInstructionIndex = selectedInstructionIndex {
-                                codeItem.writeCode(at: selectedInstructionIndex, value: Instruction(.dec))
+                                codeItem.writeCode(at: selectedInstructionIndex, value: Instruction(.dec), using: undoManager)
                             }
                         })
                     }
@@ -211,14 +213,14 @@ struct CodeItemListView: View {
                     Menu("GCP") {
                         Button("RECT", action: {
                             if  let selectedInstructionIndex = selectedInstructionIndex {
-                                codeItem.writeCode(at: selectedInstructionIndex, value: Instruction(.rect))
+                                codeItem.writeCode(at: selectedInstructionIndex, value: Instruction(.rect), using: undoManager)
                             }
                         })
                     }
                     
                     Button("NOP", action: {
                         if let selectedInstructionIndex = selectedInstructionIndex {
-                            codeItem.writeCode(at: selectedInstructionIndex, value: Instruction(.nop))
+                            codeItem.writeCode(at: selectedInstructionIndex, value: Instruction(.nop), using: undoManager)
                         }
                     })
                     
@@ -228,15 +230,15 @@ struct CodeItemListView: View {
                     Button("Before", action: {
                         if let selectedInstructionIndex = selectedInstructionIndex {
                             let nopInstruction = Instruction(.nop)
-                            codeItem.insertBefore(at: selectedInstructionIndex, instruction: nopInstruction)
+                            codeItem.insertBefore(at: selectedInstructionIndex, instruction: nopInstruction, using: undoManager)
                         }
                     })
                     .keyboardShortcut("I", modifiers: [.shift])
                     
                     Button("After", action: {
                         if let selectedInstructionIndex = selectedInstructionIndex {
-                            let nopInstruction = Instruction(.ldi)
-                            codeItem.insertAfter(at: selectedInstructionIndex, instruction: nopInstruction.clone())
+                            let nopInstruction = Instruction(.nop)
+                            codeItem.insertAfter(at: selectedInstructionIndex, instruction: nopInstruction.clone(), using: undoManager)
                         }
                     })
                     .keyboardShortcut("I")
@@ -244,7 +246,7 @@ struct CodeItemListView: View {
                 
                 Button("Duplicate", action: {
                     if let selectedInstructionIndex = selectedInstructionIndex {
-                        codeItem.duplicate(at: selectedInstructionIndex)
+                        codeItem.duplicate(at: selectedInstructionIndex, using: undoManager)
                     }
                 })
                 .keyboardShortcut("D")
@@ -264,7 +266,7 @@ struct CodeItemListView: View {
                 
                 Button("Delete", action: {
                     if let selectedInstructionIndex = selectedInstructionIndex {
-                        codeItem.delete(at: selectedInstructionIndex)
+                        codeItem.delete(at: selectedInstructionIndex, using: undoManager)
                     }
                 })
                 .keyboardShortcut("X")

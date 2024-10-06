@@ -9,8 +9,12 @@ import SwiftUI
 
 struct InstructionTextFieldView: View {
     @Binding var instruction: Instruction
+    @ObservedObject var codeItem: CodeItem
+    var index: Int
 
     @State private var temporaryInput: String = ""
+
+    @Environment(\.undoManager) var undoManager
 
     var body: some View {
         TextField("Instr", text: $temporaryInput)
@@ -19,7 +23,7 @@ struct InstructionTextFieldView: View {
             }
             .onSubmit {
                 if let instructionType = InstructionType.fromString(temporaryInput) {
-                    instruction = Instruction(instructionType)
+                    codeItem.aboutToChange(using: undoManager, newInstruction: Instruction(instructionType), at: index)
                 } else {
                     temporaryInput = instruction.toString()
                 }

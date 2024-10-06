@@ -7,12 +7,12 @@
 
 import SwiftUI
 
-class GameData: Codable {
+class GameData: ObservableObject, Codable {
     
-    var codeItems: [CodeItem] = []
-    var spriteItems: [MemoryItem] = []
-    var dataItems: [MemoryItem] = []
-    var palette: [float4] = []
+    @Published var codeItems: [CodeItem] = []
+    @Published var spriteItems: [MemoryItem] = []
+    @Published var dataItems: [MemoryItem] = []
+    @Published var palette: [float4] = []
 
     enum CodingKeys: String, CodingKey {
         case codeItems, spriteItems, dataItems, palette
@@ -51,6 +51,94 @@ class GameData: Codable {
 
         return nil
     }
+    
+    // Method to add a new CodeItem with undo/redo support
+    func addCodeItem(named name: String, using undoManager: UndoManager?, setSelectedItem: @escaping (CodeItem) -> Void) {
+        let newItem = CodeItem(name: name)
+        codeItems.append(newItem)
+
+        // Set the newly created CodeItem as selected
+        setSelectedItem(newItem)
+
+        // Register undo action to remove the added CodeItem
+        undoManager?.registerUndo(withTarget: self) { targetSelf in
+            if let index = targetSelf.codeItems.firstIndex(of: newItem) {
+                targetSelf.codeItems.remove(at: index)
+                undoManager?.registerUndo(withTarget: targetSelf) { redoSelf in
+                    redoSelf.codeItems.insert(newItem, at: index)
+                    setSelectedItem(newItem)  // Set as selected again after redo
+                }
+            }
+        }
+        undoManager?.setActionName("Add Code Item")
+    }
+    
+    // Method to add a new DataItem with undo/redo support
+    func addDataItem(named name: String, length: Int, using undoManager: UndoManager?, setSelectedItem: @escaping (MemoryItem) -> Void) {
+        let newItem = MemoryItem(name: name, length: length)
+        dataItems.append(newItem)
+
+        // Set the newly created DataItem as selected
+        setSelectedItem(newItem)
+
+        // Register undo action to remove the added DataItem
+        undoManager?.registerUndo(withTarget: self) { targetSelf in
+            if let index = targetSelf.dataItems.firstIndex(of: newItem) {
+                targetSelf.dataItems.remove(at: index)
+                undoManager?.registerUndo(withTarget: targetSelf) { redoSelf in
+                    redoSelf.dataItems.insert(newItem, at: index)
+                    setSelectedItem(newItem)  // Set as selected again after redo
+                }
+            }
+        }
+        undoManager?.setActionName("Add Data Item")
+    }
+
+    
+    // Method to delete a CodeItem and register undo
+    func deleteCodeItem(at index: Int, using undoManager: UndoManager?) {
+        let deletedItem = codeItems[index]
+        codeItems.remove(at: index)
+
+        undoManager?.registerUndo(withTarget: self) { targetSelf in
+            targetSelf.codeItems.insert(deletedItem, at: index)
+            
+            // Register redo action to delete the CodeItem again
+            undoManager?.registerUndo(withTarget: targetSelf) { redoSelf in
+                redoSelf.deleteCodeItem(at: index, using: undoManager)
+            }
+        }
+        undoManager?.setActionName("Delete Code Item")
+    }
+    
+    // Method to delete a SpriteItem with undo/redo support
+    func deleteSpriteItem(at index: Int, using undoManager: UndoManager?) {
+        let deletedItem = spriteItems[index]
+        spriteItems.remove(at: index)
+
+        undoManager?.registerUndo(withTarget: self) { targetSelf in
+            targetSelf.spriteItems.insert(deletedItem, at: index)
+            undoManager?.registerUndo(withTarget: targetSelf) { redoSelf in
+                redoSelf.deleteSpriteItem(at: index, using: undoManager)
+            }
+        }
+        undoManager?.setActionName("Delete Sprite Item")
+    }
+
+    // Method to delete a DataItem with undo/redo support
+    func deleteDataItem(at index: Int, using undoManager: UndoManager?) {
+        let deletedItem = dataItems[index]
+        dataItems.remove(at: index)
+
+        undoManager?.registerUndo(withTarget: self) { targetSelf in
+            targetSelf.dataItems.insert(deletedItem, at: index)
+            undoManager?.registerUndo(withTarget: targetSelf) { redoSelf in
+                redoSelf.deleteDataItem(at: index, using: undoManager)
+            }
+        }
+        undoManager?.setActionName("Delete Data Item")
+    }
+
     
     // From https://lospec.com/palette-list/duel
     static func defaultPalette() -> [float4] {

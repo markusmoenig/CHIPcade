@@ -75,7 +75,7 @@ public class GCP {
         draw2D.drawRect(0, 0, Float(width), Float(height))
         draw2D.endShape()
         
-//        draw2D.copyTexture()
+        draw2D.copyTexture()
         
         draw2D.encodeEnd()
         cmds.removeAll()

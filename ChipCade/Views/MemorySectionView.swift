@@ -9,6 +9,8 @@ import SwiftUI
 
 struct MemorySectionView: View {
     let title: String
+    
+    @Binding var gameData: GameData
     @Binding var memoryItems: [MemoryItem]
     @Binding var selectedMemoryItem: MemoryItem?
     @Binding var selectedCodeItem: CodeItem?
@@ -16,13 +18,15 @@ struct MemorySectionView: View {
     @State private var isRenaming: Bool = false
     @State private var newName: String = ""
 
+    @Environment(\.undoManager) var undoManager
+
     var body: some View {
         Section(header: Text(title).font(.headline)) {
             ForEach(memoryItems.indices, id: \.self) { index in
                 HStack {
                     if isRenaming && selectedMemoryItem === memoryItems[index] {
                         TextField("New Name", text: $newName, onCommit: {
-                            memoryItems[index].name = newName
+                            memoryItems[index].rename(to: newName, using: undoManager)
                             isRenaming = false
                         })
                         .textFieldStyle(RoundedBorderTextFieldStyle())
@@ -75,7 +79,7 @@ struct MemorySectionView: View {
                     }
 
                     Button(action: {
-                        deleteItem(at: index)
+                        gameData.deleteDataItem(at: index, using: undoManager)
                     }) {
                         Text("Delete")
                         Image(systemName: "trash")
