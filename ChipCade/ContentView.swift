@@ -7,6 +7,9 @@
 
 import SwiftUI
 
+// Hack to avoid UndoManager closure warnings
+extension UndoManager: @unchecked @retroactive Sendable { }
+
 struct ContentView: View {
     @Binding var document: ChipCadeDocument
 

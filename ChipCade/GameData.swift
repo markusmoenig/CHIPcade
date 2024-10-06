@@ -107,44 +107,66 @@ class GameData: ObservableObject, Codable {
 
     
     // Method to delete a CodeItem and register undo
-    func deleteCodeItem(at index: Int, using undoManager: UndoManager?) {
+    func deleteCodeItem(at index: Int, using undoManager: UndoManager?, setSelectedItem: @escaping (CodeItem?) -> Void) {
         let deletedItem = codeItems[index]
         codeItems.remove(at: index)
 
+        // Set the selected item to the first item or nil if the list is empty
+        let newSelectedItem = codeItems.first
+        setSelectedItem(newSelectedItem)
+
+        // Register undo action to reinsert the deleted CodeItem
         undoManager?.registerUndo(withTarget: self) { targetSelf in
             targetSelf.codeItems.insert(deletedItem, at: index)
+            setSelectedItem(deletedItem)  // Set as selected again after undo
             
             // Register redo action to delete the CodeItem again
             undoManager?.registerUndo(withTarget: targetSelf) { redoSelf in
-                redoSelf.deleteCodeItem(at: index, using: undoManager)
+                redoSelf.deleteCodeItem(at: index, using: undoManager, setSelectedItem: setSelectedItem)
             }
         }
         undoManager?.setActionName("Delete Code Item")
     }
     
     // Method to delete a SpriteItem with undo/redo support
-    func deleteSpriteItem(at index: Int, using undoManager: UndoManager?) {
+    func deleteSpriteItem(at index: Int, using undoManager: UndoManager?, setSelectedItem: @escaping (MemoryItem?) -> Void) {
         let deletedItem = spriteItems[index]
         spriteItems.remove(at: index)
 
+        // Set the selected item to the first item or nil if the list is empty
+        let newSelectedItem = spriteItems.first
+        setSelectedItem(newSelectedItem)
+
+        // Register undo action to reinsert the deleted SpriteItem
         undoManager?.registerUndo(withTarget: self) { targetSelf in
             targetSelf.spriteItems.insert(deletedItem, at: index)
+            setSelectedItem(deletedItem)  // Set as selected again after undo
+
+            // Register redo action to delete the SpriteItem again
             undoManager?.registerUndo(withTarget: targetSelf) { redoSelf in
-                redoSelf.deleteSpriteItem(at: index, using: undoManager)
+                redoSelf.deleteSpriteItem(at: index, using: undoManager, setSelectedItem: setSelectedItem)
             }
         }
         undoManager?.setActionName("Delete Sprite Item")
     }
 
     // Method to delete a DataItem with undo/redo support
-    func deleteDataItem(at index: Int, using undoManager: UndoManager?) {
+    func deleteDataItem(at index: Int, using undoManager: UndoManager?, setSelectedItem: @escaping (MemoryItem?) -> Void) {
         let deletedItem = dataItems[index]
         dataItems.remove(at: index)
 
+        // Set the selected item to the first item or nil if the list is empty
+        let newSelectedItem = dataItems.first
+        setSelectedItem(newSelectedItem)
+
+        // Register undo action to reinsert the deleted DataItem
         undoManager?.registerUndo(withTarget: self) { targetSelf in
             targetSelf.dataItems.insert(deletedItem, at: index)
+            setSelectedItem(deletedItem)  // Set as selected again after undo
+
+            // Register redo action to delete the DataItem again
             undoManager?.registerUndo(withTarget: targetSelf) { redoSelf in
-                redoSelf.deleteDataItem(at: index, using: undoManager)
+                redoSelf.deleteDataItem(at: index, using: undoManager, setSelectedItem: setSelectedItem)
             }
         }
         undoManager?.setActionName("Delete Data Item")

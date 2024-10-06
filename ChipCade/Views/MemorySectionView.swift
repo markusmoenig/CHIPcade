@@ -26,7 +26,9 @@ struct MemorySectionView: View {
                 HStack {
                     if isRenaming && selectedMemoryItem === memoryItems[index] {
                         TextField("New Name", text: $newName, onCommit: {
-                            memoryItems[index].rename(to: newName, using: undoManager)
+                            memoryItems[index].rename(to: newName, using: undoManager)  { newItem in
+                                selectedMemoryItem = newItem
+                            }
                             isRenaming = false
                         })
                         .textFieldStyle(RoundedBorderTextFieldStyle())
@@ -79,7 +81,10 @@ struct MemorySectionView: View {
                     }
 
                     Button(action: {
-                        gameData.deleteDataItem(at: index, using: undoManager)
+                        gameData.deleteDataItem(at: index, using: undoManager){ newItem in
+                            selectedMemoryItem = newItem
+                            selectedCodeItem = nil
+                        }
                     }) {
                         Text("Delete")
                         Image(systemName: "trash")

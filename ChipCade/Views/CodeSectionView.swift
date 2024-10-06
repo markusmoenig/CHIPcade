@@ -27,7 +27,9 @@ struct CodeSectionView: View {
                     if isRenaming && selectedCodeItem === codeItems[index] {
                         TextField("New Name", text: $newName, onCommit: {
                             //codeItems[index].name = newName
-                            codeItems[index].rename(to: newName, using: undoManager)
+                            codeItems[index].rename(to: newName, using: undoManager) { newItem in
+                                selectedCodeItem = newItem
+                            }
                             isRenaming = false
                         })
                         .textFieldStyle(RoundedBorderTextFieldStyle())
@@ -80,7 +82,10 @@ struct CodeSectionView: View {
                     }
 
                     Button(action: {
-                        gameData.deleteCodeItem(at: index, using: undoManager)
+                        gameData.deleteCodeItem(at: index, using: undoManager) { newItem in
+                           selectedCodeItem = newItem
+                           selectedMemoryItem = nil
+                       }
                     }) {
                         Text("Delete")
                         Image(systemName: "trash")

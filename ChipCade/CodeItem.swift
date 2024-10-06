@@ -43,19 +43,22 @@ class CodeItem : ObservableObject, Codable, Equatable, Identifiable {
     }
     
     // Rename the code item with undo/redo support
-    func rename(to newName: String, using undoManager: UndoManager?) {
+    func rename(to newName: String, using undoManager: UndoManager?, setSelectedItem: @escaping (CodeItem?) -> Void) {
         let previousName = self.name
         self.name = newName
 
-        DispatchQueue.main.async {
-            self.objectWillChange.send()
-        }
+        // Trigger a UI update by setting the selected item
+        setSelectedItem(self)
+
         // Register undo action to restore the previous name
         undoManager?.registerUndo(withTarget: self) { targetSelf in
-            DispatchQueue.main.async {
-                self.objectWillChange.send()
+            targetSelf.name = previousName
+            setSelectedItem(targetSelf)  // Set as selected again after undo
+
+            // Register redo action to rename the item again
+            undoManager?.registerUndo(withTarget: targetSelf) { redoSelf in
+                redoSelf.rename(to: newName, using: undoManager, setSelectedItem: setSelectedItem)
             }
-            targetSelf.rename(to: previousName, using: undoManager)
         }
         undoManager?.setActionName("Rename Code Item")
     }
