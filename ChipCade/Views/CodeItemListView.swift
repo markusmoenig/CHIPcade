@@ -113,8 +113,9 @@ struct CodeItemListView: View {
                                     selectedRegister: Binding(
                                         get: { instruction.register1! },
                                         set: { newRegister in
-                                            instruction.register1 = newRegister
-                                            codeItem.codes[index] = instruction
+                                            let newInstruction = instruction.clone()
+                                            newInstruction.register1 = newRegister
+                                            codeItem.aboutToChange(using: undoManager, newInstruction: newInstruction, at: index, text: "Register Changed")
                                         }
                                     )
                                 )                                
@@ -125,13 +126,19 @@ struct CodeItemListView: View {
                                     selectedRegister: Binding(
                                         get: { instruction.register1! },
                                         set: { newRegister in
-                                            instruction.register1 = newRegister
-                                            codeItem.codes[index] = instruction
+                                            let newInstruction = instruction.clone()
+                                            newInstruction.register1 = newRegister
+                                            codeItem.aboutToChange(using: undoManager, newInstruction: newInstruction, at: index, text: "Register Changed")
                                         }
                                     )
                                 )
                                 
-                                MemoryAddressTextField(instruction: instruction)
+                                MemoryAddressTextField(
+                                    instruction: instruction,
+                                    undoManager: undoManager,
+                                    codeItem: codeItem,
+                                    index: index
+                                )
                             }
                         case .ldi:
                             HStack {
@@ -139,8 +146,9 @@ struct CodeItemListView: View {
                                     selectedRegister: Binding(
                                         get: { instruction.register1! },
                                         set: { newRegister in
-                                            instruction.register1 = newRegister
-                                            codeItem.codes[index] = instruction
+                                            let newInstruction = instruction.clone()
+                                            newInstruction.register1 = newRegister
+                                            codeItem.aboutToChange(using: undoManager, newInstruction: newInstruction, at: index, text: "Register Changed")
                                         }
                                     )
                                 )
@@ -149,22 +157,29 @@ struct CodeItemListView: View {
                                     chipCadeData: Binding(
                                         get: { instruction.value! },
                                         set: { newValue in
-                                            instruction.value = newValue
-                                            codeItem.codes[index] = instruction
+                                            let newInstruction = instruction.clone()
+                                            newInstruction.value = newValue
+                                            codeItem.aboutToChange(using: undoManager, newInstruction: newInstruction, at: index, text: "Value Changed")
                                         }
                                     )
                                 )
                             }
                         case .st:
                             HStack {
-                                MemoryAddressTextField(instruction: instruction)
-
+                                MemoryAddressTextField(
+                                    instruction: instruction,
+                                    undoManager: undoManager,
+                                    codeItem: codeItem,
+                                    index: index
+                                )
+                                
                                 Int8RegisterMenu(
                                     selectedRegister: Binding(
                                         get: { instruction.register1! },
                                         set: { newRegister in
-                                            instruction.register1 = newRegister
-                                            codeItem.codes[index] = instruction
+                                            let newInstruction = instruction.clone()
+                                            newInstruction.register1 = newRegister
+                                            codeItem.aboutToChange(using: undoManager, newInstruction: newInstruction, at: index, text: "Register Changed")
                                         }
                                     )
                                 )

@@ -8,8 +8,11 @@
 import SwiftUI
 
 struct MemoryAddressTextField: View {
-    @ObservedObject var instruction: Instruction
-
+    var instruction: Instruction
+    var undoManager: UndoManager?
+    var codeItem: CodeItem
+    var index: Int
+    
     @State private var combinedText: String = ""
 
     var body: some View {
@@ -20,24 +23,25 @@ struct MemoryAddressTextField: View {
                 combinedText = formatLDInstruction()
             }
             .onSubmit {
-                // Parse memory and offset when the user submits the text field
-                parseMemoryAndOffset(from: combinedText)
-                // After parsing, update the view with the formatted instruction
+                // Clone the instruction before modifying it
+                let newInstruction = instruction.clone()
+                parseMemoryAndOffset(from: combinedText, for: newInstruction)
+
+                // Register the change with undo/redo
+                codeItem.aboutToChange(using: undoManager, newInstruction: newInstruction, at: index, text: "Memory Address Changed")
+
+                // Update the text field with the new formatted instruction
                 combinedText = formatLDInstruction()
             }
-            //.frame(width: 200)
     }
 
-    // Helper function to format the LD instruction into a string
     private func formatLDInstruction() -> String {
         let memoryText = instruction.memory ?? "Data"
         let offsetText = instruction.memoryOffset != nil ? String(format: "0x%X", instruction.memoryOffset!) : "0x0"
         return "\(memoryText) + \(offsetText)"
     }
 
-    // Helper function to parse the input and separate memory and offset
-    private func parseMemoryAndOffset(from text: String) {
-        // Split the input string based on " + "
+    private func parseMemoryAndOffset(from text: String, for instruction: Instruction) {
         let components = text.components(separatedBy: " + ")
         
         if components.count == 2 {
@@ -47,18 +51,10 @@ struct MemoryAddressTextField: View {
             // Extract and parse the offset, handling 0x prefix or no prefix
             let offsetString = components[1].trimmingCharacters(in: .whitespaces).lowercased()
             if offsetString.hasPrefix("0x") {
-                let hexOffset = String(offsetString.dropFirst(2)) // Remove "0x" prefix
-                if let offset = Int(hexOffset, radix: 16) {
-                    instruction.memoryOffset = offset
-                } else {
-                    instruction.memoryOffset = 0 // Default to 0 if parsing fails
-                }
+                let hexOffset = String(offsetString.dropFirst(2))
+                instruction.memoryOffset = Int(hexOffset, radix: 16) ?? 0
             } else {
-                if let offset = Int(offsetString, radix: 16) {
-                    instruction.memoryOffset = offset
-                } else {
-                    instruction.memoryOffset = 0 // Default to 0 if parsing fails
-                }
+                instruction.memoryOffset = Int(offsetString, radix: 16) ?? 0
             }
         } else if components.count == 1 {
             // No offset provided, set memory and default offset to 0

@@ -165,15 +165,15 @@ class CodeItem : ObservableObject, Codable, Equatable, Identifiable {
     }
     
     // An instruction at the given index is about to change
-    func aboutToChange(using undoManager: UndoManager?, newInstruction: Instruction, at index: Int) {
+    func aboutToChange(using undoManager: UndoManager?, newInstruction: Instruction, at index: Int, text: String = "Instruction Changed") {
         let previousInstruction = codes[index]
         
         codes[index] = newInstruction
         undoManager?.registerUndo(withTarget: self) { targetSelf in
-            targetSelf.aboutToChange(using: undoManager, newInstruction: previousInstruction, at: index)
+            targetSelf.aboutToChange(using: undoManager, newInstruction: previousInstruction, at: index, text: text)
         }
         
-        undoManager?.setActionName("Instruction Changed")
+        undoManager?.setActionName(text)
     }
     
     static func == (lhs: CodeItem, rhs: CodeItem) -> Bool {

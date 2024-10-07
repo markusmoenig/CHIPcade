@@ -229,6 +229,8 @@ public class Instruction: ObservableObject, Codable, Equatable {
         if let value = value {
             clonedInstruction.value = value.clone()
         }
+        clonedInstruction.memory = self.memory
+        clonedInstruction.memoryOffset = self.memoryOffset
         return clonedInstruction
     }
     
