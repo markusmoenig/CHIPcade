@@ -321,7 +321,7 @@ class MetalDraw2D
         }
     }
     
-    func endShape() {
+    func endShape(externalTexture: MTLTexture? = nil) {
         if !vertexData.isEmpty {
             var data = RectUniform()
             data.hasTexture = 0;
@@ -329,6 +329,10 @@ class MetalDraw2D
             renderEncoder.setVertexBytes(vertexData, length: vertexData.count * MemoryLayout<Float>.stride, index: 0)
             renderEncoder.setVertexBytes(&viewportSize, length: MemoryLayout<vector_uint2>.stride, index: 1)
             
+            if let externalTexture = externalTexture {
+                data.hasTexture = 1
+                renderEncoder.setFragmentTexture(externalTexture, index: 1)
+            } else
             if texture != nil {
                 if let tex = textures[texture!] {
                     data.hasTexture = 1

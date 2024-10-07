@@ -14,10 +14,13 @@ struct ContentView: View {
     @Binding var document: ChipCadeDocument
 
     @State private var selectedCodeItem: CodeItem? = nil
+    @State private var selectedSpriteItem: SpriteItem? = nil
     @State private var selectedMemoryItem: MemoryItem? = nil
     
     @State private var selectedInstructionIndex: Int?
     @State private var selectedInstruction: Instruction?
+
+    @State private var selectedImageIndex: Int?
 
     @State private var showingAddMemoryItemPopover = false
 
@@ -32,13 +35,13 @@ struct ContentView: View {
         NavigationView {
             List {
                 // Code Section
-                CodeSectionView(title: "Code", gameData: $document.game.data, codeItems: $document.game.data.codeItems, selectedCodeItem: $selectedCodeItem, selectedMemoryItem: $selectedMemoryItem)
+                CodeSectionView(title: "Code", gameData: $document.game.data, codeItems: $document.game.data.codeItems, selectedCodeItem: $selectedCodeItem, selectedMemoryItem: $selectedMemoryItem, selectedSpriteItem: $selectedSpriteItem)
                 
                 // Sprite Section
-                MemorySectionView(title: "Sprites", gameData: $document.game.data, memoryItems: $document.game.data.spriteItems, selectedMemoryItem: $selectedMemoryItem, selectedCodeItem: $selectedCodeItem)
+                SpriteSectionView(title: "Image Groups", gameData: $document.game.data, spriteItems: $document.game.data.spriteItems, selectedSpriteItem: $selectedSpriteItem, selectedMemoryItem: $selectedMemoryItem, selectedCodeItem: $selectedCodeItem)
                 
                 // Data Section
-                MemorySectionView(title: "Data", gameData: $document.game.data, memoryItems: $document.game.data.dataItems, selectedMemoryItem: $selectedMemoryItem, selectedCodeItem: $selectedCodeItem)
+                MemorySectionView(title: "Data", gameData: $document.game.data, memoryItems: $document.game.data.dataItems, selectedMemoryItem: $selectedMemoryItem, selectedCodeItem: $selectedCodeItem, selectedSpriteItem: $selectedSpriteItem)
                 
                 #if !os(iOS)
                 Divider()
@@ -46,6 +49,7 @@ struct ContentView: View {
                 
                 Button(action: {
                     selectedCodeItem = nil
+                    selectedSpriteItem = nil
                     selectedMemoryItem = nil
                 }) {
                     HStack {
@@ -57,7 +61,7 @@ struct ContentView: View {
                     .padding(.vertical, 6)
                     .background(
                         RoundedRectangle(cornerRadius: 8)
-                            .fill((selectedCodeItem == nil && selectedMemoryItem == nil) ? Color.accentColor.opacity(0.2) : Color.clear)
+                            .fill((selectedCodeItem == nil && selectedMemoryItem == nil && selectedSpriteItem == nil) ? Color.accentColor.opacity(0.2) : Color.clear)
                     )
                 }
                 .buttonStyle(PlainButtonStyle())
@@ -102,6 +106,9 @@ struct ContentView: View {
                             MetalView(document.game, .Game)
                         }
                     } else
+                    if let spriteItem = selectedSpriteItem {
+                        SpriteItemListView(spriteItem: spriteItem, selectedImageIndex: $selectedImageIndex)
+                    } else
                     if let memoryItem = selectedMemoryItem {
                         MemoryGridView(memoryItem: memoryItem)
                     } else {
@@ -128,13 +135,23 @@ struct ContentView: View {
                         document.game.data.addCodeItem(named: "New Code Module", using: undoManager) { newItem in
                             selectedCodeItem = newItem
                             selectedMemoryItem = nil
+                            selectedSpriteItem = nil
                         }
                     })
                     
-                    Button("Add Data Module", action: {
-                        document.game.data.addDataItem(named: "Data", length: 1024, using: undoManager) { newItem in
+                    Button("Add Image Group", action: {
+                        document.game.data.addSpriteItem(named: "New Image Group", using: undoManager) { newItem in
+                            selectedSpriteItem = newItem
                             selectedCodeItem = nil
+                            selectedMemoryItem = nil
+                        }
+                    })
+                    
+                    Button("Add Raw Data", action: {
+                        document.game.data.addDataItem(named: "Data", length: 1024, using: undoManager) { newItem in
                             selectedMemoryItem = newItem
+                            selectedCodeItem = nil
+                            selectedSpriteItem = nil
                         }
                     })
                 }
@@ -285,8 +302,8 @@ struct AddMemoryItemView: View {
     }
     
     private func addMemoryItem() {
-        let newItem = MemoryItem(name: name, length: length)
-        let newCodeItem = CodeItem(name: name)
+        //let newItem = MemoryItem(name: name, length: length)
+        //let newCodeItem = CodeItem(name: name)
 
         // Add the new memory item to the appropriate section
 //        switch selectedType {
@@ -299,7 +316,7 @@ struct AddMemoryItemView: View {
 //        }
 
         // Automatically select the new memory item
-        selectedMemoryItem = newItem
+        //selectedMemoryItem = newItem
     }
 }
 

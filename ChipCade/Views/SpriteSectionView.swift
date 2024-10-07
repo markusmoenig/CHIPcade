@@ -7,14 +7,14 @@
 
 import SwiftUI
 
-struct MemorySectionView: View {
+struct SpriteSectionView: View {
     let title: String
     
     @Binding var gameData: GameData
-    @Binding var memoryItems: [MemoryItem]
+    @Binding var spriteItems: [SpriteItem]
+    @Binding var selectedSpriteItem: SpriteItem?
     @Binding var selectedMemoryItem: MemoryItem?
     @Binding var selectedCodeItem: CodeItem?
-    @Binding var selectedSpriteItem: SpriteItem?
 
     @State private var isRenaming: Bool = false
     @State private var newName: String = ""
@@ -23,12 +23,12 @@ struct MemorySectionView: View {
 
     var body: some View {
         Section(header: Text(title).font(.headline)) {
-            ForEach(memoryItems.indices, id: \.self) { index in
+            ForEach(spriteItems.indices, id: \.self) { index in
                 HStack {
-                    if isRenaming && selectedMemoryItem === memoryItems[index] {
+                    if isRenaming && selectedSpriteItem === spriteItems[index] {
                         TextField("New Name", text: $newName, onCommit: {
-                            memoryItems[index].rename(to: newName, using: undoManager)  { newItem in
-                                selectedMemoryItem = newItem
+                            spriteItems[index].rename(to: newName, using: undoManager)  { newItem in
+                                selectedSpriteItem = newItem
                             }
                             isRenaming = false
                         })
@@ -36,12 +36,12 @@ struct MemorySectionView: View {
                         .frame(width: 120)
                     } else {
                         Button(action: {
-                            selectedMemoryItem = memoryItems[index]
+                            selectedSpriteItem = spriteItems[index]
                             selectedCodeItem = nil
-                            selectedSpriteItem = nil
+                            selectedMemoryItem = nil
                         }) {
                             HStack {
-                                Text(memoryItems[index].name)
+                                Text(spriteItems[index].name)
                                     .foregroundColor(.primary)
                                     .padding(.leading, 10) // Add padding to the left side
                                 Spacer()
@@ -49,7 +49,7 @@ struct MemorySectionView: View {
                             .padding(.vertical, 6) // Add vertical padding
                             .background(
                                 RoundedRectangle(cornerRadius: 8) // Rounded background
-                                    .fill(selectedMemoryItem === memoryItems[index] ? Color.accentColor.opacity(0.2) : Color.clear)
+                                    .fill(selectedSpriteItem === spriteItems[index] ? Color.accentColor.opacity(0.2) : Color.clear)
                             )
                         }
                         .buttonStyle(PlainButtonStyle()) // No button decoration
@@ -76,17 +76,17 @@ struct MemorySectionView: View {
                 .contextMenu {
                     // macOS context menu for renaming and deleting
                     Button(action: {
-                        startRenaming(item: memoryItems[index])
+                        startRenaming(item: spriteItems[index])
                     }) {
                         Text("Rename")
                         Image(systemName: "pencil")
                     }
 
                     Button(action: {
-                        gameData.deleteDataItem(at: index, using: undoManager){ newItem in
-                            selectedMemoryItem = newItem
+                        gameData.deleteSpriteItem(at: index, using: undoManager) { newItem in
+                            selectedSpriteItem = newItem
                             selectedCodeItem = nil
-                            selectedSpriteItem = nil
+                            selectedMemoryItem = nil
                         }
                     }) {
                         Text("Delete")
@@ -98,14 +98,14 @@ struct MemorySectionView: View {
         }
     }
 
-    private func startRenaming(item: MemoryItem) {
+    private func startRenaming(item: SpriteItem) {
         newName = item.name
-        selectedMemoryItem = item
+        selectedSpriteItem = item
         isRenaming = true
     }
 
     private func deleteItem(at index: Int) {
-        memoryItems.remove(at: index)
-        selectedMemoryItem = nil
+        spriteItems.remove(at: index)
+        selectedSpriteItem = nil
     }
 }

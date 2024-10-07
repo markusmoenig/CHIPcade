@@ -10,7 +10,7 @@ import SwiftUI
 class GameData: ObservableObject, Codable {
     
     @Published var codeItems: [CodeItem] = []
-    @Published var spriteItems: [MemoryItem] = []
+    @Published var spriteItems: [SpriteItem] = []
     @Published var dataItems: [MemoryItem] = []
     @Published var palette: [float4] = []
 
@@ -29,7 +29,7 @@ class GameData: ObservableObject, Codable {
     {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         codeItems = try container.decode([CodeItem].self, forKey: .codeItems)
-        spriteItems = try container.decode([MemoryItem].self, forKey: .spriteItems)
+        spriteItems = try container.decode([SpriteItem].self, forKey: .spriteItems)
         dataItems = try container.decode([MemoryItem].self, forKey: .dataItems)
         palette = try container.decode([float4].self, forKey: .palette)
     }
@@ -104,8 +104,33 @@ class GameData: ObservableObject, Codable {
         }
         undoManager?.setActionName("Add Data Item")
     }
-
     
+    // Method to add a new DataItem with undo/redo support
+    func addSpriteItem(named name: String, using undoManager: UndoManager?, setSelectedItem: @escaping (SpriteItem?) -> Void) {
+        let newItem = SpriteItem(name: name)
+        spriteItems.append(newItem)
+
+        // Set the newly created DataItem as selected
+        setSelectedItem(newItem)
+
+        // Register undo action to remove the added DataItem
+        undoManager?.registerUndo(withTarget: self) { targetSelf in
+            if let index = targetSelf.spriteItems.firstIndex(of: newItem) {
+                targetSelf.spriteItems.remove(at: index)
+                
+                // Set the selected item to the first item or nil if the list is empty
+                let newSelectedItem = targetSelf.spriteItems.first
+                setSelectedItem(newSelectedItem)
+                
+                undoManager?.registerUndo(withTarget: targetSelf) { redoSelf in
+                    redoSelf.spriteItems.insert(newItem, at: index)
+                    setSelectedItem(newItem)  // Set as selected again after redo
+                }
+            }
+        }
+        undoManager?.setActionName("Add Image Group")
+    }
+
     // Method to delete a CodeItem and register undo
     func deleteCodeItem(at index: Int, using undoManager: UndoManager?, setSelectedItem: @escaping (CodeItem?) -> Void) {
         let deletedItem = codeItems[index]
@@ -129,7 +154,7 @@ class GameData: ObservableObject, Codable {
     }
     
     // Method to delete a SpriteItem with undo/redo support
-    func deleteSpriteItem(at index: Int, using undoManager: UndoManager?, setSelectedItem: @escaping (MemoryItem?) -> Void) {
+    func deleteSpriteItem(at index: Int, using undoManager: UndoManager?, setSelectedItem: @escaping (SpriteItem?) -> Void) {
         let deletedItem = spriteItems[index]
         spriteItems.remove(at: index)
 

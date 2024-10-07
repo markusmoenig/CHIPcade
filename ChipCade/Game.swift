@@ -67,6 +67,8 @@ public class Game : ObservableObject
     public func play() {
         reset()
         
+        gcp.setupGameData(gameData: data)
+        
         state = .running
         gcp.draw2D.metalView.enableSetNeedsDisplay = false
         gcp.draw2D.metalView.isPaused = false

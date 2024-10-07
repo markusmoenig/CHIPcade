@@ -401,7 +401,6 @@ fragment float4 m4mCopyTextureDrawable(VertexOut in [[stage_in]],
     float4 sample = float4( colorSample );
 
     sample.w *= data->globalAlpha;
-    
     return float4(sample.x / sample.w, sample.y / sample.w, sample.z / sample.w, sample.w);
 }
 
