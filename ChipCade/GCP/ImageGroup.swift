@@ -16,6 +16,4 @@ class ImageGroup {
     init(name: String) {
         self.name = name
     }
-    
-    
 }

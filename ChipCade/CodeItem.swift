@@ -169,6 +169,8 @@ class CodeItem : ObservableObject, Codable, Equatable, Identifiable {
         let previousInstruction = codes[index]
         
         codes[index] = newInstruction
+        Game.shared.cpuRender.update()
+        
         undoManager?.registerUndo(withTarget: self) { targetSelf in
             targetSelf.aboutToChange(using: undoManager, newInstruction: previousInstruction, at: index, text: text)
         }

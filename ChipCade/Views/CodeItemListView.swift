@@ -164,6 +164,29 @@ struct CodeItemListView: View {
                                     )
                                 )
                             }
+                        case .sprset:
+                            HStack {
+                                
+                                SpriteIndexTextField(
+                                    spriteIndex: Binding(
+                                        get: { Int(instruction.register1!) },
+                                        set: { newRegister in
+                                            let newInstruction = instruction.clone()
+                                            newInstruction.register1 = Int8(newRegister)
+                                            codeItem.aboutToChange(using: undoManager, newInstruction: newInstruction, at: index, text: "Sprite Changed")
+                                        }
+                                    )
+                                )
+                                
+                                SpriteImageTextField(
+                                    instruction: instruction,
+                                    undoManager: undoManager,
+                                    codeItem: codeItem,
+                                    index: index
+                                )
+                                
+
+                            }
                         case .st:
                             HStack {
                                 MemoryAddressTextField(

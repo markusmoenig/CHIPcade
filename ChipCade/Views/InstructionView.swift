@@ -29,7 +29,7 @@ struct InstructionTextFieldView: View {
                 }
             }
             .textFieldStyle(RoundedBorderTextFieldStyle())
-            .frame(maxWidth: 60)
+            .frame(maxWidth: 80)
             .foregroundStyle(instruction.isGCP() ? .yellow : .primary)
     }
 }

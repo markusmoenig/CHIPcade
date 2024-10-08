@@ -33,8 +33,18 @@ public class Game : ObservableObject
     // The instruction pointer
     @Published var currCodeItemIndex: Int = 0
     @Published var currInstructionIndex: Int = 0
+    
+    // Stack
     var callStack: [UInt] = []
 
+    // The currently pressed key in ASCII
+    var keyASCIICode : UInt8 = 0
+    
+    // The currently pressed key in ASCII
+    var touchState : UInt8 = 0
+    var touchX : Int = 0
+    var touchY : Int = 0
+    
     // Drawing widgets
     
     var cpuRender = MetalDraw2D();
@@ -137,6 +147,11 @@ public class Game : ObservableObject
     // Returns the codeItem of a given name
     func getCodeItemIndex(byItem item: CodeItem) -> Int? {
         return data.codeItems.firstIndex { $0 === item }
+    }
+    
+    // Returns the spriteItem of a given name
+    func getSpriteItem(spriteName: String) -> SpriteItem? {
+        return data.spriteItems.first { $0.name == spriteName }
     }
     
     // Get the memory value at the given address

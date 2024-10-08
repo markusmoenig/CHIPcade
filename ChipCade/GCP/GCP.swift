@@ -9,6 +9,7 @@ import MetalKit
 
 public enum GCPCmd  {
     case rect(x: Float, y: Float, width: Float, height: Float, color: GCPFloat4, rot: Float)
+    case sprset(spriteIndex: Int, imageGroupName: String)
 }
 
 var rota : Float = 0.0
@@ -78,13 +79,19 @@ public class GCP {
 
         for cmd in cmds {
             switch cmd {
-            case .rect(let x, let y, let width, let height, let color, _) :
-                draw2D.currentSampler = draw2D.nearestSampler
-                draw2D.startShape(type: .triangle)
-                draw2D.drawRect(x, y, width, height, color.simd, -rota)
-                draw2D.endShape()
-                //draw2D.drawText(position: float2(100, 80), text: "test", size: 30)
-
+                case .rect(let x, let y, let width, let height, let color, _) :
+                    draw2D.currentSampler = draw2D.nearestSampler
+                    draw2D.startShape(type: .triangle)
+                    draw2D.drawRect(x, y, width, height, color.simd, -rota)
+                    draw2D.endShape()
+                    //draw2D.drawText(position: float2(100, 80), text: "test", size: 30)
+                case .sprset(let spriteIndex, let imageGroupName) :
+                    if let imageGroup = getImageGroup(name: imageGroupName) {
+                        sprites[spriteIndex].imageGroup = imageGroup
+                        sprites[spriteIndex].currentImageIndex = 0
+                        sprites[spriteIndex].size.width = CGFloat(imageGroup.images[0].width)
+                        sprites[spriteIndex].size.height = CGFloat(imageGroup.images[0].height)
+                    }
             }
         }
         
@@ -105,16 +112,21 @@ public class GCP {
         
         draw2D.copyTexture()
         
-        for imageGroup in imageGroups {
-            for img in imageGroup.images {
+        for sprite in sprites {
+            if let imageGroup = sprite.imageGroup {
+                let index = sprite.currentImageIndex
                 draw2D.startShape(type: .triangle)
-                draw2D.drawRect(0, 0, Float(img.width), Float(img.height), float4(0, 0, 0, 1), 0.0)
-                draw2D.endShape(externalTexture: img)
+                draw2D.drawRect(0, 0, Float(imageGroup.images[index].width), Float(imageGroup.images[index].height), float4(0, 0, 0, 1), 0.0)
+                draw2D.endShape(externalTexture: imageGroup.images[index])
             }
         }
         
         draw2D.encodeEnd()
         cmds.removeAll()
+    }
+        
+    func getImageGroup(name: String) -> ImageGroup? {
+        return imageGroups.first { $0.name == name }
     }
 }
 

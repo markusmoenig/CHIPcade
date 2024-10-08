@@ -245,7 +245,7 @@ enum ChipCadeData: Codable  {
     }
 }
 
-// INC / DEC
+// Arithmetic
 
 extension ChipCadeData {
 
@@ -299,5 +299,148 @@ extension ChipCadeData {
             let newFloat16 = float32ToFloat16(newFloat32)
             self = .float16Bit(newFloat16)
         }
+    }
+    
+    // Addition
+    mutating func add(other: ChipCadeData, flags: CPUFlags) -> Bool {
+        switch (self, other) {
+        case (.unsigned16Bit(let value1), .unsigned16Bit(let value2)):
+            let result = value1 &+ value2
+            flags.setZeroFlag(result == 0)
+            flags.setCarryFlag(result < value1) // Carry if overflow occurred
+            self = .unsigned16Bit(result)
+
+        case (.signed16Bit(let value1), .signed16Bit(let value2)):
+            let result = Int16(clamping: value1 &+ value2)
+            flags.setZeroFlag(result == 0)
+            flags.setOverflowFlag((value1 > 0 && value2 > 0 && result < 0) || (value1 < 0 && value2 < 0 && result > 0))
+            flags.setNegativeFlag(result < 0)
+            self = .signed16Bit(result)
+
+        case (.float16Bit(let float16_1), .float16Bit(let float16_2)):
+            let float32_1 = float16ToFloat32(float16_1)
+            let float32_2 = float16ToFloat32(float16_2)
+            let result = float32_1 + float32_2
+            flags.setZeroFlag(result == 0)
+            flags.setNegativeFlag(result < 0)
+            let float16Result = float32ToFloat16(result)
+            self = .float16Bit(float16Result)
+
+        default:
+            return true
+        }
+        
+        return false
+    }
+
+    // Subtraction
+    mutating func sub(other: ChipCadeData, flags: CPUFlags) -> Bool {
+        switch (self, other) {
+        case (.unsigned16Bit(let value1), .unsigned16Bit(let value2)):
+            let result = value1 &- value2
+            flags.setZeroFlag(result == 0)
+            flags.setCarryFlag(value1 < value2) // Carry if underflow occurred
+            self = .unsigned16Bit(result)
+
+        case (.signed16Bit(let value1), .signed16Bit(let value2)):
+            let result = Int16(clamping: value1 &- value2)
+            flags.setZeroFlag(result == 0)
+            flags.setOverflowFlag((value1 > 0 && value2 < 0 && result < 0) || (value1 < 0 && value2 > 0 && result > 0))
+            flags.setNegativeFlag(result < 0)
+            self = .signed16Bit(result)
+
+        case (.float16Bit(let float16_1), .float16Bit(let float16_2)):
+            let float32_1 = float16ToFloat32(float16_1)
+            let float32_2 = float16ToFloat32(float16_2)
+            let result = float32_1 - float32_2
+            flags.setZeroFlag(result == 0)
+            flags.setNegativeFlag(result < 0)
+            let float16Result = float32ToFloat16(result)
+            self = .float16Bit(float16Result)
+
+        default:
+            return true
+        }
+        
+        return false
+    }
+
+    // Multiplication
+    mutating func mul(other: ChipCadeData, flags: CPUFlags) -> Bool {
+        switch (self, other) {
+        case (.unsigned16Bit(let value1), .unsigned16Bit(let value2)):
+            let result = value1 &* value2
+            flags.setZeroFlag(result == 0)
+            flags.setCarryFlag(result < value1 || result < value2) // Carry if overflow occurred
+            self = .unsigned16Bit(result)
+            
+        case (.signed16Bit(let value1), .signed16Bit(let value2)):
+            let result = Int16(clamping: value1 &* value2)
+            flags.setZeroFlag(result == 0)
+            flags.setOverflowFlag((value1 > 0 && value2 > 0 && result < 0) || (value1 < 0 && value2 < 0 && result > 0))
+            flags.setNegativeFlag(result < 0)
+            self = .signed16Bit(result)
+            
+        case (.float16Bit(let float16_1), .float16Bit(let float16_2)):
+            let float32_1 = float16ToFloat32(float16_1)
+            let float32_2 = float16ToFloat32(float16_2)
+            let result = float32_1 * float32_2
+            flags.setZeroFlag(result == 0)
+            flags.setNegativeFlag(result < 0)
+            let float16Result = float32ToFloat16(result)
+            self = .float16Bit(float16Result)
+            
+        default:
+            return true
+        }
+
+        return false
+    }
+    
+    // Division
+    mutating func div(other: ChipCadeData, flags: CPUFlags) -> Bool {
+        switch (self, other) {
+        case (.unsigned16Bit(let value1), .unsigned16Bit(let value2)):
+            if value2 == 0 {
+                // Handle division by zero (could set a flag or return an error)
+                flags.setCarryFlag(true) // Indicate division by zero error
+                return true
+            }
+            let result = value1 / value2
+            flags.setZeroFlag(result == 0)
+            flags.setCarryFlag(false) // No carry on division
+            self = .unsigned16Bit(result)
+
+        case (.signed16Bit(let value1), .signed16Bit(let value2)):
+            if value2 == 0 {
+                // Handle division by zero
+                flags.setOverflowFlag(true) // Indicate division by zero error
+                return true
+            }
+            let result = Int16(clamping: value1 / value2)
+            flags.setZeroFlag(result == 0)
+            flags.setOverflowFlag(value1 == Int16.min && value2 == -1) // Overflow if dividing by -1 at the min value
+            flags.setNegativeFlag(result < 0)
+            self = .signed16Bit(result)
+
+        case (.float16Bit(let float16_1), .float16Bit(let float16_2)):
+            let float32_1 = float16ToFloat32(float16_1)
+            let float32_2 = float16ToFloat32(float16_2)
+            if float32_2 == 0 {
+                // Handle division by zero (could return NaN or set a flag)
+                flags.setCarryFlag(true) // Division by zero error
+                return true
+            }
+            let result = float32_1 / float32_2
+            flags.setZeroFlag(result == 0)
+            flags.setNegativeFlag(result < 0)
+            let float16Result = float32ToFloat16(result)
+            self = .float16Bit(float16Result)
+
+        default:
+            return true
+        }
+
+        return false
     }
 }

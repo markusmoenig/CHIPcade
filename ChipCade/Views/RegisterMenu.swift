@@ -17,6 +17,7 @@ struct Int8RegisterMenu: View {
             ForEach(registers, id: \.self) { register in
                 Button(action: {
                     selectedRegister = register
+                    Game.shared.cpuRender.update()
                 }) {
                     Text("R\(register)")
                 }

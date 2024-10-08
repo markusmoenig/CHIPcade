@@ -23,6 +23,7 @@ struct ChipCadeDataTextField: View {
                 if let newChipCadeData = parseChipCadeData(from: textValue) {
                     chipCadeData = newChipCadeData
                     textValue = chipCadeData.toString()
+                    Game.shared.cpuRender.update()
                 } else {
                     // Revert if the input is invalid
                     textValue = chipCadeData.toString()

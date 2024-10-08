@@ -28,11 +28,12 @@ struct SpriteIndexTextField: View {
                     textValue = String(spriteIndex)
                 }
             }
+            .frame(maxWidth: 60)
     }
 
     // Parse the sprite index from the text input, ensuring it's between 0 and 128
     func parseSpriteIndex(from text: String) -> Int? {
-        if let value = Int(text), value >= 0, value <= 128 {
+        if let value = Int(text), value >= 0, value < 256 {
             return value
         }
         return nil  // Return nil if the value is out of range or invalid

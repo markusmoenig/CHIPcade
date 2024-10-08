@@ -36,6 +36,13 @@ public class CPU {
                 gcp.addCmd(cmd)
             }
             
+        case .sprset:
+            if let spriteItem = game.getSpriteItem(spriteName: instruction.memory!) {
+                //print("got \(instruction.memory)")
+                gcp.addCmd(.sprset(spriteIndex: Int(instruction.register1!), imageGroupName: spriteItem.name))
+            } else {
+                // Error: Invalid Sprite
+            }
         case .st    :
             if game.setMemoryValue(memoryItemName: instruction.memory!, offset: instruction.memoryOffset!, value: instruction.value!) {
                 // Error: Invalid Memory Address

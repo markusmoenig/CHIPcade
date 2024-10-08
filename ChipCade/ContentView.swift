@@ -29,6 +29,9 @@ struct ContentView: View {
     @State private var searchText: String = ""
     @State private var filteredResults: [(index: Int, instruction: Instruction)] = []
     
+    @State private var selectedLayer: Int = 0
+    @State private var selectedSprite: Int = 0
+    
     @Environment(\.undoManager) var undoManager
 
     var body: some View {
@@ -72,7 +75,6 @@ struct ContentView: View {
             HStack(spacing: 0) {
                 
                 VStack(spacing: 0) {
-                    
                     Spacer()
                     
                     if let codeItem = selectedCodeItem, previewIsLeftSide == true {
@@ -86,6 +88,36 @@ struct ContentView: View {
                     }
                     
                     Spacer()
+                    
+                    /*
+                    // Toolbar for selecting layer and sprite
+                    HStack {
+                        // Menu for Layer Selection
+                        Menu {
+                            ForEach(0..<8, id: \.self) { layer in
+                                Button(action: {
+                                    selectedLayer = layer
+                                }) {
+                                    Text("Layer \(layer)")
+                                }
+                            }
+                        } label: {
+                            Label("Select Layer: \(selectedLayer)", systemImage: "square.stack.3d.up.fill")
+                        }
+                        .frame(maxWidth: 200)
+                        //.buttonStyle(PlainButtonStyle)
+
+                        // TextField for Sprite Selection
+                        TextField("Sprite ID", value: $selectedSprite, formatter: NumberFormatter())
+                            .frame(maxWidth: 100)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            //.keyboardType(.numberPad)  // You can set number pad for easier input
+                        
+                        Spacer()
+                    }
+                    //.padding()
+                    */
+                    
                     Divider()
 
                     MetalView(document.game, .CPU)

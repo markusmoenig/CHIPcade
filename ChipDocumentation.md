@@ -1,4 +1,4 @@
-#  Design Document
+#  CPU / GCP Documentation
 
 ## CPU
 
@@ -14,8 +14,8 @@
 ### Instruction Set
 
 - **LD Rd, Memory Address**. Load memory to the destination register.
-- **LDI Rd, Value.** Load an immediate value to the destination register.
-- **ST Memory Addres, Rs.** Store the source register at the destination memory address.
+- **LDI Rd, Value**. Load an immediate value to the destination register.
+- **ST Memory Addres, Rs**. Store the source register at the destination memory address.
 
 - **INC Rd**. Increase the destination register by 1.
 - **DEC Rd**. Decrease the destination register by 1.
@@ -31,4 +31,8 @@ The bits of R0 - R7 determine the features for these layers:
 - Bit1: Turn layer visibility on / off.
 - Bit2: Enabled signed coordinates.   
 
+### Sprites
 
+256 hardware sprites
+
+- **SPRSET Sd, ImageGroup**. Assign the image group to the sprite.

@@ -49,6 +49,7 @@ public class InstrMeta : Codable {
 }
 
 public enum InstructionType: String, Codable, CaseIterable {
+    case cmp
     case dec
     case inc
     case ld
@@ -56,6 +57,7 @@ public enum InstructionType: String, Codable, CaseIterable {
     case push
     case nop
     case rect
+    case sprset
     case st
     
     static func fromString(_ string: String) -> InstructionType? {
@@ -97,19 +99,25 @@ public class Instruction: ObservableObject, Codable, Equatable {
         self.type = type
         
         switch type {
+        case .cmp:
+            register1 = 0
+            register2 = 1
         case .inc, .dec:
             register1 = 0
         case .ld:
             register1 = 0
             memory = "Data"
             memoryOffset = 0
+        case .ldi:
+            register1 = 0
+            value = .unsigned16Bit(0)
+        case .sprset:
+            register1 = 0
+            memory = "Image Group"
         case .st:
             register1 = 0
             memory = "Data"
             memoryOffset = 0
-        case .ldi:
-            register1 = 0
-            value = .unsigned16Bit(0)
         default: break
         }
     }
@@ -142,6 +150,9 @@ public class Instruction: ObservableObject, Codable, Equatable {
     
     func format() -> String {
         switch type {
+        case .cmp:
+            return "CMP R\(register1!), R\(register2!)"
+            
         case .dec:
             return "DEC R\(register1!)"
             
@@ -163,6 +174,9 @@ public class Instruction: ObservableObject, Codable, Equatable {
         case .rect:
             return "RECT"
             
+        case .sprset:
+            return "SPRSET S\(register1!) \(memory!)"
+        
         case .st:
             return "ST \(memory!) + \(memoryOffset!) R\(register1!)"
         }
@@ -170,6 +184,8 @@ public class Instruction: ObservableObject, Codable, Equatable {
     
     func description() -> String {
         switch type {
+        case .cmp:
+            return "Compare the two registers"
         case .dec:
             return "Decreases the register by 1"
         case .inc:
@@ -180,11 +196,12 @@ public class Instruction: ObservableObject, Codable, Equatable {
             return "Load an immediate value into a register"
         case .push:
             return "PUSH"
-            
         case .nop:
             return "No operation"
         case .rect:
             return "Draw a rectangle: R0 = X, R1 = Y, R2 = Width, R3 = Height, R4 = Palette Index"
+        case .sprset:
+            return "Sets an image group for a sprite"
         case .st:
             return "Store to memory from a register"
         }
@@ -199,6 +216,9 @@ public class Instruction: ObservableObject, Codable, Equatable {
         var source : [Int8] = []
         
         switch type {
+        case .cmp:
+            dest = register1!
+            source = [register2!]
         case .ldi, .ld, .dec, .inc:
             dest = register1!
         case .rect:
@@ -214,7 +234,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
     /// Returns true if this is an instruction of the GCP
     func isGCP() -> Bool {
         switch type {
-        case .rect:
+        case .rect, .sprset:
             return true
         default:
             return false
