@@ -27,8 +27,8 @@ public class CPUWidget    : ObservableObject
 
         let gX = (width - 640) / 2
         
-        let prim = colorToFloat4(Color.primary)
-        let sec = colorToFloat4(Color.secondary)
+        let prim = float4(0.9, 0.9, 0.9, 1.0)//colorToFloat4(Color.primary)
+        let sec = float4(0.6, 0.6, 0.6, 1.0)//colorToFloat4(Color.secondary)
         let red = colorToFloat4(Color.red)
         let green = colorToFloat4(Color.green)
 
@@ -44,7 +44,7 @@ public class CPUWidget    : ObservableObject
             return String(repeating: fillWith, count: padding) + stringValue
         }
 
-        let formattedInputRegisters = "R8: \(paddedString(game.keyASCIICode, width: 1)) R9: \(paddedString(game.touchState, width: 1)) R10: \(paddedString(game.touchX, width: 6)) R11: \(paddedString(game.touchY, width: 6))"
+        let formattedInputRegisters = "R8: \(paddedString(game.registers[8].toString(false), width: 3)) R9: \(paddedString(game.registers[9].toString(false), width: 1)) R10: \(paddedString(game.registers[10].toString(), width: 4)) R11: \(paddedString(game.registers[11].toString(), width: 4))"
         draw2D.drawText(position: float2(160, 180), text: formattedInputRegisters, size: 14, color: prim)
 
         if let instruction = game.getInstruction() {
@@ -83,14 +83,17 @@ public class CPUWidget    : ObservableObject
     func colorToFloat4(_ color: Color) -> simd_float4 {
         #if os(iOS)
         // iOS uses UIColor
-        let uiColor = UIColor(color)
+        let uiColor = UIColor(color) // Try to initialize directly from SwiftUI Color
         
         var red: CGFloat = 0
         var green: CGFloat = 0
         var blue: CGFloat = 0
         var alpha: CGFloat = 0
         
+        // Ensure color is in RGB color space and extract the components
         uiColor.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
+        
+        alpha = 1.0
         
         #elseif os(macOS)
         // macOS uses NSColor, convert it to sRGB space before extracting components

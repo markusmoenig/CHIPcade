@@ -49,16 +49,21 @@ public class InstrMeta : Codable {
 }
 
 public enum InstructionType: String, Codable, CaseIterable {
+    case add
     case cmp
     case dec
+    case div
     case inc
     case ld
     case ldi
-    case push
+    case mod
+    case mul
     case nop
+    case push
     case rect
     case sprset
     case st
+    case sub
     
     static func fromString(_ string: String) -> InstructionType? {
         return InstructionType.allCases.first { $0.toString().lowercased() == string.lowercased() }
@@ -99,7 +104,8 @@ public class Instruction: ObservableObject, Codable, Equatable {
         self.type = type
         
         switch type {
-        case .cmp:
+        
+        case .cmp, .add, .sub, .mul, .div, .mod:
             register1 = 0
             register2 = 1
         case .inc, .dec:
@@ -150,11 +156,17 @@ public class Instruction: ObservableObject, Codable, Equatable {
     
     func format() -> String {
         switch type {
+        case .add:
+            return "ADD R\(register1!), R\(register2!)"
+            
         case .cmp:
             return "CMP R\(register1!), R\(register2!)"
             
         case .dec:
             return "DEC R\(register1!)"
+            
+        case .div:
+            return "DIV R\(register1!), R\(register2!)"
             
         case .inc:
             return "INC R\(register1!)"
@@ -164,12 +176,18 @@ public class Instruction: ObservableObject, Codable, Equatable {
             
         case .ldi:
             return "LDI R\(register1!) \(value!.toString())"
+
+        case .mod:
+            return "MOD R\(register1!), R\(register2!)"
             
-        case .push:
-            return "PUSH \(value!.toString())"
+        case .mul:
+            return "MUL R\(register1!), R\(register2!)"
             
         case .nop:
             return "NOP"
+            
+        case .push:
+            return "PUSH \(value!.toString())"
             
         case .rect:
             return "RECT"
@@ -179,31 +197,44 @@ public class Instruction: ObservableObject, Codable, Equatable {
         
         case .st:
             return "ST \(memory!) + \(memoryOffset!) R\(register1!)"
+            
+        case .sub:
+            return "SUB R\(register1!), R\(register2!)"
         }
     }
     
     func description() -> String {
         switch type {
+        case .add:
+            return "Add source to destination register"
         case .cmp:
-            return "Compare the two registers"
+            return "Compare two registers"
         case .dec:
-            return "Decreases the register by 1"
+            return "Decrement register by 1"
+        case .div:
+            return "Divide destination by source register"
         case .inc:
-            return "Increases the register by 1"
+            return "Increment register by 1"
         case .ld:
-            return "Load memory into a register"
+            return "Load memory into register"
         case .ldi:
-            return "Load an immediate value into a register"
-        case .push:
-            return "PUSH"
+            return "Load immediate value into register"
+        case .mod:
+            return "Modulus of destination by source register"
+        case .mul:
+            return "Multiply source with destination register"
         case .nop:
             return "No operation"
+        case .push:
+            return "Push register to stack"
         case .rect:
-            return "Draw a rectangle: R0 = X, R1 = Y, R2 = Width, R3 = Height, R4 = Palette Index"
+            return "Draw rectangle: R0=X, R1=Y, R2=Width, R3=Height, R4=Palette"
         case .sprset:
-            return "Sets an image group for a sprite"
+            return "Set image group for sprite"
         case .st:
-            return "Store to memory from a register"
+            return "Store register to memory"
+        case .sub:
+            return "Subtract source from destination register"
         }
     }
     

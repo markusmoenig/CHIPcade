@@ -210,15 +210,29 @@ enum ChipCadeData: Codable  {
         }
     }
     
-    func toString() -> String {
+    func toString(_ identifier: Bool = true) -> String {
         switch self {
         case .unsigned16Bit(let unsignedVal):
-            return "\(unsignedVal)u"
+            if identifier {
+                return String(format: "%05du", unsignedVal) // Always 5 digits, padded with 0s
+            } else {
+                return String(format: "%05d", unsignedVal) // No identifier, just padded
+            }
+            
         case .signed16Bit(let signedVal):
-            return "\(signedVal)s"
+            if identifier {
+                return String(format: "%05ds", signedVal) // Always 5 digits, padded with 0s
+            } else {
+                return String(format: "%05d", signedVal) // No identifier, just padded
+            }
+            
         case .float16Bit(let float16):
             let float32 = float16ToFloat32(float16)
-            return String(format: "%.3ff", float32)
+            if identifier {
+                return String(format: "%.3ff", float32) // Always 3 decimal places with 'f'
+            } else {
+                return String(format: "%.3f", float32) // No identifier, but always 3 decimals
+            }
         }
     }
     
@@ -246,7 +260,6 @@ enum ChipCadeData: Codable  {
 }
 
 // Arithmetic
-
 extension ChipCadeData {
 
     // Increment function
@@ -436,6 +449,84 @@ extension ChipCadeData {
             flags.setNegativeFlag(result < 0)
             let float16Result = float32ToFloat16(result)
             self = .float16Bit(float16Result)
+
+        default:
+            return true
+        }
+
+        return false
+    }
+    
+    // Modulus (MOD)
+    mutating func mod(other: ChipCadeData, flags: CPUFlags) -> Bool {
+        switch (self, other) {
+        case (.unsigned16Bit(let value1), .unsigned16Bit(let value2)):
+            if value2 == 0 {
+                // Handle division by zero (undefined for mod)
+                flags.setCarryFlag(true) // Set carry flag to indicate division by zero error
+                return true
+            }
+            let result = value1 % value2
+            flags.setZeroFlag(result == 0)
+            flags.setCarryFlag(false) // No carry for successful mod
+            self = .unsigned16Bit(result)
+
+        case (.signed16Bit(let value1), .signed16Bit(let value2)):
+            if value2 == 0 {
+                // Handle division by zero (undefined for mod)
+                flags.setOverflowFlag(true) // Set overflow flag to indicate division by zero error
+                return true
+            }
+            let result = value1 % value2
+            flags.setZeroFlag(result == 0)
+            flags.setNegativeFlag(result < 0) // Set negative flag if result is negative
+            flags.setOverflowFlag(false)
+            self = .signed16Bit(result)
+
+        case (.float16Bit(let float16_1), .float16Bit(let float16_2)):
+            let float32_1 = float16ToFloat32(float16_1)
+            let float32_2 = float16ToFloat32(float16_2)
+            if float32_2 == 0 {
+                // Handle division by zero (undefined for mod)
+                flags.setCarryFlag(true) // Set carry flag to indicate division by zero error
+                return true
+            }
+            let result = fmod(float32_1, float32_2) // Use fmod for floating-point modulus
+            flags.setZeroFlag(result == 0)
+            flags.setNegativeFlag(result < 0)
+            self = .float16Bit(float32ToFloat16(result))
+
+        default:
+            return true
+        }
+
+        return false
+    }
+}
+
+// Conditionals
+extension ChipCadeData {
+
+    // Comparison (CMP)
+    func cmp(other: ChipCadeData, flags: CPUFlags) -> Bool {
+        switch (self, other) {
+        case (.unsigned16Bit(let value1), .unsigned16Bit(let value2)):
+            let result = value1 &- value2
+            flags.setZeroFlag(result == 0)
+            flags.setCarryFlag(value1 < value2) // Set carry if there is a borrow (underflow)
+
+        case (.signed16Bit(let value1), .signed16Bit(let value2)):
+            let result = Int16(clamping: value1 &- value2)
+            flags.setZeroFlag(result == 0)
+            flags.setOverflowFlag((value1 > 0 && value2 < 0 && result < 0) || (value1 < 0 && value2 > 0 && result > 0))
+            flags.setNegativeFlag(result < 0)
+
+        case (.float16Bit(let float16_1), .float16Bit(let float16_2)):
+            let float32_1 = float16ToFloat32(float16_1)
+            let float32_2 = float16ToFloat32(float16_2)
+            let result = float32_1 - float32_2
+            flags.setZeroFlag(result == 0)
+            flags.setNegativeFlag(result < 0)
 
         default:
             return true

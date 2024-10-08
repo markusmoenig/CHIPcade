@@ -36,14 +36,6 @@ public class Game : ObservableObject
     
     // Stack
     var callStack: [UInt] = []
-
-    // The currently pressed key in ASCII
-    var keyASCIICode : UInt8 = 0
-    
-    // The currently pressed key in ASCII
-    var touchState : UInt8 = 0
-    var touchX : Int = 0
-    var touchY : Int = 0
     
     // Drawing widgets
     
@@ -69,7 +61,12 @@ public class Game : ObservableObject
         
     init() {
         data = .init()
-        registers = [.unsigned16Bit(0), .unsigned16Bit(0), .unsigned16Bit(0), .unsigned16Bit(0), .unsigned16Bit(0), .unsigned16Bit(0), .unsigned16Bit(0), .unsigned16Bit(0)]
+        registers = [.unsigned16Bit(0), .unsigned16Bit(0), .unsigned16Bit(0), .unsigned16Bit(0), .unsigned16Bit(0), .unsigned16Bit(0), .unsigned16Bit(0), .unsigned16Bit(0),
+            .unsigned16Bit(0), // KeyASCII code
+            .unsigned16Bit(0), // TouchState
+            .signed16Bit(0),   // TouchX
+            .signed16Bit(0),   // TouchY
+        ]
         stack = []
     }
     

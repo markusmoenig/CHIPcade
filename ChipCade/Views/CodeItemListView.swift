@@ -107,6 +107,31 @@ struct CodeItemListView: View {
                         InstructionTextFieldView(instruction: $codeItem.codes[index], codeItem: codeItem, index: index)
                         
                         switch instruction.type {
+                        case .cmp:
+                            HStack {
+                                Int8FullRegisterMenu(
+                                    selectedRegister: Binding(
+                                        get: { instruction.register1! },
+                                        set: { newRegister in
+                                            let newInstruction = instruction.clone()
+                                            newInstruction.register1 = newRegister
+                                            codeItem.aboutToChange(using: undoManager, newInstruction: newInstruction, at: index, text: "Register Changed")
+                                        }
+                                    )
+                                )
+                            }
+                            HStack {
+                                Int8FullRegisterMenu(
+                                    selectedRegister: Binding(
+                                        get: { instruction.register2! },
+                                        set: { newRegister in
+                                            let newInstruction = instruction.clone()
+                                            newInstruction.register2 = newRegister
+                                            codeItem.aboutToChange(using: undoManager, newInstruction: newInstruction, at: index, text: "Register Changed")
+                                        }
+                                    )
+                                )
+                            }
                         case .inc, .dec:
                             HStack {
                                 Int8RegisterMenu(

@@ -29,3 +29,26 @@ struct Int8RegisterMenu: View {
         .menuStyle(DefaultMenuStyle())
     }
 }
+
+struct Int8FullRegisterMenu: View {
+    @Binding var selectedRegister: Int8
+    
+    let registers: [Int8] = Array(0...11)
+
+    var body: some View {
+        Menu {
+            ForEach(registers, id: \.self) { register in
+                Button(action: {
+                    selectedRegister = register
+                    Game.shared.cpuRender.update()
+                }) {
+                    Text("R\(register)")
+                }
+            }
+        } label: {
+            Text("R\(selectedRegister)")
+        }
+        .frame(width: 60)
+        .menuStyle(DefaultMenuStyle())
+    }
+}

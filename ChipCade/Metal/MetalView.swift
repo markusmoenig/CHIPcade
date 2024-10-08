@@ -62,8 +62,8 @@ public class ChipCadeView       : MTKView
         mousePos.y = -Float(location.y)
         
         if viewType == .Game {
-            Game.shared.touchX = Int(location.x)
-            Game.shared.touchY = Int(-location.y)
+            Game.shared.registers[10] = .signed16Bit(Int16(location.x))
+            Game.shared.registers[11] = .signed16Bit(Int16(-location.y))
             Game.shared.cpuRender.update()
         }
     }
@@ -75,53 +75,53 @@ public class ChipCadeView       : MTKView
         if let characters = event.characters {
             for character in characters {
                 if let asciiValue = character.asciiValue {
-                    Game.shared.keyASCIICode = asciiValue
+                    Game.shared.registers[8] = .unsigned16Bit(UInt16(asciiValue))
                 }
             }
         } else {
             // Handle special non-character keys based on keyCode
             switch event.keyCode {
             case 123: // Left arrow
-                Game.shared.keyASCIICode = 128
+                Game.shared.registers[8] = .unsigned16Bit(128)
             case 126: // Up arrow
-                Game.shared.keyASCIICode = 129
+                Game.shared.registers[8] = .unsigned16Bit(129)
             case 124: // Right arrow
-                Game.shared.keyASCIICode = 130
+                Game.shared.registers[8] = .unsigned16Bit(130)
             case 125: // Down arrow
-                Game.shared.keyASCIICode = 131
-                
+                Game.shared.registers[8] = .unsigned16Bit(131)
+
                 // Function keys
             case 122: // F1
-                Game.shared.keyASCIICode = 132
+                Game.shared.registers[8] = .unsigned16Bit(132)
             case 120: // F2
-                Game.shared.keyASCIICode = 133
+                Game.shared.registers[8] = .unsigned16Bit(133)
             case 99:  // F3
-                Game.shared.keyASCIICode = 134
+                Game.shared.registers[8] = .unsigned16Bit(134)
             case 118: // F4
-                Game.shared.keyASCIICode = 135
+                Game.shared.registers[8] = .unsigned16Bit(135)
             case 96:  // F5
-                Game.shared.keyASCIICode = 136
+                Game.shared.registers[8] = .unsigned16Bit(136)
             case 97:  // F6
-                Game.shared.keyASCIICode = 137
+                Game.shared.registers[8] = .unsigned16Bit(137)
             case 98:  // F7
-                Game.shared.keyASCIICode = 138
+                Game.shared.registers[8] = .unsigned16Bit(138)
             case 100: // F8
-                Game.shared.keyASCIICode = 139
+                Game.shared.registers[8] = .unsigned16Bit(139)
             case 101: // F9
-                Game.shared.keyASCIICode = 140
+                Game.shared.registers[8] = .unsigned16Bit(140)
             case 109: // F10
-                Game.shared.keyASCIICode = 141
+                Game.shared.registers[8] = .unsigned16Bit(141)
             case 103: // F11
-                Game.shared.keyASCIICode = 142
+                Game.shared.registers[8] = .unsigned16Bit(142)
             case 111: // F12
-                Game.shared.keyASCIICode = 143
-                
+                Game.shared.registers[8] = .unsigned16Bit(143)
+
                 // Shift keys
             case 56: // Left Shift
-                Game.shared.keyASCIICode = 144
+                Game.shared.registers[8] = .unsigned16Bit(144)
             case 60: // Right Shift
-                Game.shared.keyASCIICode = 145
-                
+                Game.shared.registers[8] = .unsigned16Bit(145)
+
             default: break
             }
         }
@@ -131,14 +131,14 @@ public class ChipCadeView       : MTKView
     override public func keyUp(with event: NSEvent)
     {
         keysDown.removeAll{$0 == Float(event.keyCode)}
-        Game.shared.keyASCIICode = 0
+        Game.shared.registers[8] = .unsigned16Bit(0)
         Game.shared.cpuRender.update()
     }
         
     override public func mouseDown(with event: NSEvent) {
         setMousePos(event)
         if viewType == .Game {
-            Game.shared.touchState = 1
+            Game.shared.registers[9] = .unsigned16Bit(1)
             Game.shared.cpuRender.update()
         }
     }
@@ -146,7 +146,7 @@ public class ChipCadeView       : MTKView
     override public func mouseDragged(with event: NSEvent) {
         setMousePos(event)
         if viewType == .Game {
-            Game.shared.touchState = 2
+            Game.shared.registers[9] = .unsigned16Bit(2)
             Game.shared.cpuRender.update()
         }
     }
@@ -157,9 +157,9 @@ public class ChipCadeView       : MTKView
         hasDoubleTap = false
         setMousePos(event)
         if viewType == .Game {
-            Game.shared.touchState = 0
-            Game.shared.touchX = 0
-            Game.shared.touchY = 0
+            Game.shared.registers[9] = .unsigned16Bit(0)
+            Game.shared.registers[10] = .signed16Bit(0)
+            Game.shared.registers[11] = .signed16Bit(0)
             Game.shared.cpuRender.update()
         }
     }

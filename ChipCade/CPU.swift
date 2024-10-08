@@ -13,6 +13,10 @@ public class CPU {
     public func executeInstruction(instruction: Instruction, game: Game, gcp: GCP) {
         
         switch instruction.type {
+        case .cmp   :  if game.registers[Int(instruction.register1!)].cmp(other: game.registers[Int(instruction.register2!)], flags: game.flags) {
+            // Error: Invalid Comparison
+        }
+            
         case .inc   :  game.registers[Int(instruction.register1!)].inc(flags: game.flags)
         case .dec   :  game.registers[Int(instruction.register1!)].dec(flags: game.flags)
         case .ld    :

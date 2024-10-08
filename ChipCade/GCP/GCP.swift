@@ -56,9 +56,9 @@ public class GCP {
             imageGroups.append(group)
         }
         
-        // Create the 128 hardware sprites
+        // Create the 256 hardware sprites
         sprites = []
-        for index in 0..<128 {
+        for index in 0..<256 {
             let sprite = Sprite(index: index)
             sprites.append(sprite)
         }

@@ -66,7 +66,7 @@ struct SpriteSectionView: View {
                     }
                     
                     Button {
-                        startRenaming(item: memoryItems[index])
+                        startRenaming(item: spriteItems[index])
                     } label: {
                         Label("Rename", systemImage: "pencil")
                     }
