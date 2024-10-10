@@ -35,7 +35,7 @@ public class CPUWidget    : ObservableObject
         var dest : Int8? = nil
         var source : [Int8] = []
         
-        draw2D.drawText(position: float2(10, 180), text: "\(game.flags.displayFlags())", size: 14, color: prim)
+        draw2D.drawText(position: float2(10, 160), text: "\(game.flags.displayFlags())", size: 14, color: prim)
         
         //draw2D.drawText(position: float2(160, 180), text: "R8: \(game.keyASCIICode) R9: \(game.touchState) R10: \(game.touchX) R11: \(game.touchY)", size: 14, color: prim)
         func paddedString<T>(_ value: T, width: Int, fillWith: Character = "0") -> String {
@@ -44,12 +44,19 @@ public class CPUWidget    : ObservableObject
             return String(repeating: fillWith, count: padding) + stringValue
         }
 
-        let formattedInputRegisters = "R8: \(paddedString(game.registers[8].toString(false), width: 3)) R9: \(paddedString(game.registers[9].toString(false), width: 1)) R10: \(paddedString(game.registers[10].toString(), width: 4)) R11: \(paddedString(game.registers[11].toString(), width: 4))"
-        draw2D.drawText(position: float2(160, 180), text: formattedInputRegisters, size: 14, color: prim)
+        let formattedInputRegisters = "R8: \(paddedString(game.registers[8].toString(false), width: 3)) R9: \(game.registers[9].toString(false)) R10: \(game.registers[10].toStringFull()) R11: \(game.registers[11].toStringFull())"
+        draw2D.drawText(position: float2(160, 160), text: formattedInputRegisters, size: 14, color: prim)
 
+        if game.error != .none {
+            if let instruction = game.getInstruction() {
+                draw2D.drawText(position: float2(10, 180), text: "\(instruction.toString()): \(game.error.toString)", size: 14, color: red)
+            } else {
+                draw2D.drawText(position: float2(10, 180), text: "\(game.error.toString)", size: 14, color: red)
+            }
+        } else
         if let instruction = game.getInstruction() {
             //draw2D.drawText(position: float2(100, 80), text: instruction.format(), size: 30)
-            //draw2D.drawText(position: float2(310, 180), text: "\(instruction.toString()): \(instruction.description())", size: 14, color: prim)
+            draw2D.drawText(position: float2(10, 180), text: "\(instruction.toString()): \(instruction.description())", size: 14, color: prim)
             let regs = instruction.registers()
             dest = regs.0
             source = regs.1
@@ -73,7 +80,7 @@ public class CPUWidget    : ObservableObject
                 }
                 
                 draw2D.drawText(position: float2(reg_x + Float(i) * reg_width, reg_y ), text: "R\(i)", size: 15, color: color)
-                draw2D.drawText(position: float2(reg_x + Float(i) * reg_width + 20, reg_y), text: "\(game.registers[i].toString())", size: 15, color: sec)
+                draw2D.drawText(position: float2(reg_x + Float(i) * reg_width + 20, reg_y), text: "\(game.registers[i].toStringFull())", size: 15, color: sec)
             }
         }
         

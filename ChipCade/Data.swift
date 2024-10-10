@@ -214,6 +214,32 @@ enum ChipCadeData: Codable  {
         switch self {
         case .unsigned16Bit(let unsignedVal):
             if identifier {
+                return "\(unsignedVal)u"
+            } else {
+                return "\(unsignedVal)"
+            }
+            
+        case .signed16Bit(let signedVal):
+            if identifier {
+                return "\(signedVal)s"
+            } else {
+                return "\(signedVal)"
+            }
+            
+        case .float16Bit(let float16):
+            let float32 = float16ToFloat32(float16)
+            if identifier {
+                return String(format: "%.3ff", float32)
+            } else {
+                return String(format: "%.3f", float32)
+            }
+        }
+    }
+    
+    func toStringFull(_ identifier: Bool = true) -> String {
+        switch self {
+        case .unsigned16Bit(let unsignedVal):
+            if identifier {
                 return String(format: "%05du", unsignedVal) // Always 5 digits, padded with 0s
             } else {
                 return String(format: "%05d", unsignedVal) // No identifier, just padded

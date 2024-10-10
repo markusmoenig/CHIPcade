@@ -91,7 +91,7 @@ struct CodeItemListView: View {
                         Text(offset)
                             .font(.system(.body, design: .monospaced))
                             .frame(width: 50, alignment: .leading)
-                            .foregroundStyle( index == selectedInstructionIndex ? .primary : .secondary)
+                            .foregroundStyle(itemStyle(index))
                             .onTapGesture {
                                 selectedInstructionIndex = index
                             }
@@ -339,5 +339,23 @@ struct CodeItemListView: View {
             Label("Edit Instruction", systemImage: "gear")
         }
         .menuStyle(.borderlessButton)
+    }
+    
+    // Returns the item color
+    func itemStyle(_ index: Int) -> Color {
+        let game = Game.shared
+        
+        if game.error != .none {
+            let codeItemIndex = game.getCodeItemIndex(byItem: codeItem)
+            if index == game.errorInstructionIndex && codeItemIndex == game.errorCodeItemIndex {
+                return .red
+            }
+        }
+        
+        if index == selectedInstructionIndex {
+            return .primary;
+        } else {
+            return .secondary;
+        }
     }
 }

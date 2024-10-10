@@ -14,16 +14,15 @@ public class CPU {
         
         switch instruction.type {
         case .cmp   :  if game.registers[Int(instruction.register1!)].cmp(other: game.registers[Int(instruction.register2!)], flags: game.flags) {
-            // Error: Invalid Comparison
-        }
-            
+            game.setError(.invalidComparison)
+        }            
         case .inc   :  game.registers[Int(instruction.register1!)].inc(flags: game.flags)
         case .dec   :  game.registers[Int(instruction.register1!)].dec(flags: game.flags)
         case .ld    :
             if let value = game.getMemoryValue(memoryItemName: instruction.memory!, offset: instruction.memoryOffset!) {
                 game.registers[Int(instruction.register1!)] = value
             } else {
-                // Error: Invalid Memory Address
+                game.setError(.invalidMemoryAddress)
             }
         case .ldi   : game.registers[Int(instruction.register1!)] = instruction.value!
         case .push  : game.stack.append(instruction.value!)
@@ -42,17 +41,17 @@ public class CPU {
             
         case .sprset:
             if let spriteItem = game.getSpriteItem(spriteName: instruction.memory!) {
-                //print("got \(instruction.memory)")
                 gcp.addCmd(.sprset(spriteIndex: Int(instruction.register1!), imageGroupName: spriteItem.name))
             } else {
-                // Error: Invalid Sprite
+                game.setError(.invalidImageGroup)
             }
         case .st    :
             if game.setMemoryValue(memoryItemName: instruction.memory!, offset: instruction.memoryOffset!, value: instruction.value!) {
-                // Error: Invalid Memory Address
+                game.setError(.invalidMemoryAddress)
             }
         default: break
         }
     }
+
 }
 

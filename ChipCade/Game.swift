@@ -23,6 +23,8 @@ public class Game : ObservableObject
 {
     static var shared = Game()
     
+    let errorChanged = PassthroughSubject<Bool, Never>()
+
     @Published var data: GameData
     
     @Published var stack: [ChipCadeData]
@@ -38,14 +40,16 @@ public class Game : ObservableObject
     var callStack: [UInt] = []
     
     // Drawing widgets
-    
     var cpuRender = MetalDraw2D();
-    
     var cpuWidget = CPUWidget()
     
     var gcp = GCP()
     var cpu = CPU()
     
+    @Published var error = ChipCadeError.none
+    @Published var errorCodeItemIndex = 0
+    @Published var errorInstructionIndex = 0
+
     var state = GameState.paused
 
     var selectionState: SelectionState = .code
@@ -73,23 +77,38 @@ public class Game : ObservableObject
     // Start playback, execute init
     public func play() {
         reset()
-        
+                
         gcp.setupGameData(gameData: data)
         
+        error = .none
         state = .running
+        
         gcp.draw2D.metalView.enableSetNeedsDisplay = false
         gcp.draw2D.metalView.isPaused = false
         
         // init
-        while let instruction = getInstruction() {
+        while let instruction = getInstruction(), error == .none {
             cpu.executeInstruction(instruction: instruction, game: self, gcp: gcp)
             currInstructionIndex += 1
         }
     }
     
-    // Start playback, execute init
+    // Stop playback
     public func stop() {
         reset()
+
+        error = .none
+        errorChanged.send(false)
+
+        state = .paused
+        gcp.draw2D.metalView.enableSetNeedsDisplay = true
+        gcp.draw2D.metalView.isPaused = true
+        
+        cpuRender.update()
+    }
+    
+    // Stop playback
+    public func pause() {
         
         state = .paused
         gcp.draw2D.metalView.enableSetNeedsDisplay = true
@@ -191,12 +210,22 @@ public class Game : ObservableObject
         callStack = []
         
         flags.clearFlags()
-        
+                
         for i in 0...7 {
             registers[i] = ChipCadeData.unsigned16Bit(0)
         }
         
         currCodeItemIndex = 0
         currInstructionIndex = 0
+    }
+    
+    // Set an active eeror
+    func setError(_ error: ChipCadeError) {
+        self.error = error
+        errorCodeItemIndex = currCodeItemIndex
+        errorInstructionIndex = currInstructionIndex
+        
+        pause()
+        errorChanged.send(true)
     }
 }
