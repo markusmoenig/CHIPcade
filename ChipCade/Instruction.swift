@@ -9,13 +9,13 @@ import Foundation
 
 public class InstrMeta : Codable {
     
-    @Published var marker: String = ""
+    @Published var tag: String = ""
     @Published var comment: String = ""
     
     @Published var breakpoint: Bool = false
     
     enum CodingKeys: String, CodingKey {
-        case marker
+        case tag
         case comment
         case breakpoint
     }
@@ -25,7 +25,7 @@ public class InstrMeta : Codable {
     
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(marker, forKey: .marker)
+        try container.encode(tag, forKey: .tag)
         try container.encode(comment, forKey: .comment)
         try container.encode(breakpoint, forKey: .breakpoint)
     }
@@ -33,7 +33,7 @@ public class InstrMeta : Codable {
     public required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
-        marker = try container.decode(String.self, forKey: .marker)
+        tag = try container.decode(String.self, forKey: .tag)
         comment = try container.decode(String.self, forKey: .comment)
         breakpoint = try container.decode(Bool.self, forKey: .breakpoint)
     }
@@ -41,7 +41,7 @@ public class InstrMeta : Codable {
     func clone() -> InstrMeta {
         let clonedMeta = InstrMeta()
         clonedMeta.comment = self.comment
-        clonedMeta.marker = self.marker
+        clonedMeta.tag = self.tag
         clonedMeta.breakpoint = self.breakpoint
         
         return clonedMeta

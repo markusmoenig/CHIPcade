@@ -13,7 +13,7 @@ struct CodeItemListView: View {
     @Binding var selectedInstructionIndex: Int?
         
     @State private var isPopoverPresented = false
-    @State private var instructionName: String = ""
+    @State private var instructionTag: String = ""
     @State private var instructionComment: String = ""
         
     @Environment(\.undoManager) var undoManager
@@ -36,11 +36,11 @@ struct CodeItemListView: View {
                 editMenu
                     .popover(isPresented: $isPopoverPresented) {
                         VStack {
-                            Text("Set Marker / Comment")
+                            Text("Set Tag / Comment")
                                 .font(.headline)
                                 .padding()
 
-                            TextField("Marker", text: $instructionName)
+                            TextField("Tag", text: $instructionTag)
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
                                 .padding(6)
                             
@@ -50,7 +50,7 @@ struct CodeItemListView: View {
 
                             Button("Apply") {
                                 if let index = selectedInstructionIndex {
-                                    codeItem.codes[index].meta.marker = instructionName
+                                    codeItem.codes[index].meta.tag = instructionTag
                                     codeItem.codes[index].meta.comment = instructionComment
                                     let instr = codeItem.codes[index]
                                     codeItem.codes[index] = instr
@@ -69,11 +69,11 @@ struct CodeItemListView: View {
                 
                 VStack(alignment: .leading) {
                     
-                    if !instruction.meta.marker.isEmpty || !instruction.meta.comment.isEmpty {
+                    if !instruction.meta.tag.isEmpty || !instruction.meta.comment.isEmpty {
                         
                         HStack {
-                            if !instruction.meta.marker.isEmpty {
-                                Text("\(instruction.meta.marker)")
+                            if !instruction.meta.tag.isEmpty {
+                                Text("\(instruction.meta.tag)")
                                     .foregroundColor(.accentColor)
                             }
                             
@@ -335,10 +335,10 @@ struct CodeItemListView: View {
                 
                 Divider()
 
-                Button("Set Marker / Comment") {
+                Button("Set Tag / Comment") {
                     if let selectedInstructionIndex = selectedInstructionIndex {
                         let instruction = codeItem.codes[selectedInstructionIndex]
-                        instructionName = instruction.meta.marker
+                        instructionTag = instruction.meta.tag
                         instructionComment = instruction.meta.comment
                         isPopoverPresented = true
                     }

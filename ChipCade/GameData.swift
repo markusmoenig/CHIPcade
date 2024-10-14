@@ -67,7 +67,7 @@ class GameData: ObservableObject, Codable {
                 let codeItem = codeItems[codeIndex]
                 
                 // Find the instruction by meta.marker within the module
-                if let instructionIndex = codeItem.codes.firstIndex(where: { $0.meta.marker == markerName }) {
+                if let instructionIndex = codeItem.codes.firstIndex(where: { $0.meta.tag == markerName }) {
                     return (codeIndex, instructionIndex)
                 }
             }
@@ -80,7 +80,7 @@ class GameData: ObservableObject, Codable {
                 let currentCodeItem = codeItems[currentCodeIndex]
                 
                 // Find the instruction by meta.marker within the current module
-                if let instructionIndex = currentCodeItem.codes.firstIndex(where: { $0.meta.marker == markerName }) {
+                if let instructionIndex = currentCodeItem.codes.firstIndex(where: { $0.meta.tag == markerName }) {
                     return (currentCodeIndex, instructionIndex)
                 }
             }

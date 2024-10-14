@@ -20,6 +20,14 @@
 - **INC Rd**. Increase the destination register by 1.
 - **DEC Rd**. Decrease the destination register by 1.
 
+- **CMP Rd Rs**. Compare two registers.
+- **JE Code Tag**. Jump if the zero flag is set (equality check).
+- **JNE Code Tag**. Jump if the zero flag is not set (inequality check).
+- **JL Code Tag**. Jump if the negative flag is set (less than).
+- **JG Code Tag**. Jump if the zero flag is clear and the negative flag is clear (greater than).
+- **JC Code Tag**. Jump if the carry flag is set (used for unsigned comparisons).
+- **JO Code Tag**. Jump if the overflow flag is set (used for signed overflows).
+
 ## GCP (Graphical Co-Processor)
 
 8 layers with 256 hardware sprites, a palette, image groups and other hardware supported features.
