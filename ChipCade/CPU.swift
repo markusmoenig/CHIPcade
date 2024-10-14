@@ -10,13 +10,81 @@ public class CPU {
     init() {
     }
     
-    public func executeInstruction(instruction: Instruction, game: Game, gcp: GCP) {
+    public func executeInstruction(instruction: Instruction, game: Game, gcp: GCP) -> Bool {
         
         switch instruction.type {
         case .cmp   :  if game.registers[Int(instruction.register1!)].cmp(other: game.registers[Int(instruction.register2!)], flags: game.flags) {
             game.setError(.invalidComparison)
-        }            
+        } else {
+            game.lastCMPWasUnsigned = game.registers[Int(instruction.register1!)].isUnsigned()
+        }
         case .inc   :  game.registers[Int(instruction.register1!)].inc(flags: game.flags)
+        case .je    : if game.flags.zeroFlag {
+            if let (codeItemIndex, instructionIndex) = game.data.getCodeAddress(name: instruction.memory!, currentCodeIndex: game.currCodeItemIndex) {
+                game.currCodeItemIndex = codeItemIndex
+                game.currInstructionIndex = instructionIndex
+                return false
+            } else {
+                game.setError(.invalidCodeAddress)
+            }
+        }
+        case .jne   : if !game.flags.zeroFlag {
+            if let (codeItemIndex, instructionIndex) = game.data.getCodeAddress(name: instruction.memory!, currentCodeIndex: game.currCodeItemIndex) {
+                game.currCodeItemIndex = codeItemIndex
+                game.currInstructionIndex = instructionIndex
+                return false
+            } else {
+                game.setError(.invalidCodeAddress)
+            }
+        }
+        case .jl    :
+
+        // For unsigned, less than is indicated by the carry flag
+        // For signed, check negative and overflow
+                    
+        let jl = game.lastCMPWasUnsigned ? game.flags.carryFlag : game.flags.negativeFlag != game.flags.overflowFlag
+        if jl {
+            if let (codeItemIndex, instructionIndex) = game.data.getCodeAddress(name: instruction.memory!, currentCodeIndex: game.currCodeItemIndex) {
+                game.currCodeItemIndex = codeItemIndex
+                game.currInstructionIndex = instructionIndex
+                return false
+            } else {
+                game.setError(.invalidCodeAddress)
+            }
+        }
+        case .jg    :
+            
+        // For unsigned, greater than is indicated by no carry and not zero
+        // For signed, consistent flags and not zero
+            
+        let jg = game.lastCMPWasUnsigned ? !game.flags.carryFlag && !game.flags.zeroFlag : !game.flags.zeroFlag && game.flags.negativeFlag == game.flags.overflowFlag
+        if jg {
+            if let (codeItemIndex, instructionIndex) = game.data.getCodeAddress(name: instruction.memory!, currentCodeIndex: game.currCodeItemIndex) {
+                game.currCodeItemIndex = codeItemIndex
+                game.currInstructionIndex = instructionIndex
+                return false
+            } else {
+                game.setError(.invalidCodeAddress)
+            }
+        }
+        case .jc    : if game.flags.carryFlag {
+            if let (codeItemIndex, instructionIndex) = game.data.getCodeAddress(name: instruction.memory!, currentCodeIndex: game.currCodeItemIndex) {
+                game.currCodeItemIndex = codeItemIndex
+                game.currInstructionIndex = instructionIndex
+                return false
+            } else {
+                game.setError(.invalidCodeAddress)
+            }
+        }
+        case .jo    : if game.flags.overflowFlag {
+            if let (codeItemIndex, instructionIndex) = game.data.getCodeAddress(name: instruction.memory!, currentCodeIndex: game.currCodeItemIndex) {
+                game.currCodeItemIndex = codeItemIndex
+                game.currInstructionIndex = instructionIndex
+                return false
+            } else {
+                game.setError(.invalidCodeAddress)
+            }
+        }
         case .dec   :  game.registers[Int(instruction.register1!)].dec(flags: game.flags)
         case .ld    :
             if let value = game.getMemoryValue(memoryItemName: instruction.memory!, offset: instruction.memoryOffset!) {
@@ -40,17 +108,21 @@ public class CPU {
             }
             
         case .sprset:
-            if let spriteItem = game.getSpriteItem(spriteName: instruction.memory!) {
+            if let spriteItem = game.getImageGroupItem(imageGroupName: instruction.memory!) {
                 gcp.addCmd(.sprset(spriteIndex: Int(instruction.register1!), imageGroupName: spriteItem.name))
             } else {
                 game.setError(.invalidImageGroup)
             }
         case .st    :
-            if game.setMemoryValue(memoryItemName: instruction.memory!, offset: instruction.memoryOffset!, value: instruction.value!) {
+            if game.setMemoryValue(memoryItemName: instruction.memory!, offset: instruction.memoryOffset!, value: game.registers[Int(instruction.register1!)]) {
                 game.setError(.invalidMemoryAddress)
             }
+        case .sprvis:
+            gcp.addCmd(.sprvis(spriteIndex: Int(instruction.register1!), value: Int(instruction.register2!)))
         default: break
         }
+        
+        return true
     }
 
 }

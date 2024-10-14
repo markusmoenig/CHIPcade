@@ -54,6 +54,8 @@ public class Game : ObservableObject
 
     var selectionState: SelectionState = .code
 
+    var lastCMPWasUnsigned: Bool = false
+    
     private enum CodingKeys: String, CodingKey {
         case codeItems
         case spriteItems
@@ -88,8 +90,9 @@ public class Game : ObservableObject
         
         // init
         while let instruction = getInstruction(), error == .none {
-            cpu.executeInstruction(instruction: instruction, game: self, gcp: gcp)
-            currInstructionIndex += 1
+            if cpu.executeInstruction(instruction: instruction, game: self, gcp: gcp) {
+                currInstructionIndex += 1
+            }
         }
     }
     
@@ -124,16 +127,19 @@ public class Game : ObservableObject
         
         // init
         while let instruction = getInstruction() {
-            cpu.executeInstruction(instruction: instruction, game: self, gcp: gcp)
-            currInstructionIndex += 1
+            if cpu.executeInstruction(instruction: instruction, game: self, gcp: gcp) {
+                currInstructionIndex += 1
+            }
         }
         cpuRender.update()
     }
     
-    // Execute the current instruction
+    // Execute the current instruction (single step mode)
     public func executeInstruction() {
         if let instruction = getInstruction() {
-            cpu.executeInstruction(instruction: instruction, game: self, gcp: gcp)
+            if cpu.executeInstruction(instruction: instruction, game: self, gcp: gcp) {
+                
+            }
             gcp.draw2D.update()
         }
     }
@@ -165,9 +171,9 @@ public class Game : ObservableObject
         return data.codeItems.firstIndex { $0 === item }
     }
     
-    // Returns the spriteItem of a given name
-    func getSpriteItem(spriteName: String) -> SpriteItem? {
-        return data.spriteItems.first { $0.name == spriteName }
+    // Returns the imageGroupItem of a given name
+    func getImageGroupItem(imageGroupName: String) -> ImageGroupItem? {
+        return data.imageGroupItems.first { $0.name == imageGroupName }
     }
     
     // Get the memory value at the given address

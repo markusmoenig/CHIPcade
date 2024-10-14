@@ -8,6 +8,7 @@
 enum ChipCadeError: Error {
     case none
     case invalidMemoryAddress
+    case invalidCodeAddress
     case invalidComparison
     case invalidImageGroup
     
@@ -17,6 +18,8 @@ enum ChipCadeError: Error {
             return "No error"
         case .invalidMemoryAddress:
             return "Invalid memory address"
+        case .invalidCodeAddress:
+            return "Invalid code address"
         case .invalidComparison:
             return "Invalid comparison"
         case .invalidImageGroup:

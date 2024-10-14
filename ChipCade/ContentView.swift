@@ -14,7 +14,7 @@ struct ContentView: View {
     @Binding var document: ChipCadeDocument
 
     @State private var selectedCodeItem: CodeItem? = nil
-    @State private var selectedSpriteItem: SpriteItem? = nil
+    @State private var selectedImageGroupItem: ImageGroupItem? = nil
     @State private var selectedMemoryItem: MemoryItem? = nil
     
     @State private var selectedInstructionIndex: Int?
@@ -38,13 +38,13 @@ struct ContentView: View {
         NavigationView {
             List {
                 // Code Section
-                CodeSectionView(title: "Code", gameData: $document.game.data, codeItems: $document.game.data.codeItems, selectedCodeItem: $selectedCodeItem, selectedMemoryItem: $selectedMemoryItem, selectedSpriteItem: $selectedSpriteItem)
+                CodeSectionView(title: "Code", gameData: $document.game.data, codeItems: $document.game.data.codeItems, selectedCodeItem: $selectedCodeItem, selectedMemoryItem: $selectedMemoryItem, selectedImageGroupItem: $selectedImageGroupItem)
                 
-                // Sprite Section
-                SpriteSectionView(title: "Image Groups", gameData: $document.game.data, spriteItems: $document.game.data.spriteItems, selectedSpriteItem: $selectedSpriteItem, selectedMemoryItem: $selectedMemoryItem, selectedCodeItem: $selectedCodeItem)
+                // ImageGroup Section
+                ImageGroupSectionView(title: "Image Groups", gameData: $document.game.data, imageGroupItems: $document.game.data.imageGroupItems, selectedImageGroupItem: $selectedImageGroupItem, selectedMemoryItem: $selectedMemoryItem, selectedCodeItem: $selectedCodeItem)
                 
                 // Data Section
-                MemorySectionView(title: "Data", gameData: $document.game.data, memoryItems: $document.game.data.dataItems, selectedMemoryItem: $selectedMemoryItem, selectedCodeItem: $selectedCodeItem, selectedSpriteItem: $selectedSpriteItem)
+                MemorySectionView(title: "Data", gameData: $document.game.data, memoryItems: $document.game.data.dataItems, selectedMemoryItem: $selectedMemoryItem, selectedCodeItem: $selectedCodeItem, selectedImageGroupItem: $selectedImageGroupItem)
                 
                 #if !os(iOS)
                 Divider()
@@ -52,7 +52,7 @@ struct ContentView: View {
                 
                 Button(action: {
                     selectedCodeItem = nil
-                    selectedSpriteItem = nil
+                    selectedImageGroupItem = nil
                     selectedMemoryItem = nil
                 }) {
                     HStack {
@@ -64,7 +64,7 @@ struct ContentView: View {
                     .padding(.vertical, 6)
                     .background(
                         RoundedRectangle(cornerRadius: 8)
-                            .fill((selectedCodeItem == nil && selectedMemoryItem == nil && selectedSpriteItem == nil) ? Color.accentColor.opacity(0.2) : Color.clear)
+                            .fill((selectedCodeItem == nil && selectedMemoryItem == nil && selectedImageGroupItem == nil) ? Color.accentColor.opacity(0.2) : Color.clear)
                     )
                 }
                 .buttonStyle(PlainButtonStyle())
@@ -138,8 +138,8 @@ struct ContentView: View {
                             MetalView(document.game, .Game)
                         }
                     } else
-                    if let spriteItem = selectedSpriteItem {
-                        SpriteItemListView(spriteItem: spriteItem, selectedImageIndex: $selectedImageIndex)
+                    if let imageGroupItem = selectedImageGroupItem {
+                        ImageGroupItemListView(imageGroupItem: imageGroupItem, selectedImageIndex: $selectedImageIndex)
                     } else
                     if let memoryItem = selectedMemoryItem {
                         MemoryGridView(memoryItem: memoryItem)
@@ -167,13 +167,13 @@ struct ContentView: View {
                         document.game.data.addCodeItem(named: "New Code Module", using: undoManager) { newItem in
                             selectedCodeItem = newItem
                             selectedMemoryItem = nil
-                            selectedSpriteItem = nil
+                            selectedImageGroupItem = nil
                         }
                     })
                     
                     Button("Add Image Group", action: {
-                        document.game.data.addSpriteItem(named: "New Image Group", using: undoManager) { newItem in
-                            selectedSpriteItem = newItem
+                        document.game.data.addImageGroupItem(named: "New Image Group", using: undoManager) { newItem in
+                            selectedImageGroupItem = newItem
                             selectedCodeItem = nil
                             selectedMemoryItem = nil
                         }
@@ -183,7 +183,7 @@ struct ContentView: View {
                         document.game.data.addDataItem(named: "Data", length: 1024, using: undoManager) { newItem in
                             selectedMemoryItem = newItem
                             selectedCodeItem = nil
-                            selectedSpriteItem = nil
+                            selectedImageGroupItem = nil
                         }
                     })
                 }
@@ -251,7 +251,7 @@ struct ContentView: View {
                 selectedInstruction = document.game.data.codeItems[document.game.currCodeItemIndex].codes[document.game.currInstructionIndex]
                 selectedInstructionIndex = document.game.currInstructionIndex
             }
-            selectedSpriteItem = nil
+            selectedImageGroupItem = nil
             selectedMemoryItem = nil
         }
         

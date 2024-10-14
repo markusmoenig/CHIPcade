@@ -22,6 +22,8 @@
 
 ## GCP (Graphical Co-Processor)
 
+8 layers with 256 hardware sprites, a palette, image groups and other hardware supported features.
+
 ### Concepts
 
 8 layers in the resolution of the screen and 9 registers R0 - R8. 
@@ -36,3 +38,4 @@ The bits of R0 - R7 determine the features for these layers:
 256 hardware sprites
 
 - **SPRSET Sd, ImageGroup**. Assign the image group to the sprite.
+- **SPRVIS Sd, Rs**. Enable / disable visibility of the sprite.

@@ -10,17 +10,17 @@ import SwiftUI
 class GameData: ObservableObject, Codable {
     
     @Published var codeItems: [CodeItem] = []
-    @Published var spriteItems: [SpriteItem] = []
+    @Published var imageGroupItems: [ImageGroupItem] = []
     @Published var dataItems: [MemoryItem] = []
     @Published var palette: [float4] = []
 
     enum CodingKeys: String, CodingKey {
-        case codeItems, spriteItems, dataItems, palette
+        case codeItems, imageGroupItems, dataItems, palette
     }
     
     init() {
         self.codeItems = [CodeItem(name: "Init"), CodeItem(name: "Update")]
-        self.spriteItems = []
+        self.imageGroupItems = []
         self.dataItems = [MemoryItem(name: "Data", length: 1024)]
         self.palette = GameData.defaultPalette()
     }
@@ -29,7 +29,7 @@ class GameData: ObservableObject, Codable {
     {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         codeItems = try container.decode([CodeItem].self, forKey: .codeItems)
-        spriteItems = try container.decode([SpriteItem].self, forKey: .spriteItems)
+        imageGroupItems = try container.decode([ImageGroupItem].self, forKey: .imageGroupItems)
         dataItems = try container.decode([MemoryItem].self, forKey: .dataItems)
         palette = try container.decode([float4].self, forKey: .palette)
     }
@@ -38,7 +38,7 @@ class GameData: ObservableObject, Codable {
     {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(codeItems, forKey: .codeItems)
-        try container.encode(spriteItems, forKey: .spriteItems)
+        try container.encode(imageGroupItems, forKey: .imageGroupItems)
         try container.encode(dataItems, forKey: .dataItems)
         try container.encode(palette, forKey: .palette)
     }
@@ -49,6 +49,44 @@ class GameData: ObservableObject, Codable {
             return foundItem
         }
 
+        return nil
+    }
+    
+    // Get.
+    func getCodeAddress(name: String, currentCodeIndex: Int) -> (Int, Int)? {
+        // Split the name by "." to handle "Module.Tag" or just "Tag"
+        let components = name.split(separator: ".")
+
+        if components.count == 2 {
+            // Case: "Module.Marker"
+            let moduleName = String(components[0])
+            let markerName = String(components[1])
+            
+            // Find the CodeItem by module name
+            if let codeIndex = codeItems.firstIndex(where: { $0.name == moduleName }) {
+                let codeItem = codeItems[codeIndex]
+                
+                // Find the instruction by meta.marker within the module
+                if let instructionIndex = codeItem.codes.firstIndex(where: { $0.meta.marker == markerName }) {
+                    return (codeIndex, instructionIndex)
+                }
+            }
+        } else if components.count == 1 {
+            // Case: "Marker" in the same module
+            let markerName = String(components[0])
+            
+            // Get the current CodeItem by index
+            if codeItems.indices.contains(currentCodeIndex) {
+                let currentCodeItem = codeItems[currentCodeIndex]
+                
+                // Find the instruction by meta.marker within the current module
+                if let instructionIndex = currentCodeItem.codes.firstIndex(where: { $0.meta.marker == markerName }) {
+                    return (currentCodeIndex, instructionIndex)
+                }
+            }
+        }
+        
+        // If no match was found, return nil
         return nil
     }
     
@@ -105,25 +143,25 @@ class GameData: ObservableObject, Codable {
         undoManager?.setActionName("Add Data Item")
     }
     
-    // Method to add a new DataItem with undo/redo support
-    func addSpriteItem(named name: String, using undoManager: UndoManager?, setSelectedItem: @escaping (SpriteItem?) -> Void) {
-        let newItem = SpriteItem(name: name)
-        spriteItems.append(newItem)
+    // Method to add a new ImageGroup Item with undo/redo support
+    func addImageGroupItem(named name: String, using undoManager: UndoManager?, setSelectedItem: @escaping (ImageGroupItem?) -> Void) {
+        let newItem = ImageGroupItem(name: name)
+        imageGroupItems.append(newItem)
 
         // Set the newly created DataItem as selected
         setSelectedItem(newItem)
 
         // Register undo action to remove the added DataItem
         undoManager?.registerUndo(withTarget: self) { targetSelf in
-            if let index = targetSelf.spriteItems.firstIndex(of: newItem) {
-                targetSelf.spriteItems.remove(at: index)
+            if let index = targetSelf.imageGroupItems.firstIndex(of: newItem) {
+                targetSelf.imageGroupItems.remove(at: index)
                 
                 // Set the selected item to the first item or nil if the list is empty
-                let newSelectedItem = targetSelf.spriteItems.first
+                let newSelectedItem = targetSelf.imageGroupItems.first
                 setSelectedItem(newSelectedItem)
                 
                 undoManager?.registerUndo(withTarget: targetSelf) { redoSelf in
-                    redoSelf.spriteItems.insert(newItem, at: index)
+                    redoSelf.imageGroupItems.insert(newItem, at: index)
                     setSelectedItem(newItem)  // Set as selected again after redo
                 }
             }
@@ -154,22 +192,22 @@ class GameData: ObservableObject, Codable {
     }
     
     // Method to delete a SpriteItem with undo/redo support
-    func deleteSpriteItem(at index: Int, using undoManager: UndoManager?, setSelectedItem: @escaping (SpriteItem?) -> Void) {
-        let deletedItem = spriteItems[index]
-        spriteItems.remove(at: index)
+    func deleteImageGroupItem(at index: Int, using undoManager: UndoManager?, setSelectedItem: @escaping (ImageGroupItem?) -> Void) {
+        let deletedItem = imageGroupItems[index]
+        imageGroupItems.remove(at: index)
 
         // Set the selected item to the first item or nil if the list is empty
-        let newSelectedItem = spriteItems.first
+        let newSelectedItem = imageGroupItems.first
         setSelectedItem(newSelectedItem)
 
         // Register undo action to reinsert the deleted SpriteItem
         undoManager?.registerUndo(withTarget: self) { targetSelf in
-            targetSelf.spriteItems.insert(deletedItem, at: index)
+            targetSelf.imageGroupItems.insert(deletedItem, at: index)
             setSelectedItem(deletedItem)  // Set as selected again after undo
 
             // Register redo action to delete the SpriteItem again
             undoManager?.registerUndo(withTarget: targetSelf) { redoSelf in
-                redoSelf.deleteSpriteItem(at: index, using: undoManager, setSelectedItem: setSelectedItem)
+                redoSelf.deleteImageGroupItem(at: index, using: undoManager, setSelectedItem: setSelectedItem)
             }
         }
         undoManager?.setActionName("Delete Sprite Item")

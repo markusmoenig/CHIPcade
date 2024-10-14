@@ -126,6 +126,14 @@ enum ChipCadeData: Codable  {
         }
     }
 
+    // Checks if the value is unsigned
+    func isUnsigned() -> Bool {
+        switch self {
+        case .unsigned16Bit(let value):
+            return true
+        default: return false
+        }
+    }
 
     // MARK: - Static Function for 32-bit Color to 16-bit Conversion
 
@@ -184,6 +192,8 @@ enum ChipCadeData: Codable  {
             return float16Bits
         }
     }
+    
+    
     
     // Clones the data
     func clone() -> ChipCadeData {

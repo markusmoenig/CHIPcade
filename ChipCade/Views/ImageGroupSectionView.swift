@@ -7,12 +7,12 @@
 
 import SwiftUI
 
-struct SpriteSectionView: View {
+struct ImageGroupSectionView: View {
     let title: String
     
     @Binding var gameData: GameData
-    @Binding var spriteItems: [SpriteItem]
-    @Binding var selectedSpriteItem: SpriteItem?
+    @Binding var imageGroupItems: [ImageGroupItem]
+    @Binding var selectedImageGroupItem: ImageGroupItem?
     @Binding var selectedMemoryItem: MemoryItem?
     @Binding var selectedCodeItem: CodeItem?
 
@@ -23,12 +23,12 @@ struct SpriteSectionView: View {
 
     var body: some View {
         Section(header: Text(title).font(.headline)) {
-            ForEach(spriteItems.indices, id: \.self) { index in
+            ForEach(imageGroupItems.indices, id: \.self) { index in
                 HStack {
-                    if isRenaming && selectedSpriteItem === spriteItems[index] {
+                    if isRenaming && selectedImageGroupItem === imageGroupItems[index] {
                         TextField("New Name", text: $newName, onCommit: {
-                            spriteItems[index].rename(to: newName, using: undoManager)  { newItem in
-                                selectedSpriteItem = newItem
+                            imageGroupItems[index].rename(to: newName, using: undoManager)  { newItem in
+                                selectedImageGroupItem = newItem
                             }
                             isRenaming = false
                         })
@@ -36,12 +36,12 @@ struct SpriteSectionView: View {
                         .frame(width: 120)
                     } else {
                         Button(action: {
-                            selectedSpriteItem = spriteItems[index]
+                            selectedImageGroupItem = imageGroupItems[index]
                             selectedCodeItem = nil
                             selectedMemoryItem = nil
                         }) {
                             HStack {
-                                Text(spriteItems[index].name)
+                                Text(imageGroupItems[index].name)
                                     .foregroundColor(.primary)
                                     .padding(.leading, 10) // Add padding to the left side
                                 Spacer()
@@ -49,7 +49,7 @@ struct SpriteSectionView: View {
                             .padding(.vertical, 6) // Add vertical padding
                             .background(
                                 RoundedRectangle(cornerRadius: 8) // Rounded background
-                                    .fill(selectedSpriteItem === spriteItems[index] ? Color.accentColor.opacity(0.2) : Color.clear)
+                                    .fill(selectedImageGroupItem === imageGroupItems[index] ? Color.accentColor.opacity(0.2) : Color.clear)
                             )
                         }
                         .buttonStyle(PlainButtonStyle()) // No button decoration
@@ -76,15 +76,15 @@ struct SpriteSectionView: View {
                 .contextMenu {
                     // macOS context menu for renaming and deleting
                     Button(action: {
-                        startRenaming(item: spriteItems[index])
+                        startRenaming(item: imageGroupItems[index])
                     }) {
                         Text("Rename")
                         Image(systemName: "pencil")
                     }
 
                     Button(action: {
-                        gameData.deleteSpriteItem(at: index, using: undoManager) { newItem in
-                            selectedSpriteItem = newItem
+                        gameData.deleteImageGroupItem(at: index, using: undoManager) { newItem in
+                            selectedImageGroupItem = newItem
                             selectedCodeItem = nil
                             selectedMemoryItem = nil
                         }
@@ -98,14 +98,14 @@ struct SpriteSectionView: View {
         }
     }
 
-    private func startRenaming(item: SpriteItem) {
+    private func startRenaming(item: ImageGroupItem) {
         newName = item.name
-        selectedSpriteItem = item
+        selectedImageGroupItem = item
         isRenaming = true
     }
 
     private func deleteItem(at index: Int) {
-        spriteItems.remove(at: index)
-        selectedSpriteItem = nil
+        imageGroupItems.remove(at: index)
+        selectedImageGroupItem = nil
     }
 }

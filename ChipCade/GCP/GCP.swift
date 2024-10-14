@@ -10,6 +10,7 @@ import MetalKit
 public enum GCPCmd  {
     case rect(x: Float, y: Float, width: Float, height: Float, color: GCPFloat4, rot: Float)
     case sprset(spriteIndex: Int, imageGroupName: String)
+    case sprvis(spriteIndex: Int, value: Int)
 }
 
 var rota : Float = 0.0
@@ -46,7 +47,7 @@ public class GCP {
         let options: [MTKTextureLoader.Option : Any] = [.generateMipmaps : false, .SRGB : false]
 
         // Load the images as textures
-        for sprite in gameData.spriteItems {
+        for sprite in gameData.imageGroupItems {
             let group = ImageGroup(name: sprite.name)
             for data in sprite.images {
                 if let texture = try? draw2D.textureLoader.newTexture(data: data, options: options) {
@@ -92,6 +93,8 @@ public class GCP {
                         sprites[spriteIndex].size.width = CGFloat(imageGroup.images[0].width)
                         sprites[spriteIndex].size.height = CGFloat(imageGroup.images[0].height)
                     }
+            case .sprvis(let spriteIndex, let value) :
+                sprites[spriteIndex].isVisible = Bool(value != 0)
             }
         }
         
@@ -113,7 +116,7 @@ public class GCP {
         draw2D.copyTexture()
         
         for sprite in sprites {
-            if let imageGroup = sprite.imageGroup {
+            if let imageGroup = sprite.imageGroup, sprite.isVisible {
                 let index = sprite.currentImageIndex
                 draw2D.startShape(type: .triangle)
                 draw2D.drawRect(0, 0, Float(imageGroup.images[index].width), Float(imageGroup.images[index].height), float4(0, 0, 0, 1), 0.0)

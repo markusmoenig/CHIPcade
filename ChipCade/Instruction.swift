@@ -54,6 +54,12 @@ public enum InstructionType: String, Codable, CaseIterable {
     case dec
     case div
     case inc
+    case je
+    case jne
+    case jl
+    case jg
+    case jc
+    case jo
     case ld
     case ldi
     case mod
@@ -62,6 +68,7 @@ public enum InstructionType: String, Codable, CaseIterable {
     case push
     case rect
     case sprset
+    case sprvis
     case st
     case sub
     
@@ -110,6 +117,8 @@ public class Instruction: ObservableObject, Codable, Equatable {
             register2 = 1
         case .inc, .dec:
             register1 = 0
+        case .je, .jne, .jl, .jg, .jc, .jo:
+            memory = "Module.Tag"
         case .ld:
             register1 = 0
             memory = "Data"
@@ -124,6 +133,9 @@ public class Instruction: ObservableObject, Codable, Equatable {
             register1 = 0
             memory = "Data"
             memoryOffset = 0
+        case .sprvis:
+            register1 = 0
+            register2 = 0
         default: break
         }
     }
@@ -170,6 +182,24 @@ public class Instruction: ObservableObject, Codable, Equatable {
             
         case .inc:
             return "INC R\(register1!)"
+        
+        case .je:
+            return "JE \(memory!)"
+
+        case .jne:
+            return "JNE \(memory!)"
+            
+        case .jl:
+            return "JL \(memory!)"
+            
+        case .jg:
+            return "JG \(memory!)"
+            
+        case .jc:
+            return "JC \(memory!)"
+            
+        case .jo:
+            return "JO \(memory!)"
             
         case .ld:
             return "LD R\(register1!) \(memory!) + \(memoryOffset!)"
@@ -200,6 +230,9 @@ public class Instruction: ObservableObject, Codable, Equatable {
             
         case .sub:
             return "SUB R\(register1!), R\(register2!)"
+            
+        case .sprvis:
+            return "SPRVIS S\(register1!) R\(register2!)"
         }
     }
     
@@ -215,6 +248,18 @@ public class Instruction: ObservableObject, Codable, Equatable {
             return "Divide destination by source register"
         case .inc:
             return "Increment register by 1"
+        case .je:
+            return "Jump if the zero flag is set (equality check)"
+        case .jne:
+            return "Jump if the zero flag is not set (inequality check)"
+        case .jl:
+            return "Jump if the negative flag is set (less than)"
+        case .jg:
+            return "Jump if the zero flag is clear and the negative flag is clear (greater than)"
+        case .jc:
+            return "Jump if the carry flag is set (used for unsigned comparisons)"
+        case .jo:
+            return "Jump if the overflow flag is set (used for signed overflows)"            
         case .ld:
             return "Load memory into register"
         case .ldi:
@@ -235,6 +280,8 @@ public class Instruction: ObservableObject, Codable, Equatable {
             return "Store register to memory"
         case .sub:
             return "Subtract source from destination register"
+        case .sprvis:
+            return "Set visibility for sprite (0/1)"
         }
     }
     
@@ -256,6 +303,8 @@ public class Instruction: ObservableObject, Codable, Equatable {
             source = [0, 1, 2, 3, 4]
         case .st:
             source = [register1!]
+        case .sprset:
+            source = [register2!]
         default: break;
         }
         
@@ -265,7 +314,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
     /// Returns true if this is an instruction of the GCP
     func isGCP() -> Bool {
         switch type {
-        case .rect, .sprset:
+        case .rect, .sprset,.sprvis:
             return true
         default:
             return false

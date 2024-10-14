@@ -8,7 +8,7 @@
 import Combine
 import SwiftUI
 
-class SpriteItem : ObservableObject, Codable, Equatable, Identifiable {
+class ImageGroupItem : ObservableObject, Codable, Equatable, Identifiable {
     var id: UUID
 
     @Published var images: [Data]
@@ -39,7 +39,7 @@ class SpriteItem : ObservableObject, Codable, Equatable, Identifiable {
         try container.encode(name, forKey: .name)
     }
     
-    func rename(to newName: String, using undoManager: UndoManager?, setSelectedItem: @escaping (SpriteItem?) -> Void) {
+    func rename(to newName: String, using undoManager: UndoManager?, setSelectedItem: @escaping (ImageGroupItem?) -> Void) {
         let previousName = self.name
         self.name = newName
 
@@ -59,7 +59,7 @@ class SpriteItem : ObservableObject, Codable, Equatable, Identifiable {
         undoManager?.setActionName("Rename Sprite Item")
     }
     
-    static func == (lhs: SpriteItem, rhs: SpriteItem) -> Bool {
+    static func == (lhs: ImageGroupItem, rhs: ImageGroupItem) -> Bool {
         return lhs.id == rhs.id
     }
 }

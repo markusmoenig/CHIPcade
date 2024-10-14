@@ -7,8 +7,8 @@
 
 import SwiftUI
 
-struct SpriteItemListView: View {
-    @ObservedObject var spriteItem: SpriteItem
+struct ImageGroupItemListView: View {
+    @ObservedObject var imageGroupItem: ImageGroupItem
     @Binding var selectedImageIndex: Int?
 
     var body: some View {
@@ -31,7 +31,7 @@ struct SpriteItemListView: View {
 
             // List of Images with Drag-and-Drop Reordering
             List {
-                ForEach(spriteItem.images.indices, id: \.self) { index in
+                ForEach(imageGroupItem.images.indices, id: \.self) { index in
                     HStack {
                         // Display the image (assumes image data, update logic as needed)
                         #if os(iOS)
@@ -43,7 +43,7 @@ struct SpriteItemListView: View {
                                 .cornerRadius(8)
                         }
                         #elseif os(macOS)
-                        if let nsImage = NSImage(data: spriteItem.images[index]) {
+                        if let nsImage = NSImage(data: imageGroupItem.images[index]) {
                             Image(nsImage: nsImage)
                                 .resizable()
                                 .aspectRatio(contentMode: .fit) // Maintain aspect ratio
@@ -74,7 +74,7 @@ struct SpriteItemListView: View {
                 }
                 .onMove(perform: moveItem) // Enable drag-and-drop reordering
                 .onDelete { indexSet in
-                    spriteItem.images.remove(atOffsets: indexSet)
+                    imageGroupItem.images.remove(atOffsets: indexSet)
                 }
             }
 
@@ -86,7 +86,7 @@ struct SpriteItemListView: View {
 
     // Move item for drag-and-drop reordering
     private func moveItem(from source: IndexSet, to destination: Int) {
-        spriteItem.images.move(fromOffsets: source, toOffset: destination)
+        imageGroupItem.images.move(fromOffsets: source, toOffset: destination)
     }
 
     // MARK: - macOS File Dialog
@@ -98,8 +98,8 @@ struct SpriteItemListView: View {
         panel.allowedContentTypes = [.png, .jpeg]
         if panel.runModal() == .OK, let url = panel.url {
             if let imageData = try? Data(contentsOf: url) {
-                spriteItem.images.append(imageData)
-                selectedImageIndex = spriteItem.images.count - 1
+                imageGroupItem.images.append(imageData)
+                selectedImageIndex = imageGroupItem.images.count - 1
             }
         }
     }
