@@ -45,7 +45,7 @@ public class Game : ObservableObject
     
     var gcp = GCP()
     var cpu = CPU()
-    
+
     @Published var error = ChipCadeError.none
     @Published var errorCodeItemIndex = 0
     @Published var errorInstructionIndex = 0
@@ -74,6 +74,7 @@ public class Game : ObservableObject
             .signed16Bit(0),   // TouchY
         ]
         stack = []
+        cpu.game = self
     }
     
     // Start playback, execute init
@@ -90,7 +91,7 @@ public class Game : ObservableObject
         
         // init
         while let instruction = getInstruction(), error == .none {
-            if cpu.executeInstruction(instruction: instruction, game: self, gcp: gcp) {
+            if cpu.executeInstruction(instruction: instruction, gcp: gcp) {
                 currInstructionIndex += 1
             }
         }
@@ -127,7 +128,7 @@ public class Game : ObservableObject
         
         // init
         while let instruction = getInstruction() {
-            if cpu.executeInstruction(instruction: instruction, game: self, gcp: gcp) {
+            if cpu.executeInstruction(instruction: instruction, gcp: gcp) {
                 currInstructionIndex += 1
             }
         }
@@ -137,7 +138,7 @@ public class Game : ObservableObject
     // Execute the current instruction (single step mode)
     public func executeInstruction() {
         if let instruction = getInstruction() {
-            if cpu.executeInstruction(instruction: instruction, game: self, gcp: gcp) {
+            if cpu.executeInstruction(instruction: instruction, gcp: gcp) {
                 
             }
             gcp.draw2D.update()

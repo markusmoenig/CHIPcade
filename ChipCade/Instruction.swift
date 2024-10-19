@@ -69,6 +69,8 @@ public enum InstructionType: String, Codable, CaseIterable {
     case rect
     case sprset
     case sprvis
+    case sprx
+    case spry
     case st
     case sub
     
@@ -133,7 +135,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
             register1 = 0
             memory = "Data"
             memoryOffset = 0
-        case .sprvis:
+        case .sprvis, .sprx, .spry:
             register1 = 0
             register2 = 0
         default: break
@@ -233,6 +235,12 @@ public class Instruction: ObservableObject, Codable, Equatable {
             
         case .sprvis:
             return "SPRVIS S\(register1!) R\(register2!)"
+            
+        case .sprx:
+            return "SPRX S\(register1!) R\(register2!)"
+            
+        case .spry:
+            return "SPRY S\(register1!) R\(register2!)"
         }
     }
     
@@ -281,7 +289,11 @@ public class Instruction: ObservableObject, Codable, Equatable {
         case .sub:
             return "Subtract source from destination register"
         case .sprvis:
-            return "Set visibility for sprite (0/1)"
+            return "Set visibility for sprite"
+        case .sprx:
+            return "Set sprite x position"
+        case .spry:
+            return "Set sprite y position"
         }
     }
     
@@ -304,6 +316,8 @@ public class Instruction: ObservableObject, Codable, Equatable {
         case .st:
             source = [register1!]
         case .sprset:
+            source = [register1!]
+        case .sprvis, .sprx, .spry:
             source = [register2!]
         default: break;
         }
@@ -314,7 +328,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
     /// Returns true if this is an instruction of the GCP
     func isGCP() -> Bool {
         switch type {
-        case .rect, .sprset,.sprvis:
+        case .rect, .sprset,.sprvis, .sprx, .spry:
             return true
         default:
             return false

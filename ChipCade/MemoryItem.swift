@@ -12,7 +12,6 @@ class MemoryItem : ObservableObject, Codable, Equatable, Identifiable {
     var id: UUID
 
     @Published var memory: [ChipCadeData]
-
     @Published var name: String
 
     private enum CodingKeys: String, CodingKey {
@@ -76,4 +75,18 @@ class MemoryItem : ObservableObject, Codable, Equatable, Identifiable {
     static func == (lhs: MemoryItem, rhs: MemoryItem) -> Bool {
         return lhs.id == rhs.id
     }
+    
+    // An instruction at the given index is about to change
+    func aboutToChange(using undoManager: UndoManager?, newValue: ChipCadeData, at index: Int, text: String = "Memory Changed") {
+        let previousValue = memory[index]
+        
+        memory[index] = newValue
+        
+        undoManager?.registerUndo(withTarget: self) { targetSelf in
+            targetSelf.aboutToChange(using: undoManager, newValue: previousValue, at: index, text: text)
+        }
+        
+        undoManager?.setActionName(text)
+    }
+    
 }

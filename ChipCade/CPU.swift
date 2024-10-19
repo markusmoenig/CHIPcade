@@ -7,10 +7,12 @@
 
 public class CPU {
         
+    var game: Game!
+    
     init() {
     }
     
-    public func executeInstruction(instruction: Instruction, game: Game, gcp: GCP) -> Bool {
+    public func executeInstruction(instruction: Instruction, gcp: GCP) -> Bool {
         
         switch instruction.type {
         case .cmp   :  if game.registers[Int(instruction.register1!)].cmp(other: game.registers[Int(instruction.register2!)], flags: game.flags) {
@@ -113,17 +115,29 @@ public class CPU {
             } else {
                 game.setError(.invalidImageGroup)
             }
+            
         case .st    :
             if game.setMemoryValue(memoryItemName: instruction.memory!, offset: instruction.memoryOffset!, value: game.registers[Int(instruction.register1!)]) {
                 game.setError(.invalidMemoryAddress)
             }
+            
         case .sprvis:
-            gcp.addCmd(.sprvis(spriteIndex: Int(instruction.register1!), value: Int(instruction.register2!)))
+            gcp.addCmd(.sprvis(spriteIndex: Int(instruction.register1!), value: getRegisterValueInt(instruction.register2!)))
+            
+        case .sprx:
+            gcp.addCmd(.sprx(spriteIndex: Int(instruction.register1!), value: getRegisterValueInt(instruction.register2!)))
+
+        case .spry:
+            gcp.addCmd(.spry(spriteIndex: Int(instruction.register1!), value: getRegisterValueInt(instruction.register2!)))
+            
         default: break
         }
         
         return true
     }
 
+    func getRegisterValueInt(_ register: Int8) -> Int {
+        Int(game.registers[Int(register)].toFloat32Bit())
+    }
 }
 

@@ -114,6 +114,20 @@ enum ChipCadeData: Codable  {
         }
     }
     
+    // Convert to 32-bit int
+    func toInt32Bit() -> Int {
+        switch self {
+        case .unsigned16Bit(let unsignedVal):
+            return Int(unsignedVal)
+
+        case .signed16Bit(let signedVal):
+            return Int(signedVal)
+
+        case .float16Bit(let float16):
+            return Int(float16ToFloat32(float16))
+        }
+    }
+    
     // Converts to UInt16, if possible
     func toUInt16() -> UInt16? {
         switch self {
@@ -129,7 +143,7 @@ enum ChipCadeData: Codable  {
     // Checks if the value is unsigned
     func isUnsigned() -> Bool {
         switch self {
-        case .unsigned16Bit(let value):
+        case .unsigned16Bit(_):
             return true
         default: return false
         }

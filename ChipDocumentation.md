@@ -32,18 +32,11 @@
 
 8 layers with 256 hardware sprites, a palette, image groups and other hardware supported features.
 
-### Concepts
-
-8 layers in the resolution of the screen and 9 registers R0 - R8. 
-
-The bits of R0 - R7 determine the features for these layers:
-
-- Bit1: Turn layer visibility on / off.
-- Bit2: Enabled signed coordinates.   
-
 ### Sprites
 
 256 hardware sprites
 
 - **SPRSET Sd, ImageGroup**. Assign the image group to the sprite.
-- **SPRVIS Sd, Rs**. Enable / disable visibility of the sprite.
+- **SPRVIS Sd, Rs**. Enable / disable visibility of the sprite (0, 1).
+- **SPRX Sd, Rs**. Set the x position of the sprite.
+- **SPRY Sd, Rs**. Set the y position of the sprite.

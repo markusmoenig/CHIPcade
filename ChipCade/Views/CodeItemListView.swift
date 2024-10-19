@@ -42,11 +42,33 @@ struct CodeItemListView: View {
 
                             TextField("Tag", text: $instructionTag)
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .padding(6)
+                                .padding(.horizontal, 12)
+                                .onSubmit {
+                                    if let index = selectedInstructionIndex {
+                                        codeItem.codes[index].meta.tag = instructionTag
+                                        codeItem.codes[index].meta.comment = instructionComment
+                                        let instr = codeItem.codes[index]
+                                        codeItem.codes[index] = instr
+                                    }
+                                    isPopoverPresented = false
+                                }
+                            
+                            Spacer()
                             
                             TextField("Comment", text: $instructionComment)
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .padding(6)
+                                .padding(.horizontal, 12)
+                                .onSubmit {
+                                    if let index = selectedInstructionIndex {
+                                        codeItem.codes[index].meta.tag = instructionTag
+                                        codeItem.codes[index].meta.comment = instructionComment
+                                        let instr = codeItem.codes[index]
+                                        codeItem.codes[index] = instr
+                                    }
+                                    isPopoverPresented = false
+                                }
+                            
+                            Spacer()
 
                             Button("Apply") {
                                 if let index = selectedInstructionIndex {
@@ -59,7 +81,7 @@ struct CodeItemListView: View {
                             }
                             .padding()
                         }
-                        //.frame(width: 300, height: 200)
+                        .frame(width: 300, height: 200)
                     }
             }
             .padding(4)
@@ -208,7 +230,7 @@ struct CodeItemListView: View {
                                     index: index
                                 )
                             }
-                        case .sprvis:
+                        case .sprvis, .sprx, .spry:
                             HStack {
                                 SpriteIndexTextField(
                                     spriteIndex: Binding(

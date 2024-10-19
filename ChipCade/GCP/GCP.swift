@@ -11,6 +11,8 @@ public enum GCPCmd  {
     case rect(x: Float, y: Float, width: Float, height: Float, color: GCPFloat4, rot: Float)
     case sprset(spriteIndex: Int, imageGroupName: String)
     case sprvis(spriteIndex: Int, value: Int)
+    case sprx(spriteIndex: Int, value: Int)
+    case spry(spriteIndex: Int, value: Int)
 }
 
 var rota : Float = 0.0
@@ -80,21 +82,25 @@ public class GCP {
 
         for cmd in cmds {
             switch cmd {
-                case .rect(let x, let y, let width, let height, let color, _) :
-                    draw2D.currentSampler = draw2D.nearestSampler
-                    draw2D.startShape(type: .triangle)
-                    draw2D.drawRect(x, y, width, height, color.simd, -rota)
-                    draw2D.endShape()
-                    //draw2D.drawText(position: float2(100, 80), text: "test", size: 30)
-                case .sprset(let spriteIndex, let imageGroupName) :
-                    if let imageGroup = getImageGroup(name: imageGroupName) {
-                        sprites[spriteIndex].imageGroup = imageGroup
-                        sprites[spriteIndex].currentImageIndex = 0
-                        sprites[spriteIndex].size.width = CGFloat(imageGroup.images[0].width)
-                        sprites[spriteIndex].size.height = CGFloat(imageGroup.images[0].height)
-                    }
+            case .rect(let x, let y, let width, let height, let color, _) :
+                draw2D.currentSampler = draw2D.nearestSampler
+                draw2D.startShape(type: .triangle)
+                draw2D.drawRect(x, y, width, height, color.simd, -rota)
+                draw2D.endShape()
+                //draw2D.drawText(position: float2(100, 80), text: "test", size: 30)
+            case .sprset(let spriteIndex, let imageGroupName) :
+                if let imageGroup = getImageGroup(name: imageGroupName) {
+                    sprites[spriteIndex].imageGroup = imageGroup
+                    sprites[spriteIndex].currentImageIndex = 0
+                    sprites[spriteIndex].size.width = CGFloat(imageGroup.images[0].width)
+                    sprites[spriteIndex].size.height = CGFloat(imageGroup.images[0].height)
+                }
             case .sprvis(let spriteIndex, let value) :
                 sprites[spriteIndex].isVisible = Bool(value != 0)
+            case .sprx(let spriteIndex, let value) :
+                sprites[spriteIndex].position.x = CGFloat(value)
+            case .spry(let spriteIndex, let value) :
+                sprites[spriteIndex].position.y = CGFloat(value)
             }
         }
         
@@ -119,7 +125,7 @@ public class GCP {
             if let imageGroup = sprite.imageGroup, sprite.isVisible {
                 let index = sprite.currentImageIndex
                 draw2D.startShape(type: .triangle)
-                draw2D.drawRect(0, 0, Float(imageGroup.images[index].width), Float(imageGroup.images[index].height), float4(0, 0, 0, 1), 0.0)
+                draw2D.drawRect(Float(sprite.position.x), Float(sprite.position.y), Float(imageGroup.images[index].width), Float(imageGroup.images[index].height), float4(0, 0, 0, 1), 0.0)
                 draw2D.endShape(externalTexture: imageGroup.images[index])
             }
         }
