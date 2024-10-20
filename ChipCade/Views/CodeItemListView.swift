@@ -290,6 +290,29 @@ struct CodeItemListView: View {
                                     )
                                 )
                             }
+                        case .sprlyr:
+                            HStack {
+                                SpriteIndexTextField(
+                                    spriteIndex: Binding(
+                                        get: { Int(instruction.register1!) },
+                                        set: { newRegister in
+                                            let newInstruction = instruction.clone()
+                                            newInstruction.register1 = Int8(newRegister)
+                                            codeItem.aboutToChange(using: undoManager, newInstruction: newInstruction, at: index, text: "Sprite Changed")
+                                        }
+                                    )
+                                )
+                                Int8LayerMenu(
+                                    selectedLayer: Binding(
+                                        get: { instruction.register2! },
+                                        set: { newLayer in
+                                            let newInstruction = instruction.clone()
+                                            newInstruction.register2 = newLayer
+                                            codeItem.aboutToChange(using: undoManager, newInstruction: newInstruction, at: index, text: "Layer Changed")
+                                        }
+                                    )
+                                )
+                            }
                         case .sprset:
                             HStack {
                                 SpriteIndexTextField(

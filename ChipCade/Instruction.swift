@@ -71,6 +71,7 @@ public enum InstructionType: String, Codable, CaseIterable {
     case nop
     case push
     case rect
+    case sprlyr
     case sprset
     case sprvis
     case sprx
@@ -147,7 +148,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
             register1 = 0
             memory = "Data"
             memoryOffset = 0
-        case .sprvis, .sprx, .spry:
+        case .sprlyr, .sprvis, .sprx, .spry:
             register1 = 0
             register2 = 0
         default: break
@@ -257,6 +258,9 @@ public class Instruction: ObservableObject, Codable, Equatable {
         case .sub:
             return "SUB R\(register1!), R\(register2!)"
             
+        case .sprlyr:
+            return "SPRLYR S\(register1!) L\(register2!)"
+            
         case .sprvis:
             return "SPRVIS S\(register1!) R\(register2!)"
             
@@ -320,6 +324,8 @@ public class Instruction: ObservableObject, Codable, Equatable {
             return "Store register to memory"
         case .sub:
             return "Subtract source from destination register"
+        case .sprlyr:
+            return "Set sprite layer"
         case .sprvis:
             return "Set sprite visibility"
         case .sprx:
@@ -349,7 +355,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
             source = [register1!]
         case .sprset:
             source = [register1!]
-        case .sprvis, .sprx, .spry:
+        case .sprlyr, .sprvis, .sprx, .spry:
             source = [register2!]
         default: break;
         }

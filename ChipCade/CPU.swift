@@ -187,6 +187,14 @@ public class CPU {
                 game.setError(.invalidMemoryAddress)
             }
             
+        case .sprlyr:
+            let spriteIndex = Int(instruction.register1!)
+            if spriteIndex >= 0 && spriteIndex <= 255 {
+                gcp.addCmd(.sprlyr(spriteIndex: Int(instruction.register1!), value: Int(instruction.register2!)))
+            } else {
+                game.setError(.invalidSpriteIndex)
+            }
+            
         case .sprvis:
             let spriteIndex = Int(instruction.register1!)
             if spriteIndex >= 0 && spriteIndex <= 255 {

@@ -10,6 +10,7 @@ import MetalKit
 public enum GCPCmd  {
     case rect(x: Float, y: Float, width: Float, height: Float, color: GCPFloat4, rot: Float)
     case sprset(spriteIndex: Int, imageGroupName: String)
+    case sprlyr(spriteIndex: Int, value: Int)
     case sprvis(spriteIndex: Int, value: Int)
     case sprx(spriteIndex: Int, value: Int)
     case spry(spriteIndex: Int, value: Int)
@@ -81,7 +82,7 @@ public class GCP {
             }
         }
         
-        let targetLayer = 1
+        let targetLayer = 0
 //        let width = Int(draw2D.metalView.frame.width)
 //        let height = Int(draw2D.metalView.frame.height)
         
@@ -89,7 +90,7 @@ public class GCP {
         draw2D.setTexture(id: 0)
 
         draw2D.encodeStart()
-        draw2D.clear(color: float4(0.0, 0.0, 0.0, 0.0))
+        //draw2D.clear(color: float4(0.0, 0.0, 0.0, 1.0))
 
         for cmd in cmds {
             switch cmd {
@@ -107,6 +108,9 @@ public class GCP {
                 
             case .lyrvis(let layerIndex, let value) :
                 layers[layerIndex].isVisible = Bool(value != 0)
+                
+            case .sprlyr(let spriteIndex, let layerIndex) :
+                sprites[spriteIndex].layer = layerIndex
                 
             case .sprset(let spriteIndex, let imageGroupName) :
                 if let imageGroup = getImageGroup(name: imageGroupName) {
@@ -131,10 +135,10 @@ public class GCP {
         
         draw2D.encodeEnd()
 
-        draw2D.setTarget(id: 0)
-        draw2D.setTexture(id: 1)
-
-        draw2D.encodeStart()
+//        draw2D.setTarget(id: 0)
+//        draw2D.setTexture(id: 1)
+//
+//        draw2D.encodeStart()
         
         //draw2D.currentSampler = draw2D.nearestSampler
 
@@ -142,19 +146,106 @@ public class GCP {
 //        draw2D.drawRect(0, 0, Float(width), Float(height))
 //        draw2D.endShape()
         
-        draw2D.copyTexture()
+        //draw2D.copyTexture()
         
-        // Draw all sprites which are not in a layer
-        for sprite in sprites {
-            if let imageGroup = sprite.imageGroup, sprite.isVisible {
-                let index = sprite.currentImageIndex
-                draw2D.startShape(type: .triangle)
-                draw2D.drawRect(Float(sprite.position.x), Float(sprite.position.y), Float(imageGroup.images[index].width), Float(imageGroup.images[index].height), float4(0, 0, 0, 1), 0.0)
-                draw2D.endShape(externalTexture: imageGroup.images[index])
+        let width = Int(draw2D.metalView.frame.width)
+        let height = Int(draw2D.metalView.frame.height)
+        
+        // Draw all sprites bound to a texture
+        for layerIndex in 0..<8 {
+            let layer = layers[layerIndex]
+            if layer.isVisible {
+                draw2D.setTarget(id: layerIndex+1)
+                draw2D.setTexture(id: 0)
+                draw2D.encodeStart()
+                draw2D.clear(color: float4(0.0, 0.0, 0.0, 1.0))
+
+                var scaleX : Float = 1.0
+                var scaleY : Float = 1.0
+                
+                if let layerSize = layer.size {
+                    scaleX = Float(layerSize.width) / Float(width)
+                    scaleY = Float(layerSize.height) / Float(height)
+                }
+                
+                for sprite in sprites {
+                    if let imageGroup = sprite.imageGroup, sprite.isVisible, sprite.layer == layerIndex{
+                        let index = sprite.currentImageIndex
+                        draw2D.startShape(type: .triangle)
+                        
+                        let width = Float(imageGroup.images[index].width) / scaleX
+                        let height = Float(imageGroup.images[index].height) / scaleY
+
+                        draw2D.drawRect(Float(sprite.position.x), Float(sprite.position.y), width, height, float4(0, 0, 0, 1), 0.0)
+                        draw2D.endShape(externalTexture: imageGroup.images[index])
+                    }
+                }
+                
+                draw2D.encodeEnd()
             }
         }
         
-        draw2D.encodeEnd()
+        
+        // Copy the active layers
+        draw2D.setTarget(id: 0)
+        for layerIndex in 0..<8 {
+            let layer = layers[layerIndex]
+            if layer.isVisible {
+                draw2D.setTexture(id: layerIndex+1)
+                draw2D.encodeStart()
+
+                if let size = layer.size {
+                    // Aspect ratios
+                    let layerAspectRatio = size.width / size.height
+                    let screenAspectRatio = CGFloat(width) / CGFloat(height)
+                    
+                    var scaledWidth: Float
+                    var scaledHeight: Float
+                    
+                    // Determine scaling and maintain aspect ratio
+                    if layerAspectRatio > screenAspectRatio {
+                        // Fit based on width
+                        scaledWidth = Float(width)
+                        scaledHeight = Float(width) / Float(layerAspectRatio)
+                    } else {
+                        // Fit based on height
+                        scaledHeight = Float(height)
+                        scaledWidth = Float(height) * Float(layerAspectRatio)
+                    }
+
+                    // Calculate offsets to center the layer
+                    let offsetX = (Float(width) - scaledWidth) / 2.0
+                    let offsetY = (Float(height) - scaledHeight) / 2.0
+                    
+                    // Draw the rectangle centered and scaled
+                    draw2D.startShape(type: .triangle)
+                    draw2D.drawRect(offsetX, offsetY, scaledWidth, scaledHeight, float4(0, 0, 0, 1), 0.0)
+                    draw2D.endShape()
+                } else {
+                    draw2D.copyTexture()
+                }
+
+                draw2D.encodeEnd()
+            }
+        }
+
+//        draw2D.setTarget(id: 0)
+//        draw2D.setTexture(id: 0)
+//        draw2D.encodeStart()
+//
+//        // Draw all sprites which are not in a layer
+//        for sprite in sprites {
+//            if let imageGroup = sprite.imageGroup, sprite.isVisible, sprite.layer == nil {
+//                let index = sprite.currentImageIndex
+//                draw2D.startShape(type: .triangle)
+//                draw2D.drawRect(Float(sprite.position.x), Float(sprite.position.y), Float(imageGroup.images[index].width), Float(imageGroup.images[index].height), float4(0, 0, 0, 1), 0.0)
+//                draw2D.endShape(externalTexture: imageGroup.images[index])
+//            }
+//        }
+//        
+//        draw2D.encodeEnd()
+
+        
         cmds.removeAll()
     }
         

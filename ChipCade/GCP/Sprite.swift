@@ -13,7 +13,7 @@ class Sprite {
     let index: Int
     
     // The associted layer (if any)
-    let layer: Int? = nil
+    var layer: Int? = nil
     
     var position: CGPoint = CGPoint(x: 0, y: 0)
     var size: CGSize = CGSize(width: 32, height: 32)

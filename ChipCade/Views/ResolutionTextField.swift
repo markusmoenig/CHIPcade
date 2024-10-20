@@ -20,22 +20,24 @@ struct ResolutionTextField: View {
             .textFieldStyle(RoundedBorderTextFieldStyle())
             .onAppear {
                 // Initialize with the formatted resolution from the instruction
-                resolutionText = instruction.memory ?? "320x200"
+                resolutionText = instruction.memory!
             }
             .onSubmit {
-                // Clone the instruction before modifying it
-                let newInstruction = instruction.clone()
-                
                 // Validate and update the resolution
                 if validateResolution(text: resolutionText) {
+                    // Clone the instruction before modifying it
+                    let newInstruction = instruction.clone()
+                    
                     newInstruction.memory = resolutionText
+                    
+                    // Register the change with undo/redo
+                    codeItem.aboutToChange(using: undoManager, newInstruction: newInstruction, at: index, text: "Resolution Changed")
+                    resolutionText = instruction.memory ?? "320x200"
+
                 } else {
                     // Revert to the old value if the input is invalid
                     resolutionText = instruction.memory ?? "320x200"
                 }
-
-                // Register the change with undo/redo
-                codeItem.aboutToChange(using: undoManager, newInstruction: newInstruction, at: index, text: "Resolution Changed")
             }
     }
 
