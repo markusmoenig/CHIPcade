@@ -10,8 +10,12 @@ enum ChipCadeError: Error {
     case invalidMemoryAddress
     case invalidCodeAddress
     case invalidComparison
+    case invalidArithmetic
     case invalidImageGroup
-    
+    case invalidLayerIndex
+    case invalidSpriteIndex
+    case invalidResolution
+
     var toString: String {
         switch self {
         case .none:
@@ -24,6 +28,14 @@ enum ChipCadeError: Error {
             return "Invalid comparison"
         case .invalidImageGroup:
             return "Invalid image group"
+        case .invalidArithmetic:
+            return "Invalid Arithmetic"
+        case .invalidSpriteIndex:
+            return "Invalid Arithmetic"
+        case .invalidLayerIndex:
+            return "Invalid Layer Index"
+        case .invalidResolution:
+            return "Invalid Resolution"
         }
     }
 }

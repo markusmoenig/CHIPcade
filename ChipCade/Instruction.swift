@@ -62,6 +62,10 @@ public enum InstructionType: String, Codable, CaseIterable {
     case jo
     case ld
     case ldi
+    case ldresx
+    case ldresy
+    case lyrres
+    case lyrvis
     case mod
     case mul
     case nop
@@ -128,6 +132,14 @@ public class Instruction: ObservableObject, Codable, Equatable {
         case .ldi:
             register1 = 0
             value = .unsigned16Bit(0)
+        case .ldresx, .ldresy:
+            register1 = 0
+        case .lyrres:
+            register1 = 0
+            memory = "320x200"
+        case .lyrvis:
+            register1 = 0
+            register2 = 0
         case .sprset:
             register1 = 0
             memory = "Image Group"
@@ -209,6 +221,18 @@ public class Instruction: ObservableObject, Codable, Equatable {
         case .ldi:
             return "LDI R\(register1!) \(value!.toString())"
 
+        case .ldresx:
+            return "LDRESX R\(register1!)"
+            
+        case .ldresy:
+            return "LDRESY R\(register1!)"
+            
+        case .lyrres:
+            return "LYRRES L\(register1!) \(memory!)"
+            
+        case .lyrvis:
+            return "LYRVIS L\(register1!) \(value!)"
+            
         case .mod:
             return "MOD R\(register1!), R\(register2!)"
             
@@ -272,6 +296,14 @@ public class Instruction: ObservableObject, Codable, Equatable {
             return "Load memory into register"
         case .ldi:
             return "Load immediate value into register"
+        case .ldresx:
+            return "Load resolution x value into register"
+        case .ldresy:
+            return "Load resolution y value into register"
+        case .lyrres:
+            return "Set the layer resolution (WidthxHeight)."
+        case .lyrvis:
+            return "Set the layer visibility."
         case .mod:
             return "Modulus of destination by source register"
         case .mul:
@@ -289,7 +321,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
         case .sub:
             return "Subtract source from destination register"
         case .sprvis:
-            return "Set visibility for sprite"
+            return "Set sprite visibility"
         case .sprx:
             return "Set sprite x position"
         case .spry:
@@ -309,7 +341,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
         case .cmp:
             dest = register1!
             source = [register2!]
-        case .ldi, .ld, .dec, .inc:
+        case .ldi, .ld, .dec, .inc, .ldresx, .ldresy:
             dest = register1!
         case .rect:
             source = [0, 1, 2, 3, 4]
@@ -328,7 +360,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
     /// Returns true if this is an instruction of the GCP
     func isGCP() -> Bool {
         switch type {
-        case .rect, .sprset,.sprvis, .sprx, .spry:
+        case .rect, .sprset,.sprvis, .sprx, .spry, .lyrres, .lyrvis:
             return true
         default:
             return false

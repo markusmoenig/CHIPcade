@@ -15,12 +15,23 @@ public class CPU {
     public func executeInstruction(instruction: Instruction, gcp: GCP) -> Bool {
         
         switch instruction.type {
+        
+        case .add   :  if game.registers[Int(instruction.register1!)].add(other: game.registers[Int(instruction.register2!)], flags: game.flags) {
+            game.setError(.invalidArithmetic)
+        }
+        
         case .cmp   :  if game.registers[Int(instruction.register1!)].cmp(other: game.registers[Int(instruction.register2!)], flags: game.flags) {
             game.setError(.invalidComparison)
         } else {
             game.lastCMPWasUnsigned = game.registers[Int(instruction.register1!)].isUnsigned()
         }
+        
         case .inc   :  game.registers[Int(instruction.register1!)].inc(flags: game.flags)
+        
+        case .div   :  if game.registers[Int(instruction.register1!)].div(other: game.registers[Int(instruction.register2!)], flags: game.flags) {
+            game.setError(.invalidArithmetic)
+        }
+            
         case .je    : if game.flags.zeroFlag {
             if let (codeItemIndex, instructionIndex) = game.data.getCodeAddress(name: instruction.memory!, currentCodeIndex: game.currCodeItemIndex) {
                 game.currCodeItemIndex = codeItemIndex
@@ -30,6 +41,7 @@ public class CPU {
                 game.setError(.invalidCodeAddress)
             }
         }
+            
         case .jne   : if !game.flags.zeroFlag {
             if let (codeItemIndex, instructionIndex) = game.data.getCodeAddress(name: instruction.memory!, currentCodeIndex: game.currCodeItemIndex) {
                 game.currCodeItemIndex = codeItemIndex
@@ -39,6 +51,7 @@ public class CPU {
                 game.setError(.invalidCodeAddress)
             }
         }
+            
         case .jl    :
 
         // For unsigned, less than is indicated by the carry flag
@@ -54,6 +67,7 @@ public class CPU {
                 game.setError(.invalidCodeAddress)
             }
         }
+            
         case .jg    :
             
         // For unsigned, greater than is indicated by no carry and not zero
@@ -69,6 +83,7 @@ public class CPU {
                 game.setError(.invalidCodeAddress)
             }
         }
+            
         case .jc    : if game.flags.carryFlag {
             if let (codeItemIndex, instructionIndex) = game.data.getCodeAddress(name: instruction.memory!, currentCodeIndex: game.currCodeItemIndex) {
                 game.currCodeItemIndex = codeItemIndex
@@ -78,6 +93,7 @@ public class CPU {
                 game.setError(.invalidCodeAddress)
             }
         }
+            
         case .jo    : if game.flags.overflowFlag {
             if let (codeItemIndex, instructionIndex) = game.data.getCodeAddress(name: instruction.memory!, currentCodeIndex: game.currCodeItemIndex) {
                 game.currCodeItemIndex = codeItemIndex
@@ -87,15 +103,65 @@ public class CPU {
                 game.setError(.invalidCodeAddress)
             }
         }
+            
         case .dec   :  game.registers[Int(instruction.register1!)].dec(flags: game.flags)
+        
         case .ld    :
             if let value = game.getMemoryValue(memoryItemName: instruction.memory!, offset: instruction.memoryOffset!) {
                 game.registers[Int(instruction.register1!)] = value
             } else {
                 game.setError(.invalidMemoryAddress)
             }
+        
         case .ldi   : game.registers[Int(instruction.register1!)] = instruction.value!
+        
+        case .ldresx:
+            game.registers[Int(instruction.register1!)] = .unsigned16Bit(UInt16(gcp.draw2D.metalView.frame.size.width))
+        
+        case .ldresy:
+            game.registers[Int(instruction.register1!)] = .unsigned16Bit(UInt16(gcp.draw2D.metalView.frame.size.height))
+        
+        case .lyrres:
+            let layerIndex = Int(instruction.register1!)
+            if layerIndex >= 0 && layerIndex <= 7 {
+                let components = instruction.memory!.split(separator: "x")
+                if components.count == 2 {
+                    let width = Int(components[0])
+                    let height = Int(components[1])
+                    if let width = width, let height = height {
+                        if width > 0 && width < 10000 && height > 0 && height < 10000 {
+                            gcp.addCmd(.lyrres(layerIndex: Int(instruction.register1!), width: width, height: height))
+                        } else {
+                            game.setError(.invalidResolution)
+                        }
+                    } else {
+                        game.setError(.invalidResolution)
+                    }
+                } else {
+                    game.setError(.invalidResolution)
+                }
+            } else {
+                game.setError(.invalidLayerIndex)
+            }
+            
+        case .lyrvis:
+            let layerIndex = Int(instruction.register1!)
+            if layerIndex >= 0 && layerIndex <= 7 {
+                gcp.addCmd(.lyrvis(layerIndex: Int(instruction.register1!), value: Int(instruction.register2!)))
+            } else {
+                game.setError(.invalidLayerIndex)
+            }
+            
+        case .mod   :  if game.registers[Int(instruction.register1!)].mod(other: game.registers[Int(instruction.register2!)], flags: game.flags) {
+            game.setError(.invalidArithmetic)
+        }
+        
+        case .mul   :  if game.registers[Int(instruction.register1!)].mul(other: game.registers[Int(instruction.register2!)], flags: game.flags) {
+            game.setError(.invalidArithmetic)
+        }
+            
         case .push  : game.stack.append(instruction.value!)
+        
         case .rect  :
             let x : Float = game.registers[0].toFloat32Bit()
             let y : Float = game.registers[1].toFloat32Bit()
@@ -122,13 +188,22 @@ public class CPU {
             }
             
         case .sprvis:
-            gcp.addCmd(.sprvis(spriteIndex: Int(instruction.register1!), value: getRegisterValueInt(instruction.register2!)))
+            let spriteIndex = Int(instruction.register1!)
+            if spriteIndex >= 0 && spriteIndex <= 255 {
+                gcp.addCmd(.sprvis(spriteIndex: Int(instruction.register1!), value: Int(instruction.register2!)))
+            } else {
+                game.setError(.invalidSpriteIndex)
+            }
             
         case .sprx:
             gcp.addCmd(.sprx(spriteIndex: Int(instruction.register1!), value: getRegisterValueInt(instruction.register2!)))
 
         case .spry:
             gcp.addCmd(.spry(spriteIndex: Int(instruction.register1!), value: getRegisterValueInt(instruction.register2!)))
+            
+        case .sub   :  if game.registers[Int(instruction.register1!)].sub(other: game.registers[Int(instruction.register2!)], flags: game.flags) {
+            game.setError(.invalidArithmetic)
+        }
             
         default: break
         }

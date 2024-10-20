@@ -15,6 +15,8 @@
 
 - **LD Rd, Memory Address**. Load memory to the destination register.
 - **LDI Rd, Value**. Load an immediate value to the destination register.
+- **LDRESX Rd**. Load the x value of the screen resolution to the destination register.
+- **LDRESY Rd**. Load the y value of the screen resolution to the destination register.
 - **ST Memory Addres, Rs**. Store the source register at the destination memory address.
 
 - **INC Rd**. Increase the destination register by 1.

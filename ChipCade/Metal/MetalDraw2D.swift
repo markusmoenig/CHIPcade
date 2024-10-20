@@ -600,12 +600,26 @@ class MetalDraw2D
                 _ = createTexture(width: viewWidth, height: viewHeight)
             }
         }
+    }
+    
+    /// Resize texture to the view size
+    func syncTextureToView(index: Int) {
+        let viewWidth = Int(metalView.frame.width)
+        let viewHeight = Int(metalView.frame.height)
         
-//        for texture in textures.values {
-//            if texture.width != viewWidth || texture.height != viewHeight {
-//                _ = createTexture(width: viewWidth, height: viewHeight)
-//            }
-//        }
+        textureIdCount = index
+        
+        if textures[index]!.width != viewWidth || textures[index]!.height != viewHeight {
+            _ = createTexture(width: viewWidth, height: viewHeight)
+        }
+    }
+    
+    /// Resize texture to the view size
+    func ensureTextureSize(index: Int, width: Int, height: Int) {
+        textureIdCount = index
+        if textures[index]!.width != width || textures[index]!.height != height {
+            _ = createTexture(width: width, height: height)
+        }
     }
     
     /// Sets the render target

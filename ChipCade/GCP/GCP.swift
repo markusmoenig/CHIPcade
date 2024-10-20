@@ -13,9 +13,9 @@ public enum GCPCmd  {
     case sprvis(spriteIndex: Int, value: Int)
     case sprx(spriteIndex: Int, value: Int)
     case spry(spriteIndex: Int, value: Int)
+    case lyrres(layerIndex: Int, width: Int, height: Int)
+    case lyrvis(layerIndex: Int, value: Int)
 }
-
-var rota : Float = 0.0
 
 public class GCP {
     
@@ -23,6 +23,7 @@ public class GCP {
     var draw2D = MetalDraw2D();
     
     var imageGroups: [ImageGroup] = []
+    var layers: [Layer] = []
     var sprites: [Sprite] = []
     
     init() {
@@ -33,7 +34,10 @@ public class GCP {
         draw2D.setupView(metalView)
         
         for _ in 0..<8 {
-            _ = draw2D.createTexture(width: 100, height: 100)
+            if let index = draw2D.createTexture(width: 100, height: 100) {
+                let layer = Layer(index: index)
+                layers.append(layer)
+            }
         }
     }
     
@@ -68,7 +72,14 @@ public class GCP {
     }
     
     func draw() {        
-        draw2D.syncTexturesToView()
+        //draw2D.syncTexturesToView()
+        for layer in layers {
+            if layer.size == nil {
+                draw2D.syncTextureToView(index: layer.index)
+            } else {
+                draw2D.ensureTextureSize(index: layer.index, width: Int(layer.size!.width), height: Int(layer.size!.height))
+            }
+        }
         
         let targetLayer = 1
 //        let width = Int(draw2D.metalView.frame.width)
@@ -82,12 +93,21 @@ public class GCP {
 
         for cmd in cmds {
             switch cmd {
+                
             case .rect(let x, let y, let width, let height, let color, _) :
                 draw2D.currentSampler = draw2D.nearestSampler
                 draw2D.startShape(type: .triangle)
-                draw2D.drawRect(x, y, width, height, color.simd, -rota)
+                draw2D.drawRect(x, y, width, height, color.simd, 0.0)
                 draw2D.endShape()
                 //draw2D.drawText(position: float2(100, 80), text: "test", size: 30)
+                
+                
+            case .lyrres(let layerIndex, let width, let height) :
+                layers[layerIndex].size = CGSize(width: CGFloat(width), height: CGFloat(height))
+                
+            case .lyrvis(let layerIndex, let value) :
+                layers[layerIndex].isVisible = Bool(value != 0)
+                
             case .sprset(let spriteIndex, let imageGroupName) :
                 if let imageGroup = getImageGroup(name: imageGroupName) {
                     sprites[spriteIndex].imageGroup = imageGroup
@@ -95,17 +115,20 @@ public class GCP {
                     sprites[spriteIndex].size.width = CGFloat(imageGroup.images[0].width)
                     sprites[spriteIndex].size.height = CGFloat(imageGroup.images[0].height)
                 }
+
+                
             case .sprvis(let spriteIndex, let value) :
                 sprites[spriteIndex].isVisible = Bool(value != 0)
+                
             case .sprx(let spriteIndex, let value) :
                 sprites[spriteIndex].position.x = CGFloat(value)
+                
             case .spry(let spriteIndex, let value) :
                 sprites[spriteIndex].position.y = CGFloat(value)
+                
             }
         }
         
-        rota += 1.0
-
         draw2D.encodeEnd()
 
         draw2D.setTarget(id: 0)
@@ -121,6 +144,7 @@ public class GCP {
         
         draw2D.copyTexture()
         
+        // Draw all sprites which are not in a layer
         for sprite in sprites {
             if let imageGroup = sprite.imageGroup, sprite.isVisible {
                 let index = sprite.currentImageIndex

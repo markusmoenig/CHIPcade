@@ -121,6 +121,31 @@ struct CodeItemListView: View {
                         InstructionTextFieldView(instruction: $codeItem.codes[index], codeItem: codeItem, index: index)
                         
                         switch instruction.type {
+                        case .add, .sub, .div, .mod, .mul:
+                            HStack {
+                                Int8RegisterMenu(
+                                    selectedRegister: Binding(
+                                        get: { instruction.register1! },
+                                        set: { newRegister in
+                                            let newInstruction = instruction.clone()
+                                            newInstruction.register1 = newRegister
+                                            codeItem.aboutToChange(using: undoManager, newInstruction: newInstruction, at: index, text: "Register Changed")
+                                        }
+                                    )
+                                )
+                            }
+                            HStack {
+                                Int8RegisterMenu(
+                                    selectedRegister: Binding(
+                                        get: { instruction.register2! },
+                                        set: { newRegister in
+                                            let newInstruction = instruction.clone()
+                                            newInstruction.register2 = newRegister
+                                            codeItem.aboutToChange(using: undoManager, newInstruction: newInstruction, at: index, text: "Register Changed")
+                                        }
+                                    )
+                                )
+                            }
                         case .cmp:
                             HStack {
                                 Int8FullRegisterMenu(
@@ -210,6 +235,61 @@ struct CodeItemListView: View {
                                     )
                                 )
                             }
+                        case .ldresx, .ldresy:
+                            HStack {
+                                Int8RegisterMenu(
+                                    selectedRegister: Binding(
+                                        get: { instruction.register1! },
+                                        set: { newRegister in
+                                            let newInstruction = instruction.clone()
+                                            newInstruction.register1 = newRegister
+                                            codeItem.aboutToChange(using: undoManager, newInstruction: newInstruction, at: index, text: "Register Changed")
+                                        }
+                                    )
+                                )
+                            }
+                        case .lyrres:
+                            HStack {
+                                Int8LayerMenu(
+                                    selectedLayer: Binding(
+                                        get: { instruction.register1! },
+                                        set: { newLayer in
+                                            let newInstruction = instruction.clone()
+                                            newInstruction.register1 = newLayer
+                                            codeItem.aboutToChange(using: undoManager, newInstruction: newInstruction, at: index, text: "Layer Changed")
+                                        }
+                                    )
+                                )
+                                ResolutionTextField(
+                                    instruction: instruction,
+                                    undoManager: undoManager,
+                                    codeItem: codeItem,
+                                    index: index
+                                )
+                            }
+                        case .lyrvis:
+                            HStack {
+                                Int8LayerMenu(
+                                    selectedLayer: Binding(
+                                        get: { instruction.register1! },
+                                        set: { newLayer in
+                                            let newInstruction = instruction.clone()
+                                            newInstruction.register1 = newLayer
+                                            codeItem.aboutToChange(using: undoManager, newInstruction: newInstruction, at: index, text: "Layer Changed")
+                                        }
+                                    )
+                                )
+                                Int8VisibleMenu(
+                                    visible: Binding(
+                                        get: { instruction.register2! },
+                                        set: { newRegister in
+                                            let newInstruction = instruction.clone()
+                                            newInstruction.register2 = newRegister
+                                            codeItem.aboutToChange(using: undoManager, newInstruction: newInstruction, at: index, text: "Visible Changed")
+                                        }
+                                    )
+                                )
+                            }
                         case .sprset:
                             HStack {
                                 SpriteIndexTextField(
@@ -230,7 +310,31 @@ struct CodeItemListView: View {
                                     index: index
                                 )
                             }
-                        case .sprvis, .sprx, .spry:
+                        case .sprvis:
+                            HStack {
+                                SpriteIndexTextField(
+                                    spriteIndex: Binding(
+                                        get: { Int(instruction.register1!) },
+                                        set: { newRegister in
+                                            let newInstruction = instruction.clone()
+                                            newInstruction.register1 = Int8(newRegister)
+                                            codeItem.aboutToChange(using: undoManager, newInstruction: newInstruction, at: index, text: "Sprite Changed")
+                                        }
+                                    )
+                                )
+                                Int8VisibleMenu(
+                                    visible: Binding(
+                                        get: { instruction.register2! },
+                                        set: { newRegister in
+                                            let newInstruction = instruction.clone()
+                                            newInstruction.register2 = newRegister
+                                            print("Setting visible to \(newRegister)")
+                                            codeItem.aboutToChange(using: undoManager, newInstruction: newInstruction, at: index, text: "Visible Changed")
+                                        }
+                                    )
+                                )
+                            }
+                        case .sprx, .spry:
                             HStack {
                                 SpriteIndexTextField(
                                     spriteIndex: Binding(
