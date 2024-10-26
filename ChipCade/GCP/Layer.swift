@@ -21,7 +21,7 @@ class Layer {
     }
     
     // setVisible
-    func sVisibility(visible: Bool) {
+    func setVisibility(visible: Bool) {
         isVisible = visible
     }
 }

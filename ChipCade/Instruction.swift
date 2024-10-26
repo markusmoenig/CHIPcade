@@ -72,7 +72,9 @@ public enum InstructionType: String, Codable, CaseIterable {
     case push
     case rect
     case sprlyr
+    case sprrot
     case sprset
+    case sprspd
     case sprvis
     case sprx
     case spry
@@ -148,7 +150,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
             register1 = 0
             memory = "Data"
             memoryOffset = 0
-        case .sprlyr, .sprvis, .sprx, .spry:
+        case .sprlyr, .sprrot, .sprspd, .sprvis, .sprx, .spry:
             register1 = 0
             register2 = 0
         default: break
@@ -261,6 +263,12 @@ public class Instruction: ObservableObject, Codable, Equatable {
         case .sprlyr:
             return "SPRLYR S\(register1!) L\(register2!)"
             
+        case .sprrot:
+            return "SPRROT S\(register1!) R\(register2!)"
+            
+        case .sprspd:
+            return "SPRSPD S\(register1!) R\(register2!)"
+            
         case .sprvis:
             return "SPRVIS S\(register1!) R\(register2!)"
             
@@ -326,6 +334,10 @@ public class Instruction: ObservableObject, Codable, Equatable {
             return "Subtract source from destination register"
         case .sprlyr:
             return "Set sprite layer"
+        case .sprrot:
+            return "Set sprite rotation"
+        case .sprspd:
+            return "Set sprite speed"
         case .sprvis:
             return "Set sprite visibility"
         case .sprx:
@@ -355,7 +367,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
             source = [register1!]
         case .sprset:
             source = [register1!]
-        case .sprlyr, .sprvis, .sprx, .spry:
+        case .sprlyr, .sprvis, .sprx, .spry, .sprrot, .sprspd:
             source = [register2!]
         default: break;
         }
@@ -366,7 +378,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
     /// Returns true if this is an instruction of the GCP
     func isGCP() -> Bool {
         switch type {
-        case .rect, .sprset,.sprvis, .sprx, .spry, .lyrres, .lyrvis:
+        case .rect, .sprset,.sprvis, .sprx, .spry, .lyrres, .lyrvis, .sprrot:
             return true
         default:
             return false

@@ -22,6 +22,9 @@ class Sprite {
     var isVisible: Bool = false
     var priority: Int = 0
     
+    var velocity: CGVector = CGVector(dx: 0, dy: 0)
+    var speed: CGFloat = 0.0
+    
     var imageGroup: ImageGroup? = nil
     var currentImageIndex: Int = 0 // Current image index for display or animation
 
@@ -48,7 +51,7 @@ class Sprite {
     }
 
     // setVisible
-    func sVisibility(visible: Bool) {
+    func setVisibility(visible: Bool) {
         isVisible = visible
     }
     
@@ -77,5 +80,18 @@ class Sprite {
     func stopAnimation() {
         self.isAnimating = false
         self.animationRange = nil
+    }
+    
+    // Update position based on velocity and direction
+    func updatePosition() {
+        position.x += velocity.dx
+        position.y += velocity.dy
+    }
+    
+    // Update velocity based on speed and direction (rotation in degrees)
+    func updateVelocity() {
+        let radians = -rotation * .pi / 180 // Convert degrees to radians
+        velocity.dx = cos(radians) * speed
+        velocity.dy = sin(radians) * speed
     }
 }

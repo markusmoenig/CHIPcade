@@ -31,47 +31,75 @@ struct ChipCadeDataTextField: View {
             }
     }
 
-    // Parse the ChipCadeData from the text input, auto-detect negative and float values
+    // Parse the ChipCadeData from the text input, auto-detect negative, float, and Unicode values
     func parseChipCadeData(from text: String) -> ChipCadeData? {
+        // Handle single-character input in quotes or backticks
+        if (text.first == "\"" && text.last == "\"") || (text.first == "`" && text.last == "`") {
+            let character = text.dropFirst().dropLast()
+            if character.count == 1, let unicodeValue = character.unicodeScalars.first?.value, unicodeValue <= UInt16.max {
+                return .unicodeChar(UInt16(unicodeValue))
+            }
+        }
+
+        // Handle float values
         if text.contains(".") {
             if let value = Float(text) {
                 let float16 = chipCadeData.float32ToFloat16(value)
                 return .float16Bit(float16)
             }
-        } else if text.hasPrefix("-") {
+        }
+
+        // Handle signed 16-bit integers
+        if text.hasPrefix("-") {
             if let value = Int16(text) {
                 return .signed16Bit(value)
             }
-        } else if text.hasSuffix("u") {
+        }
+
+        // Handle unsigned 16-bit integers with suffixes
+        if text.hasSuffix("u") {
             if let value = UInt16(text.dropLast()) {
                 return .unsigned16Bit(value)
             }
-        } else if text.hasSuffix("s") {
+        }
+
+        // Handle signed 16-bit integers with suffixes
+        if text.hasSuffix("s") {
             if let value = Int16(text.dropLast()) {
                 return .signed16Bit(value)
             }
-        } else if text.hasSuffix("f") {
+        }
+
+        // Handle 16-bit float values with suffixes
+        if text.hasSuffix("f") {
             if let value = Float(text.dropLast()) {
                 let float16 = chipCadeData.float32ToFloat16(value)
                 return .float16Bit(float16)
             }
-        } else {
-            switch chipCadeData {
-            case .unsigned16Bit:
-                if let value = UInt16(text) {
-                    return .unsigned16Bit(value)
-                }
-            case .signed16Bit:
-                if let value = Int16(text) {
-                    return .signed16Bit(value)
-                }
-            case .float16Bit:
-                if let value = Float(text) {
-                    let float16 = chipCadeData.float32ToFloat16(value)
-                    return .float16Bit(float16)
-                }
+        }
+
+        // Default handling based on current data type
+        switch chipCadeData {
+        case .unsigned16Bit:
+            if let value = UInt16(text) {
+                return .unsigned16Bit(value)
+            }
+        case .signed16Bit:
+            if let value = Int16(text) {
+                return .signed16Bit(value)
+            }
+        case .float16Bit:
+            if let value = Float(text) {
+                let float16 = chipCadeData.float32ToFloat16(value)
+                return .float16Bit(float16)
+            }
+        case .unicodeChar:
+            if let value = UInt16(text) {
+                return .unicodeChar(value)
             }
         }
+
+        // If no valid conversion, return nil
         return nil
     }
 }

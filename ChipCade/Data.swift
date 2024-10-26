@@ -5,14 +5,15 @@
 //  Created by Markus Moenig on 29/9/24.
 //
 
-enum ChipCadeData: Codable  {
-    case unsigned16Bit(UInt16)   // 16-bit unsigned integer, used for all unsigned and color values
+enum ChipCadeData: Codable {
+    case unsigned16Bit(UInt16)   // 16-bit unsigned integer
     case signed16Bit(Int16)      // 16-bit signed integer
     case float16Bit(UInt16)      // 16-bit float stored as UInt16 bits
+    case unicodeChar(UInt16)     // 16-bit Unicode character
 
     // MARK: - CodingKeys
     enum CodingKeys: String, CodingKey {
-        case unsigned16Bit, signed16Bit, float16Bit
+        case unsigned16Bit, signed16Bit, float16Bit, unicodeChar
     }
 
     // MARK: - Encoding
@@ -26,6 +27,8 @@ enum ChipCadeData: Codable  {
             try container.encode(value, forKey: .signed16Bit)
         case .float16Bit(let value):
             try container.encode(value, forKey: .float16Bit)
+        case .unicodeChar(let value):
+            try container.encode(value, forKey: .unicodeChar)
         }
     }
 
@@ -39,6 +42,8 @@ enum ChipCadeData: Codable  {
             self = .signed16Bit(signedValue)
         } else if let floatValue = try? container.decode(UInt16.self, forKey: .float16Bit) {
             self = .float16Bit(floatValue)
+        } else if let unicodeValue = try? container.decode(UInt16.self, forKey: .unicodeChar) {
+            self = .unicodeChar(unicodeValue)
         } else {
             throw DecodingError.dataCorrupted(
                 DecodingError.Context(
@@ -58,11 +63,14 @@ enum ChipCadeData: Codable  {
             return .unsigned16Bit(unsignedVal)
 
         case .signed16Bit(let signedVal):
-            return .unsigned16Bit(UInt16(clamping: signedVal))  // Clamp to 0 for negative values
+            return .unsigned16Bit(UInt16(clamping: signedVal))
 
         case .float16Bit(let float16):
             let float32 = float16ToFloat32(float16)
-            return .unsigned16Bit(UInt16(clamping: Int(float32)))  // Clamp float to 16-bit range
+            return .unsigned16Bit(UInt16(clamping: Int(float32)))
+
+        case .unicodeChar(let unicodeVal):
+            return .unsigned16Bit(unicodeVal)
         }
     }
 
@@ -70,7 +78,7 @@ enum ChipCadeData: Codable  {
     func toSigned16Bit() -> ChipCadeData? {
         switch self {
         case .unsigned16Bit(let unsignedVal):
-            return .signed16Bit(Int16(clamping: unsignedVal))  // Handle overflow
+            return .signed16Bit(Int16(clamping: unsignedVal))
 
         case .signed16Bit(let signedVal):
             return .signed16Bit(signedVal)
@@ -78,10 +86,12 @@ enum ChipCadeData: Codable  {
         case .float16Bit(let float16):
             let float32 = float16ToFloat32(float16)
             return .signed16Bit(Int16(clamping: Int(float32)))
+
+        case .unicodeChar(let unicodeVal):
+            return .signed16Bit(Int16(bitPattern: unicodeVal))
         }
     }
 
-    
     // Convert to 16-bit float
     func toFloat16Bit() -> ChipCadeData? {
         switch self {
@@ -97,9 +107,32 @@ enum ChipCadeData: Codable  {
 
         case .float16Bit(let float16):
             return .float16Bit(float16)
+
+        case .unicodeChar(let unicodeVal):
+            let float32 = Float(unicodeVal)
+            let float16 = float32ToFloat16(float32)
+            return .float16Bit(float16)
         }
     }
-    
+
+    // Convert to 16-bit Unicode character
+    func toUnicodeChar() -> ChipCadeData? {
+        switch self {
+        case .unsigned16Bit(let unsignedVal):
+            return .unicodeChar(unsignedVal)
+
+        case .signed16Bit(let signedVal):
+            return .unicodeChar(UInt16(bitPattern: signedVal))
+
+        case .float16Bit(let float16):
+            let float32 = float16ToFloat32(float16)
+            return .unicodeChar(UInt16(clamping: Int(float32)))
+
+        case .unicodeChar(let unicodeVal):
+            return .unicodeChar(unicodeVal)
+        }
+    }
+
     // Convert to 32-bit float
     func toFloat32Bit() -> Float {
         switch self {
@@ -111,9 +144,12 @@ enum ChipCadeData: Codable  {
 
         case .float16Bit(let float16):
             return float16ToFloat32(float16)
+
+        case .unicodeChar(let unicodeVal):
+            return Float(unicodeVal)
         }
     }
-    
+
     // Convert to 32-bit int
     func toInt32Bit() -> Int {
         switch self {
@@ -125,18 +161,33 @@ enum ChipCadeData: Codable  {
 
         case .float16Bit(let float16):
             return Int(float16ToFloat32(float16))
+
+        case .unicodeChar(let unicodeVal):
+            return Int(unicodeVal)
         }
     }
-    
+
     // Converts to UInt16, if possible
     func toUInt16() -> UInt16? {
         switch self {
         case .unsigned16Bit(let value):
             return value
         case .signed16Bit(let value):
-            return UInt16(bitPattern: value) // Convert signed to unsigned
+            return UInt16(bitPattern: value)
         case .float16Bit(let value):
-            return value // Treat float as raw UInt16
+            return value
+        case .unicodeChar(let value):
+            return value
+        }
+    }
+
+    // Convert to Unicode String representation
+    func toUnicodeString() -> String? {
+        switch self {
+        case .unicodeChar(let unicodeVal):
+            return String(UnicodeScalar(unicodeVal) ?? "?")
+        default:
+            return nil
         }
     }
 
@@ -207,9 +258,7 @@ enum ChipCadeData: Codable  {
         }
     }
     
-    
-    
-    // Clones the data
+    // Clone the data
     func clone() -> ChipCadeData {
         switch self {
         case .unsigned16Bit(let unsignedVal):
@@ -218,11 +267,12 @@ enum ChipCadeData: Codable  {
             return .signed16Bit(signedVal)
         case .float16Bit(let float16):
             return .float16Bit(float16)
+        case .unicodeChar(let unicodeVal):
+            return .unicodeChar(unicodeVal)
         }
     }
 
-    // MARK: - Description for Debugging
-
+    // Convert to String for Debugging
     func description() -> String {
         switch self {
         case .unsigned16Bit(let unsignedVal):
@@ -231,35 +281,32 @@ enum ChipCadeData: Codable  {
             return "Signed 16-bit: \(signedVal)"
         case .float16Bit(let float16):
             return String(format: "Float16: 0x%04X", float16)
+        case .unicodeChar(let unicodeVal):
+            return "Unicode Char: \(String(UnicodeScalar(unicodeVal) ?? "?"))"
         }
     }
     
+    // Convert to String
     func toString(_ identifier: Bool = true) -> String {
         switch self {
         case .unsigned16Bit(let unsignedVal):
-            if identifier {
-                return "\(unsignedVal)u"
-            } else {
-                return "\(unsignedVal)"
-            }
+            return identifier ? "\(unsignedVal)u" : "\(unsignedVal)"
             
         case .signed16Bit(let signedVal):
-            if identifier {
-                return "\(signedVal)s"
-            } else {
-                return "\(signedVal)"
-            }
+            return identifier ? "\(signedVal)s" : "\(signedVal)"
             
         case .float16Bit(let float16):
             let float32 = float16ToFloat32(float16)
-            if identifier {
-                return String(format: "%.3ff", float32)
-            } else {
-                return String(format: "%.3f", float32)
-            }
+            return identifier ? String(format: "%.3ff", float32) : String(format: "%.3f", float32)
+
+        case .unicodeChar(let unicodeVal):
+            let char = String(UnicodeScalar(unicodeVal) ?? "?")
+//            return identifier ? "\(unicodeVal)uC (\(char))" : "\(char)"
+            return "`\(char)`"
         }
     }
     
+    // Convert to full String representation for Debugging
     func toStringFull(_ identifier: Bool = true) -> String {
         switch self {
         case .unsigned16Bit(let unsignedVal):
@@ -268,14 +315,14 @@ enum ChipCadeData: Codable  {
             } else {
                 return String(format: "%05d", unsignedVal) // No identifier, just padded
             }
-            
+
         case .signed16Bit(let signedVal):
             if identifier {
                 return String(format: "%05ds", signedVal) // Always 5 digits, padded with 0s
             } else {
                 return String(format: "%05d", signedVal) // No identifier, just padded
             }
-            
+
         case .float16Bit(let float16):
             let float32 = float16ToFloat32(float16)
             if identifier {
@@ -283,28 +330,42 @@ enum ChipCadeData: Codable  {
             } else {
                 return String(format: "%.3f", float32) // No identifier, but always 3 decimals
             }
+
+        case .unicodeChar(let unicodeVal):
+            let char = String(UnicodeScalar(unicodeVal) ?? "?")
+            if identifier {
+                return String(format: "%05duC (\(char))", unicodeVal) // 5 digits + identifier
+            } else {
+                return String(format: "%05d (\(char))", unicodeVal) // Just padded
+            }
         }
     }
     
+    // Convert to Hex String
     func toHexString() -> String {
         switch self {
         case .unsigned16Bit(let value):
             return String(format: "0x%04X", value)
         case .signed16Bit(let value):
-            return String(format: "0x%04X", UInt16(bitPattern: value))  // Convert signed to hex
+            return String(format: "0x%04X", UInt16(bitPattern: value))
         case .float16Bit(let value):
-            return String(format: "0x%04X", value)  // Treat the raw bits as hex
+            return String(format: "0x%04X", value)
+        case .unicodeChar(let value):
+            return String(format: "0x%04X", value)
         }
     }
 
+    // Convert to Binary String
     func toBinaryString() -> String {
         switch self {
         case .unsigned16Bit(let value):
             return String(value, radix: 2)
         case .signed16Bit(let value):
-            return String(UInt16(bitPattern: value), radix: 2)  // Convert signed to binary
+            return String(UInt16(bitPattern: value), radix: 2)
         case .float16Bit(let value):
-            return String(value, radix: 2)  // Treat the raw bits as binary
+            return String(value, radix: 2)
+        case .unicodeChar(let value):
+            return String(value, radix: 2)
         }
     }
 }
@@ -335,6 +396,8 @@ extension ChipCadeData {
             flags.setNegativeFlag(newFloat32 < 0)
             let newFloat16 = float32ToFloat16(newFloat32)
             self = .float16Bit(newFloat16)
+
+        default: break;
         }
     }
 
@@ -361,6 +424,8 @@ extension ChipCadeData {
             flags.setNegativeFlag(newFloat32 < 0)
             let newFloat16 = float32ToFloat16(newFloat32)
             self = .float16Bit(newFloat16)
+            
+        default: break;
         }
     }
     

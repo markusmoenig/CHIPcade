@@ -210,6 +210,8 @@ class MetalDraw2D
 //        renderPassDescriptor!.colorAttachments[0].loadAction = .load
 //        renderPassDescriptor!.colorAttachments[0].storeAction = .store
         
+        renderPassDescriptor!.colorAttachments[0].loadAction = .dontCare
+
         if renderPassDescriptor != nil {
             renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor! )
             return renderEncoder

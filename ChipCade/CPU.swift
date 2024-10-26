@@ -203,11 +203,17 @@ public class CPU {
                 game.setError(.invalidSpriteIndex)
             }
             
+        case .sprrot:
+            gcp.addCmd(.sprrot(spriteIndex: Int(instruction.register1!), value: getRegisterValueInt(instruction.register2!)))
+            
         case .sprx:
             gcp.addCmd(.sprx(spriteIndex: Int(instruction.register1!), value: getRegisterValueInt(instruction.register2!)))
 
         case .spry:
             gcp.addCmd(.spry(spriteIndex: Int(instruction.register1!), value: getRegisterValueInt(instruction.register2!)))
+            
+        case .sprspd:
+            gcp.addCmd(.sprspd(spriteIndex: Int(instruction.register1!), value: getRegisterValueFloat(instruction.register2!)))
             
         case .sub   :  if game.registers[Int(instruction.register1!)].sub(other: game.registers[Int(instruction.register2!)], flags: game.flags) {
             game.setError(.invalidArithmetic)
@@ -221,6 +227,10 @@ public class CPU {
 
     func getRegisterValueInt(_ register: Int8) -> Int {
         Int(game.registers[Int(register)].toFloat32Bit())
+    }
+    
+    func getRegisterValueFloat(_ register: Int8) -> Float {
+        Float(game.registers[Int(register)].toFloat32Bit())
     }
 }
 

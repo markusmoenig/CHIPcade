@@ -14,6 +14,8 @@ public enum GCPCmd  {
     case sprvis(spriteIndex: Int, value: Int)
     case sprx(spriteIndex: Int, value: Int)
     case spry(spriteIndex: Int, value: Int)
+    case sprrot(spriteIndex: Int, value: Int)
+    case sprspd(spriteIndex: Int, value: Float)
     case lyrres(layerIndex: Int, width: Int, height: Int)
     case lyrvis(layerIndex: Int, value: Int)
 }
@@ -72,7 +74,16 @@ public class GCP {
         }
     }
     
-    func draw() {        
+    func draw() {
+        
+        // Update the sprite positions
+        
+        for sprite in sprites {
+            if sprite.isVisible {
+                sprite.updatePosition()
+            }
+        }
+                
         //draw2D.syncTexturesToView()
         for layer in layers {
             if layer.size == nil {
@@ -124,12 +135,17 @@ public class GCP {
             case .sprvis(let spriteIndex, let value) :
                 sprites[spriteIndex].isVisible = Bool(value != 0)
                 
+            case .sprrot(let spriteIndex, let value) :
+                sprites[spriteIndex].rotation = CGFloat(value)
+                
             case .sprx(let spriteIndex, let value) :
                 sprites[spriteIndex].position.x = CGFloat(value)
                 
             case .spry(let spriteIndex, let value) :
                 sprites[spriteIndex].position.y = CGFloat(value)
                 
+            case .sprspd(let spriteIndex, let value) :
+                sprites[spriteIndex].speed = CGFloat(value)
             }
         }
         
@@ -176,7 +192,7 @@ public class GCP {
                         let width = Float(imageGroup.images[index].width) / scaleX
                         let height = Float(imageGroup.images[index].height) / scaleY
 
-                        draw2D.drawRect(Float(sprite.position.x), Float(sprite.position.y), width, height, float4(0, 0, 0, 1), 0.0)
+                        draw2D.drawRect(Float(sprite.position.x), Float(sprite.position.y), width, height, float4(0, 0, 0, 1), Float(-sprite.rotation))
                         draw2D.endShape(externalTexture: imageGroup.images[index])
                     }
                 }
@@ -229,21 +245,21 @@ public class GCP {
             }
         }
 
-//        draw2D.setTarget(id: 0)
-//        draw2D.setTexture(id: 0)
-//        draw2D.encodeStart()
-//
-//        // Draw all sprites which are not in a layer
-//        for sprite in sprites {
-//            if let imageGroup = sprite.imageGroup, sprite.isVisible, sprite.layer == nil {
-//                let index = sprite.currentImageIndex
-//                draw2D.startShape(type: .triangle)
-//                draw2D.drawRect(Float(sprite.position.x), Float(sprite.position.y), Float(imageGroup.images[index].width), Float(imageGroup.images[index].height), float4(0, 0, 0, 1), 0.0)
-//                draw2D.endShape(externalTexture: imageGroup.images[index])
-//            }
-//        }
-//        
-//        draw2D.encodeEnd()
+        draw2D.setTarget(id: 0)
+        draw2D.setTexture(id: 0)
+        draw2D.encodeStart()
+
+        // Draw all sprites which are not in a layer
+        for sprite in sprites {
+            if let imageGroup = sprite.imageGroup, sprite.isVisible, sprite.layer == nil {
+                let index = sprite.currentImageIndex
+                draw2D.startShape(type: .triangle)
+                draw2D.drawRect(Float(sprite.position.x), Float(sprite.position.y), Float(imageGroup.images[index].width), Float(imageGroup.images[index].height), float4(0, 0, 0, 1), Float(-sprite.rotation))
+                draw2D.endShape(externalTexture: imageGroup.images[index])
+            }
+        }
+        
+        draw2D.encodeEnd()
 
         
         cmds.removeAll()
