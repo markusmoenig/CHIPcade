@@ -19,12 +19,21 @@ class Sprite {
     var size: CGSize = CGSize(width: 32, height: 32)
     var rotation: CGFloat = 0.0
     var scale: CGFloat = 1.0
+    
     var isVisible: Bool = false
+    var isWrapper: Bool = true
+    
     var priority: Int = 0
     
     var velocity: CGVector = CGVector(dx: 0, dy: 0)
-    var speed: CGFloat = 0.0
     
+    var acceleration: CGFloat = 0.0
+    
+    var speed: CGFloat = 0.0
+    var maxSpeed: CGFloat = 3.0
+
+    var friction: CGFloat = 1.0
+
     var imageGroup: ImageGroup? = nil
     var currentImageIndex: Int = 0 // Current image index for display or animation
 
@@ -82,16 +91,51 @@ class Sprite {
         self.animationRange = nil
     }
     
+    func setRotation(_ rotation: Float) {
+        self.rotation = CGFloat(rotation)
+        if speed != 0.0 {
+            updateVelocity()
+        }
+    }
+    
     // Update position based on velocity and direction
     func updatePosition() {
+        applyFriction()
         position.x += velocity.dx
         position.y += velocity.dy
     }
     
     // Update velocity based on speed and direction (rotation in degrees)
     func updateVelocity() {
-        let radians = -rotation * .pi / 180 // Convert degrees to radians
+        let radians = (rotation - 90) * .pi / 180 // Convert degrees to radians
         velocity.dx = cos(radians) * speed
         velocity.dy = sin(radians) * speed
+    }
+    
+    // Apply friction
+    func applyFriction() {
+        velocity.dx *= friction
+        velocity.dy *= friction
+    }
+    
+    // Apply an acceleration impulse
+    func applyAccelerationImpulse() {
+        // Convert rotation to radians
+        let radians = (rotation - 90) * .pi / 180
+
+        // Calculate acceleration components based on current rotation
+        let accelX = cos(radians) * acceleration
+        let accelY = sin(radians) * acceleration
+
+        // Add the acceleration to the current velocity
+        velocity.dx += accelX
+        velocity.dy += accelY
+
+        // Cap the speed to maxSpeed
+        let currentSpeed = sqrt(velocity.dx * velocity.dx + velocity.dy * velocity.dy)
+        if currentSpeed > maxSpeed {
+            velocity.dx = (velocity.dx / currentSpeed) * maxSpeed
+            velocity.dy = (velocity.dy / currentSpeed) * maxSpeed
+        }
     }
 }

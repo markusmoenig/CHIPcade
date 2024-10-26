@@ -287,9 +287,9 @@ struct ContentView: View {
         
         for codeItem in document.game.data.codeItems {
             for (_, instruction) in codeItem.codes.enumerated() {
-                if instruction.meta.tag.lowercased().contains(query.lowercased()) {
-                    results.append(instruction.meta.tag.lowercased())
-                }
+//                if instruction.meta.tag.lowercased().contains(query.lowercased()) {
+//                    results.append(instruction.meta.tag.lowercased())
+//                }
             }
         }
         

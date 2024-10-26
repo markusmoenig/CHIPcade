@@ -30,6 +30,6 @@ struct InstructionTextFieldView: View {
             }
             .textFieldStyle(RoundedBorderTextFieldStyle())
             .frame(maxWidth: 80)
-            .foregroundStyle(instruction.isGCP() ? .yellow : .primary)
+            .foregroundStyle(instruction.color())
     }
 }

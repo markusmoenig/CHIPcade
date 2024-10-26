@@ -14,8 +14,9 @@ public enum GCPCmd  {
     case sprvis(spriteIndex: Int, value: Int)
     case sprx(spriteIndex: Int, value: Int)
     case spry(spriteIndex: Int, value: Int)
-    case sprrot(spriteIndex: Int, value: Int)
+    case sprrot(spriteIndex: Int, value: Float)
     case sprspd(spriteIndex: Int, value: Float)
+    case spracc(spriteIndex: Int, value: Float)
     case lyrres(layerIndex: Int, width: Int, height: Int)
     case lyrvis(layerIndex: Int, value: Int)
 }
@@ -76,11 +77,83 @@ public class GCP {
     
     func draw() {
         
-        // Update the sprite positions
+        let width = Int(draw2D.metalView.frame.width)
+        let height = Int(draw2D.metalView.frame.height)
         
+        let screenSize = CGSize(width: CGFloat(width), height: CGFloat(height))
+
+        // Update the sprite positions
         for sprite in sprites {
             if sprite.isVisible {
                 sprite.updatePosition()
+                
+                if sprite.isWrapper {
+                    
+                    // Default to screen size
+                    var layerSize = screenSize
+                    var scaleX: Float = 1.0
+                    var scaleY: Float = 1.0
+                    var offsetX: Float = 0.0
+                    var offsetY: Float = 0.0
+                    var scaledLayerWidth: Float = Float(layerSize.width)
+                    var scaledLayerHeight: Float = Float(layerSize.height)
+                    
+                    // If sprite is associated with a layer, use the layer size and scaling
+                    if let layerIndex = sprite.layer {
+                        if let size = layers[layerIndex].size {
+                            layerSize = size
+                            
+                            // Calculate the scaling factors for the layer
+                            let layerAspectRatio = size.width / size.height
+                            let screenAspectRatio = CGFloat(width) / CGFloat(height)
+                            
+                            // Determine scaling and maintain aspect ratio
+                            if layerAspectRatio > screenAspectRatio {
+                                // Fit based on width
+                                scaledLayerWidth = Float(width)
+                                scaledLayerHeight = Float(width) / Float(layerAspectRatio)
+                            } else {
+                                // Fit based on height
+                                scaledLayerHeight = Float(height)
+                                scaledLayerWidth = Float(height) * Float(layerAspectRatio)
+                            }
+                            
+                            // Calculate offsets to center the layer
+                            offsetX = (Float(width) - scaledLayerWidth) / 2.0
+                            offsetY = (Float(height) - scaledLayerHeight) / 2.0
+
+                            // Calculate sprite scaling within the layer
+                            scaleX = scaledLayerWidth / Float(layerSize.width)
+                            scaleY = scaledLayerHeight / Float(layerSize.height)
+                        }
+                    }
+                    
+                    // Adjust the sprite's scaled size
+                    let scaledWidth = sprite.size.width * CGFloat(scaleX)
+                    let scaledHeight = sprite.size.height * CGFloat(scaleY)
+                    
+                    // Adjusted sprite position in screen coordinates
+                    let spritePosX = sprite.position.x * CGFloat(scaleX) + CGFloat(offsetX)
+                    let spritePosY = sprite.position.y * CGFloat(scaleY) + CGFloat(offsetY)
+                    
+                    // Check horizontal wrapping with scaling and centering offset
+                    if spritePosX + scaledWidth < 0 {
+                        // Moved left, reappear on the right
+                        sprite.position.x = (layerSize.width - sprite.size.width)
+                    } else if spritePosX > CGFloat(scaledLayerWidth) {
+                        // Moved right, reappear on the left
+                        sprite.position.x = -sprite.size.width
+                    }
+                    
+                    // Check vertical wrapping with scaling and centering offset
+                    if spritePosY + scaledHeight < 0 {
+                        // Moved above, reappear at the bottom
+                        sprite.position.y = (layerSize.height - sprite.size.height)
+                    } else if spritePosY > CGFloat(scaledLayerHeight) {
+                        // Moved below, reappear at the top
+                        sprite.position.y = -sprite.size.height
+                    }
+                }
             }
         }
                 
@@ -136,7 +209,7 @@ public class GCP {
                 sprites[spriteIndex].isVisible = Bool(value != 0)
                 
             case .sprrot(let spriteIndex, let value) :
-                sprites[spriteIndex].rotation = CGFloat(value)
+                sprites[spriteIndex].setRotation(value)
                 
             case .sprx(let spriteIndex, let value) :
                 sprites[spriteIndex].position.x = CGFloat(value)
@@ -146,6 +219,11 @@ public class GCP {
                 
             case .sprspd(let spriteIndex, let value) :
                 sprites[spriteIndex].speed = CGFloat(value)
+                sprites[spriteIndex].updateVelocity()
+                
+            case .spracc(let spriteIndex, let value) :
+                sprites[spriteIndex].acceleration = CGFloat(value)
+                sprites[spriteIndex].applyAccelerationImpulse()
             }
         }
         
@@ -163,9 +241,6 @@ public class GCP {
 //        draw2D.endShape()
         
         //draw2D.copyTexture()
-        
-        let width = Int(draw2D.metalView.frame.width)
-        let height = Int(draw2D.metalView.frame.height)
         
         // Draw all sprites bound to a texture
         for layerIndex in 0..<8 {

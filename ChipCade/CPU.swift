@@ -32,6 +32,13 @@ public class CPU {
             game.setError(.invalidArithmetic)
         }
             
+        case .j    :
+            if let (codeItemIndex, instructionIndex) = game.data.getCodeAddress(name: instruction.memory!, currentCodeIndex: game.currCodeItemIndex) {
+                game.currCodeItemIndex = codeItemIndex
+                game.currInstructionIndex = instructionIndex
+                return false
+            }
+            
         case .je    : if game.flags.zeroFlag {
             if let (codeItemIndex, instructionIndex) = game.data.getCodeAddress(name: instruction.memory!, currentCodeIndex: game.currCodeItemIndex) {
                 game.currCodeItemIndex = codeItemIndex
@@ -187,6 +194,9 @@ public class CPU {
                 game.setError(.invalidMemoryAddress)
             }
             
+        case .spracc:
+            gcp.addCmd(.spracc(spriteIndex: Int(instruction.register1!), value: getRegisterValueFloat(instruction.register2!)))
+            
         case .sprlyr:
             let spriteIndex = Int(instruction.register1!)
             if spriteIndex >= 0 && spriteIndex <= 255 {
@@ -204,7 +214,7 @@ public class CPU {
             }
             
         case .sprrot:
-            gcp.addCmd(.sprrot(spriteIndex: Int(instruction.register1!), value: getRegisterValueInt(instruction.register2!)))
+            gcp.addCmd(.sprrot(spriteIndex: Int(instruction.register1!), value: getRegisterValueFloat(instruction.register2!)))
             
         case .sprx:
             gcp.addCmd(.sprx(spriteIndex: Int(instruction.register1!), value: getRegisterValueInt(instruction.register2!)))

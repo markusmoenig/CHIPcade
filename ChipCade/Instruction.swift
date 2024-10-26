@@ -5,55 +5,16 @@
 //  Created by Markus Moenig on 29/9/24.
 //
 
-import Foundation
-
-public class InstrMeta : Codable {
-    
-    @Published var tag: String = ""
-    @Published var comment: String = ""
-    
-    @Published var breakpoint: Bool = false
-    
-    enum CodingKeys: String, CodingKey {
-        case tag
-        case comment
-        case breakpoint
-    }
-    
-    init() {
-    }
-    
-    public func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(tag, forKey: .tag)
-        try container.encode(comment, forKey: .comment)
-        try container.encode(breakpoint, forKey: .breakpoint)
-    }
-    
-    public required init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-
-        tag = try container.decode(String.self, forKey: .tag)
-        comment = try container.decode(String.self, forKey: .comment)
-        breakpoint = try container.decode(Bool.self, forKey: .breakpoint)
-    }
-    
-    func clone() -> InstrMeta {
-        let clonedMeta = InstrMeta()
-        clonedMeta.comment = self.comment
-        clonedMeta.tag = self.tag
-        clonedMeta.breakpoint = self.breakpoint
-        
-        return clonedMeta
-    }
-}
+import SwiftUI
 
 public enum InstructionType: String, Codable, CaseIterable {
     case add
     case cmp
+    case comnt
     case dec
     case div
     case inc
+    case j
     case je
     case jne
     case jl
@@ -71,6 +32,7 @@ public enum InstructionType: String, Codable, CaseIterable {
     case nop
     case push
     case rect
+    case spracc
     case sprlyr
     case sprrot
     case sprset
@@ -80,6 +42,7 @@ public enum InstructionType: String, Codable, CaseIterable {
     case spry
     case st
     case sub
+    case tag
     
     static func fromString(_ string: String) -> InstructionType? {
         return InstructionType.allCases.first { $0.toString().lowercased() == string.lowercased() }
@@ -96,8 +59,6 @@ public class Instruction: ObservableObject, Codable, Equatable {
     
     @Published var type: InstructionType
 
-    @Published var meta: InstrMeta = InstrMeta()
-
     @Published var register1: Int8? = nil
     @Published var register2: Int8? = nil
     @Published var value: ChipCadeData? = nil
@@ -108,7 +69,6 @@ public class Instruction: ObservableObject, Codable, Equatable {
     enum CodingKeys: String, CodingKey {
         case id
         case type
-        case meta
         case register1
         case register2
         case value
@@ -126,7 +86,9 @@ public class Instruction: ObservableObject, Codable, Equatable {
             register2 = 1
         case .inc, .dec:
             register1 = 0
-        case .je, .jne, .jl, .jg, .jc, .jo:
+        case .comnt:
+            memory = "Comment"
+        case .j, .je, .jne, .jl, .jg, .jc, .jo:
             memory = "Module.Tag"
         case .ld:
             register1 = 0
@@ -150,9 +112,11 @@ public class Instruction: ObservableObject, Codable, Equatable {
             register1 = 0
             memory = "Data"
             memoryOffset = 0
-        case .sprlyr, .sprrot, .sprspd, .sprvis, .sprx, .spry:
+        case .spracc, .sprlyr, .sprrot, .sprspd, .sprvis, .sprx, .spry:
             register1 = 0
             register2 = 0
+        case .tag:
+            memory = "Tag"
         default: break
         }
     }
@@ -161,7 +125,6 @@ public class Instruction: ObservableObject, Codable, Equatable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
         try container.encode(type, forKey: .type)
-        try container.encodeIfPresent(meta, forKey: .meta)
         try container.encodeIfPresent(register1, forKey: .register1)
         try container.encodeIfPresent(register2, forKey: .register2)
         try container.encodeIfPresent(value, forKey: .value)
@@ -175,7 +138,6 @@ public class Instruction: ObservableObject, Codable, Equatable {
 
         id = try container.decode(UUID.self, forKey: .id)
         type = try container.decode(InstructionType.self, forKey: .type)  // Correctly decode the enum type
-        meta = try container.decode(InstrMeta.self, forKey: .meta)
         register1 = try container.decodeIfPresent(Int8.self, forKey: .register1)
         register2 = try container.decodeIfPresent(Int8.self, forKey: .register2)
         value = try container.decodeIfPresent(ChipCadeData.self, forKey: .value)
@@ -190,6 +152,9 @@ public class Instruction: ObservableObject, Codable, Equatable {
             
         case .cmp:
             return "CMP R\(register1!), R\(register2!)"
+         
+        case .comnt:
+            return "COMNT"
             
         case .dec:
             return "DEC R\(register1!)"
@@ -200,6 +165,9 @@ public class Instruction: ObservableObject, Codable, Equatable {
         case .inc:
             return "INC R\(register1!)"
         
+        case .j:
+            return "J \(memory!)"
+            
         case .je:
             return "JE \(memory!)"
 
@@ -259,6 +227,9 @@ public class Instruction: ObservableObject, Codable, Equatable {
             
         case .sub:
             return "SUB R\(register1!), R\(register2!)"
+          
+        case .spracc:
+            return "SPRACC S\(register1!) L\(register2!)"
             
         case .sprlyr:
             return "SPRLYR S\(register1!) L\(register2!)"
@@ -277,6 +248,9 @@ public class Instruction: ObservableObject, Codable, Equatable {
             
         case .spry:
             return "SPRY S\(register1!) R\(register2!)"
+            
+        case .tag:
+            return "TAG"
         }
     }
     
@@ -286,12 +260,16 @@ public class Instruction: ObservableObject, Codable, Equatable {
             return "Add source to destination register"
         case .cmp:
             return "Compare two registers"
+        case .comnt:
+            return "Comment"
         case .dec:
             return "Decrement register by 1"
         case .div:
             return "Divide destination by source register"
         case .inc:
             return "Increment register by 1"
+        case .j:
+            return "Unconditional jump"
         case .je:
             return "Jump if the zero flag is set (equality check)"
         case .jne:
@@ -332,6 +310,8 @@ public class Instruction: ObservableObject, Codable, Equatable {
             return "Store register to memory"
         case .sub:
             return "Subtract source from destination register"
+        case .spracc:
+            return "Applies an acceleration impulse"
         case .sprlyr:
             return "Set sprite layer"
         case .sprrot:
@@ -344,6 +324,8 @@ public class Instruction: ObservableObject, Codable, Equatable {
             return "Set sprite x position"
         case .spry:
             return "Set sprite y position"
+        case .tag:
+            return "Tag"
         }
     }
     
@@ -367,7 +349,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
             source = [register1!]
         case .sprset:
             source = [register1!]
-        case .sprlyr, .sprvis, .sprx, .spry, .sprrot, .sprspd:
+        case .spracc, .sprlyr, .sprvis, .sprx, .spry, .sprrot, .sprspd:
             source = [register2!]
         default: break;
         }
@@ -378,16 +360,26 @@ public class Instruction: ObservableObject, Codable, Equatable {
     /// Returns true if this is an instruction of the GCP
     func isGCP() -> Bool {
         switch type {
-        case .rect, .sprset,.sprvis, .sprx, .spry, .lyrres, .lyrvis, .sprrot:
+        case .rect, .spracc, .sprset,.sprvis, .sprx, .spry, .lyrres, .lyrvis, .sprrot, .sprspd:
             return true
         default:
             return false
         }
     }
     
+    func color() -> Color {
+        switch type {
+        case .tag: return .blue
+        case .comnt: return .secondary
+        case .rect, .sprset,.sprvis, .sprx, .spry, .lyrres, .lyrvis, .sprrot:
+            return .yellow
+        default:
+            return .primary
+        }
+    }
+    
     func clone() -> Instruction {
         let clonedInstruction = Instruction(self.type)
-        clonedInstruction.meta = self.meta.clone()
         clonedInstruction.register1 = self.register1
         clonedInstruction.register2 = self.register2
         if let value = value {

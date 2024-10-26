@@ -34,43 +34,78 @@ struct CodeItemListView: View {
                 Spacer()
                 
                 editMenu
-                    .popover(isPresented: $isPopoverPresented) {
-                        VStack {
-                            Text("Set Tag / Comment")
-                                .font(.headline)
-                                .padding()
+            }
+            .padding(.trailing, 20)
 
-                            TextField("Tag", text: $instructionTag)
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .padding(.horizontal, 12)
-                                .onSubmit {
-                                    if let index = selectedInstructionIndex {
-                                        codeItem.codes[index].meta.tag = instructionTag
-                                        codeItem.codes[index].meta.comment = instructionComment
-                                        let instr = codeItem.codes[index]
-                                        codeItem.codes[index] = instr
-                                    }
-                                    isPopoverPresented = false
-                                }
-                            
-                            Spacer()
-                            
-                            TextField("Comment", text: $instructionComment)
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .padding(.horizontal, 12)
-                                .onSubmit {
-                                    if let index = selectedInstructionIndex {
-                                        codeItem.codes[index].meta.tag = instructionTag
-                                        codeItem.codes[index].meta.comment = instructionComment
-                                        let instr = codeItem.codes[index]
-                                        codeItem.codes[index] = instr
-                                    }
-                                    isPopoverPresented = false
-                                }
-                            
-                            Spacer()
+            HStack(spacing: 8) {
+                Button(action: {
+                    if let selectedInstructionIndex = selectedInstructionIndex {
+                        let nopInstruction = Instruction(.nop)
+                        codeItem.insertBefore(at: selectedInstructionIndex, instruction: nopInstruction, using: undoManager)
+                    }
+                }) {
+                    Label("", systemImage: "arrow.up.to.line.compact")
+//                    Label("", systemImage: "plus.circle.fill")
+                }
+                .buttonStyle(.borderless)
+                .controlSize(.large)
+                .keyboardShortcut("B")//, modifiers: [.shift])
+                
+                Button(action: {
+                    if let selectedInstructionIndex = selectedInstructionIndex {
+                        let nopInstruction = Instruction(.nop)
+                        codeItem.insertAfter(at: selectedInstructionIndex, instruction: nopInstruction.clone(), using: undoManager)
+                    }
+                }) {
+                    Label("", systemImage: "arrow.down.to.line.compact")
+                    //Label("", systemImage: "plus.circle")
+                }
+                .buttonStyle(.borderless)
+                .controlSize(.large)
+                .keyboardShortcut("I")
+                
+                Button(action: {
+                    if let selectedInstructionIndex = selectedInstructionIndex {
+                        codeItem.duplicate(at: selectedInstructionIndex, using: undoManager)
+                    }
+                }) {
+                    Label("", systemImage: "doc.on.doc.fill")
+                }
+                .buttonStyle(.borderless)
+                .controlSize(.large)
+                .keyboardShortcut("D")
+                
+                Button(action: {
+                    if let selectedInstructionIndex = selectedInstructionIndex {
+                        codeItem.delete(at: selectedInstructionIndex, using: undoManager)
+                    }
+                }) {
+                    Label("", systemImage: "trash.fill")
+                }
+                .buttonStyle(.borderless)
+                .controlSize(.large)
+                .keyboardShortcut(.delete)
 
-                            Button("Apply") {
+                /*
+                Button(action: {
+                    isPopoverPresented = true
+                }) {
+                    Label("", systemImage: "tag.fill")
+                }
+                .buttonStyle(.borderless)
+                .controlSize(.large)
+                .keyboardShortcut("T")
+                
+                .popover(isPresented: $isPopoverPresented) {
+                    VStack {
+                        Text("Set Tag / Comment")
+                            .font(.headline)
+                            .padding()
+
+                        TextField("Tag", text: $instructionTag)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .padding(.horizontal, 12)
+                            .onSubmit {
                                 if let index = selectedInstructionIndex {
                                     codeItem.codes[index].meta.tag = instructionTag
                                     codeItem.codes[index].meta.comment = instructionComment
@@ -79,36 +114,54 @@ struct CodeItemListView: View {
                                 }
                                 isPopoverPresented = false
                             }
-                            .padding()
-                        }
-                        .frame(width: 300, height: 200)
-                    }
-            }
-            .padding(4)
                         
+                        Spacer()
+                        
+                        TextField("Comment", text: $instructionComment)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .padding(.horizontal, 12)
+                            .onSubmit {
+                                if let index = selectedInstructionIndex {
+                                    codeItem.codes[index].meta.tag = instructionTag
+                                    codeItem.codes[index].meta.comment = instructionComment
+                                    let instr = codeItem.codes[index]
+                                    codeItem.codes[index] = instr
+                                }
+                                isPopoverPresented = false
+                            }
+                        
+                        Spacer()
+
+                        Button("Apply") {
+                            if let index = selectedInstructionIndex {
+                                codeItem.codes[index].meta.tag = instructionTag
+                                codeItem.codes[index].meta.comment = instructionComment
+                                let instr = codeItem.codes[index]
+                                codeItem.codes[index] = instr
+                            }
+                            isPopoverPresented = false
+                        }
+                        .padding()
+                    }
+                    .frame(width: 300, height: 200)
+                    .onAppear {
+                        if let index = selectedInstructionIndex {
+                            instructionTag = codeItem.codes[index].meta.tag
+                            instructionComment = codeItem.codes[index].meta.comment
+                        }
+                    }
+                }*/
+                
+                Spacer()
+            }
+            .padding(.top, 4)
+            .padding(.bottom, 4)
+            .padding(.leading, 8)
+
             List(Array(codeItem.codes.enumerated()), id: \.1.id) { index, instruction in
                 let offset = String(format: "%04X", index)
                 
                 VStack(alignment: .leading) {
-                    
-                    if !instruction.meta.tag.isEmpty || !instruction.meta.comment.isEmpty {
-                        
-                        HStack {
-                            if !instruction.meta.tag.isEmpty {
-                                Text("\(instruction.meta.tag)")
-                                    .foregroundColor(.accentColor)
-                            }
-                            
-                            Spacer()
-                            
-                            if !instruction.meta.comment.isEmpty {
-                                Text("\(instruction.meta.comment)")
-                                    .foregroundColor(.secondary)
-                                    .frame(alignment: .trailing)
-                            }
-                        }
-                    }
-                    
                     HStack {
                         Text(offset)
                             .font(.system(.body, design: .monospaced))
@@ -171,6 +224,13 @@ struct CodeItemListView: View {
                                     )
                                 )
                             }
+                        case .comnt:
+                            CommentTextField(
+                                instruction: instruction,
+                                undoManager: undoManager,
+                                codeItem: codeItem,
+                                index: index
+                            )
                         case .inc, .dec:
                             HStack {
                                 Int8RegisterMenu(
@@ -184,7 +244,7 @@ struct CodeItemListView: View {
                                     )
                                 )                                
                             }
-                        case .je, .jne, .jl, .jg, .jc, .jo:
+                        case .j, .je, .jne, .jl, .jg, .jc, .jo:
                             CodeAddressTextField(
                                 instruction: instruction,
                                 undoManager: undoManager,
@@ -357,7 +417,7 @@ struct CodeItemListView: View {
                                     )
                                 )
                             }
-                        case .sprrot, .sprx, .spry:
+                        case .sprrot, .sprx, .spry, .sprspd, .spracc:
                             HStack {
                                 SpriteIndexTextField(
                                     spriteIndex: Binding(
@@ -400,6 +460,13 @@ struct CodeItemListView: View {
                                     )
                                 )
                             }
+                        case .tag:
+                            TagTextField(
+                                instruction: instruction,
+                                undoManager: undoManager,
+                                codeItem: codeItem,
+                                index: index
+                            )
                         default: Text("");
                         }
                     }
@@ -412,7 +479,6 @@ struct CodeItemListView: View {
         Menu {
             Section(header: Text("Instruction")) {
                 
-                Menu("Change To") {
                     Menu("CPU") {
                         Button("LD", action: {
                             if let selectedInstructionIndex = selectedInstructionIndex {
@@ -455,8 +521,8 @@ struct CodeItemListView: View {
                         }
                     })
                     
-                }
                 
+                /*
                 Menu("Insert NOP") {
                     Button("Before", action: {
                         if let selectedInstructionIndex = selectedInstructionIndex {
@@ -501,10 +567,11 @@ struct CodeItemListView: View {
                     }
                 })
                 .keyboardShortcut("X")
+                 */
             }
         }
         label: {
-            Label("Edit Instruction", systemImage: "gear")
+            Label("Change Instruction to", systemImage: "gear")
         }
         .menuStyle(.borderlessButton)
     }
