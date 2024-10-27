@@ -85,72 +85,6 @@ struct CodeItemListView: View {
                 .buttonStyle(.borderless)
                 .controlSize(.large)
                 .keyboardShortcut(.delete)
-
-                /*
-                Button(action: {
-                    isPopoverPresented = true
-                }) {
-                    Label("", systemImage: "tag.fill")
-                }
-                .buttonStyle(.borderless)
-                .controlSize(.large)
-                .keyboardShortcut("T")
-                
-                .popover(isPresented: $isPopoverPresented) {
-                    VStack {
-                        Text("Set Tag / Comment")
-                            .font(.headline)
-                            .padding()
-
-                        TextField("Tag", text: $instructionTag)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                            .padding(.horizontal, 12)
-                            .onSubmit {
-                                if let index = selectedInstructionIndex {
-                                    codeItem.codes[index].meta.tag = instructionTag
-                                    codeItem.codes[index].meta.comment = instructionComment
-                                    let instr = codeItem.codes[index]
-                                    codeItem.codes[index] = instr
-                                }
-                                isPopoverPresented = false
-                            }
-                        
-                        Spacer()
-                        
-                        TextField("Comment", text: $instructionComment)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                            .padding(.horizontal, 12)
-                            .onSubmit {
-                                if let index = selectedInstructionIndex {
-                                    codeItem.codes[index].meta.tag = instructionTag
-                                    codeItem.codes[index].meta.comment = instructionComment
-                                    let instr = codeItem.codes[index]
-                                    codeItem.codes[index] = instr
-                                }
-                                isPopoverPresented = false
-                            }
-                        
-                        Spacer()
-
-                        Button("Apply") {
-                            if let index = selectedInstructionIndex {
-                                codeItem.codes[index].meta.tag = instructionTag
-                                codeItem.codes[index].meta.comment = instructionComment
-                                let instr = codeItem.codes[index]
-                                codeItem.codes[index] = instr
-                            }
-                            isPopoverPresented = false
-                        }
-                        .padding()
-                    }
-                    .frame(width: 300, height: 200)
-                    .onAppear {
-                        if let index = selectedInstructionIndex {
-                            instructionTag = codeItem.codes[index].meta.tag
-                            instructionComment = codeItem.codes[index].meta.comment
-                        }
-                    }
-                }*/
                 
                 Spacer()
             }
@@ -163,15 +97,27 @@ struct CodeItemListView: View {
                 
                 VStack(alignment: .leading) {
                     HStack {
-                        Text(offset)
-                            .font(.system(.body, design: .monospaced))
-                            .frame(width: 50, alignment: .leading)
-                            .foregroundStyle(itemStyle(index))
-                            .onTapGesture {
-                                selectedInstructionIndex = index
-                            }
                         
-                        InstructionTextFieldView(instruction: $codeItem.codes[index], codeItem: codeItem, index: index)
+                        if instruction.type != .comnt {
+                            Text(offset)
+                                .font(.system(.body, design: .monospaced))
+                                .frame(alignment: .leading)
+                                .foregroundStyle(itemStyle(index))
+                                .onTapGesture {
+                                    selectedInstructionIndex = index
+                                }
+                            
+                            InstructionTextFieldView(instruction: $codeItem.codes[index], codeItem: codeItem, index: index)
+                        } else {
+                            Text("##")
+                                .font(.system(.body, design: .monospaced))
+//                                .frame(width: 50, alignment: .leading)
+                                //.foregroundStyle(.secondary)
+                                .foregroundStyle(itemStyle(index))
+                                .onTapGesture {
+                                    selectedInstructionIndex = index
+                                }
+                        }
                         
                         switch instruction.type {
                         case .add, .sub, .div, .mod, .mul:
@@ -439,7 +385,7 @@ struct CodeItemListView: View {
                                     )
                                 )
                             }
-                        case .sprrot, .sprx, .spry, .sprspd, .spracc:
+                        case .sprrot, .sprx, .spry, .sprspd, .spracc, .sprimg:
                             HStack {
                                 SpriteIndexTextField(
                                     spriteIndex: Binding(

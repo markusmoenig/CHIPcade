@@ -228,6 +228,15 @@ public class CPU {
         case .sprwrp:
             gcp.addCmd(.sprwrp(spriteIndex: Int(instruction.register1!), value: Int(instruction.register2!)))
             
+        case .sprimg:
+            gcp.addCmd(.sprimg(spriteIndex: Int(instruction.register1!), value: getRegisterValueInt(instruction.register2!)))
+            
+        case .sprmxs:
+            gcp.addCmd(.sprmxs(spriteIndex: Int(instruction.register1!), value: getRegisterValueFloat(instruction.register2!)))
+      
+        case .sprfri:
+            gcp.addCmd(.sprfri(spriteIndex: Int(instruction.register1!), value: getRegisterValueFloat(instruction.register2!)))
+            
         case .sub   :  if game.registers[Int(instruction.register1!)].sub(other: game.registers[Int(instruction.register2!)], flags: game.flags) {
             game.setError(.invalidArithmetic)
         }

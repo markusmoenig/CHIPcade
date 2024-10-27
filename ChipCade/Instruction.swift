@@ -33,7 +33,10 @@ public enum InstructionType: String, Codable, CaseIterable {
     case push
     case rect
     case spracc
+    case sprfri
+    case sprimg
     case sprlyr
+    case sprmxs
     case sprrot
     case sprset
     case sprspd
@@ -46,6 +49,9 @@ public enum InstructionType: String, Codable, CaseIterable {
     case tag
     
     static func fromString(_ string: String) -> InstructionType? {
+        if string.starts(with: "#") {
+            return .comnt
+        }
         return InstructionType.allCases.first { $0.toString().lowercased() == string.lowercased() }
     }
     
@@ -113,7 +119,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
             register1 = 0
             memory = "Data"
             memoryOffset = 0
-        case .spracc, .sprlyr, .sprrot, .sprspd, .sprvis, .sprx, .spry, .sprwrp:
+        case .spracc, .sprlyr, .sprrot, .sprspd, .sprvis, .sprx, .spry, .sprwrp, .sprimg, .sprmxs, .sprfri:
             register1 = 0
             register2 = 0
         case .tag:
@@ -231,9 +237,18 @@ public class Instruction: ObservableObject, Codable, Equatable {
           
         case .spracc:
             return "SPRACC S\(register1!) L\(register2!)"
+           
+        case .sprfri:
+            return "SPRFRI S\(register1!) L\(register2!)"
+            
+        case .sprimg:
+            return "SPRIMG S\(register1!) R\(register2!)"
             
         case .sprlyr:
             return "SPRLYR S\(register1!) L\(register2!)"
+            
+        case .sprmxs:
+            return "SPRMXS S\(register1!) L\(register2!)"
             
         case .sprrot:
             return "SPRROT S\(register1!) R\(register2!)"
@@ -316,8 +331,14 @@ public class Instruction: ObservableObject, Codable, Equatable {
             return "Subtract source from destination register"
         case .spracc:
             return "Applies an acceleration impulse"
+        case .sprfri:
+            return "Set sprite friction"
+        case .sprimg:
+            return "Set the image index for the sprite"
         case .sprlyr:
             return "Set sprite layer"
+        case .sprmxs:
+            return "Set sprite maximum speed"
         case .sprrot:
             return "Set sprite rotation"
         case .sprspd:
@@ -355,7 +376,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
             source = [register1!]
         case .sprset:
             source = [register1!]
-        case .spracc, .sprx, .spry, .sprrot, .sprspd:
+        case .spracc, .sprx, .spry, .sprrot, .sprspd, .sprimg, .sprfri, .sprmxs:
             source = [register2!]
         default: break;
         }
@@ -367,7 +388,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
         switch type {
         case .tag: return .blue
         case .comnt: return .secondary
-        case .rect, .sprset,.sprvis, .sprx, .spry, .lyrres, .lyrvis, .sprrot, .sprwrp:
+        case .rect, .sprset,.sprvis, .sprx, .spry, .lyrres, .lyrvis, .sprrot, .sprwrp, .sprimg, .spracc, .sprmxs, .sprfri:
             return .yellow
         default:
             return .primary

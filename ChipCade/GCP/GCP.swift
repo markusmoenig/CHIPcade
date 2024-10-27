@@ -20,6 +20,9 @@ public enum GCPCmd  {
     case sprwrp(spriteIndex: Int, value: Int)
     case lyrres(layerIndex: Int, width: Int, height: Int)
     case lyrvis(layerIndex: Int, value: Int)
+    case sprimg(spriteIndex: Int, value: Int)
+    case sprmxs(spriteIndex: Int, value: Float)
+    case sprfri(spriteIndex: Int, value: Float)
 }
 
 public class GCP {
@@ -192,6 +195,15 @@ public class GCP {
                 
             case .sprwrp(let spriteIndex, let value) :
                 sprites[spriteIndex].isWrapped = value == 1
+                
+            case .sprimg(let spriteIndex, let value) :
+                sprites[spriteIndex].currentImageIndex = value
+                
+            case .sprmxs(let spriteIndex, let value) :
+                sprites[spriteIndex].maxSpeed = CGFloat(value)
+                
+            case .sprfri(let spriteIndex, let value) :
+                sprites[spriteIndex].friction = CGFloat(value)
             }
         }
         

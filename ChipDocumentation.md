@@ -6,8 +6,8 @@
 
 ### Instruction Set
 
-- **TAG CodeTag**. Sets a code tag (for Jump or Call instructions).
-- **COMNT Text**. Sets a comment.
+- **TAG CodeTag**. Set a code tag (for Jump or Call instructions).
+- **# Text**. Set a comment.
 - **NOP**. No operation. Does nothing.
 
 - **LD Rd, Memory Address**. Load memory to the destination register.
@@ -34,7 +34,7 @@
 - **JC CodeTag**. Jump if the carry flag is set (used for unsigned comparisons).
 - **JO CodeTag**. Jump if the overflow flag is set (used for signed overflows).
 
-### Flags
+### CPU Flags
 
 - **Zero Flag (ZF)**. Set when the result of an operation is zero.
 - **Carry Flag (CF)**. Set when an arithmetic operation results in an unsigned overflow (carry out of the most significant bit) or underflow (borrow into the most significant bit).
@@ -57,7 +57,10 @@ Layers are drawn starting from index 0 up to 7. By default layers are in the res
 256 hardware sprites
 
 - **SPRLYR Sd, Ls**. Assign a layer to the sprite. By default a sprite is not bound to a layer and will be drawn on top of all layers.
-- **SPRSET Sd, ImageGroup**. Assign the image group to the sprite.
+
+- **SPRSET Sd, ImageGroup**. Assign an image group to the sprite.
+- **SPRIMG Sd, Rs**. Set the index of the image in the current image group. Default is 0.
+
 - **SPRVIS Sd, State**. Set sprite visibility (Invisible/Visible). Default is invisible.
 - **SPRWRP Sd, State**. Set the wrapping mode for the sprite (Off/On). Wrapped sprites wrap around the layer or screen (i.e. when they go offscreen re-appear on the other side).
 
@@ -65,5 +68,7 @@ Layers are drawn starting from index 0 up to 7. By default layers are in the res
 - **SPRY Sd, Rs**. Set the y position of the sprite.
 - **SPRROT Sd, Rs**. Set the rotation of the sprite.
 
-- **SPRACC Sd, Rs**. Applies an acceleration impulse to the sprite.
-- **SPRSPD Sd, Rs**. Applies a constant speed to the sprite.
+- **SPRACC Sd, Rs**. Apply an acceleration impulse to the sprite.
+- **SPRSPD Sd, Rs**. Apply a constant speed to the sprite.
+- **SPRMXS Sd, Rs**. Set the maximum speed for the sprite (for acceleration / impulse driven games).
+- **SPRFRI Sd, Rs**. Set the friction for the sprite.
