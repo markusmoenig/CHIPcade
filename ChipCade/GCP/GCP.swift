@@ -243,8 +243,12 @@ public class GCP {
                         let spriteWidth = Float(imageGroup.images[index].width) / scaleX
                         let spriteHeight = Float(imageGroup.images[index].height) / scaleY
                         
+                        // Calculate aspect ratio correction factors
+                        let aspectX = scaleX
+                        let aspectY = scaleY
+                        
                         draw2D.startShape(type: .triangle)
-                        draw2D.drawRect(spriteX, spriteY, spriteWidth, spriteHeight, float4(0, 0, 0, 1), Float(-sprite.rotation))
+                        draw2D.drawRect(spriteX, spriteY, spriteWidth, spriteHeight, float4(0, 0, 0, 1), Float(sprite.rotation), aspectX, aspectY)
                         draw2D.endShape(externalTexture: imageGroup.images[index])
                         
                         if sprite.isWrapped {
@@ -263,14 +267,14 @@ public class GCP {
                                 let x = sprite.position.x
                                 if x > -bufferX {
                                     draw2D.startShape(type: .triangle)
-                                    draw2D.drawRect(Float(layerSize.width + x) / scaleX, spriteY, spriteWidth, spriteHeight, float4(0, 0, 0, 1), Float(-sprite.rotation))
+                                    draw2D.drawRect(Float(layerSize.width + x) / scaleX, spriteY, spriteWidth, spriteHeight, float4(0, 0, 0, 1), Float(sprite.rotation), aspectX, aspectY)
                                     draw2D.endShape(externalTexture: imageGroup.images[index])
                                 }
                             } else if sprite.position.x > layerSize.width - bufferX {
                                 let x = sprite.position.x - (layerSize.width - bufferX)
                                 if x < bufferX {
                                     draw2D.startShape(type: .triangle)
-                                    draw2D.drawRect(Float(x - bufferX) / scaleX, spriteY, spriteWidth, spriteHeight, float4(0, 0, 0, 1), Float(-sprite.rotation))
+                                    draw2D.drawRect(Float(x - bufferX) / scaleX, spriteY, spriteWidth, spriteHeight, float4(0, 0, 0, 1), Float(sprite.rotation), aspectX, aspectY)
                                     draw2D.endShape(externalTexture: imageGroup.images[index])
                                 }
                             }
@@ -280,14 +284,14 @@ public class GCP {
                                 let y = sprite.position.y
                                 if y > -bufferY {
                                     draw2D.startShape(type: .triangle)
-                                    draw2D.drawRect(spriteX, Float(layerSize.height + y) / scaleY, spriteWidth, spriteHeight, float4(0, 0, 0, 1), Float(-sprite.rotation))
+                                    draw2D.drawRect(spriteX, Float(layerSize.height + y) / scaleY, spriteWidth, spriteHeight, float4(0, 0, 0, 1), Float(sprite.rotation), aspectX, aspectY)
                                     draw2D.endShape(externalTexture: imageGroup.images[index])
                                 }
                             } else if sprite.position.y > layerSize.height - bufferY {
                                 let y = sprite.position.y - (layerSize.height - bufferY)
                                 if y < bufferY {
                                     draw2D.startShape(type: .triangle)
-                                    draw2D.drawRect(spriteX, Float(y - bufferY) / scaleY, spriteWidth, spriteHeight, float4(0, 0, 0, 1), Float(-sprite.rotation))
+                                    draw2D.drawRect(spriteX, Float(y - bufferY) / scaleY, spriteWidth, spriteHeight, float4(0, 0, 0, 1), Float(sprite.rotation), aspectX, aspectY)
                                     draw2D.endShape(externalTexture: imageGroup.images[index])
                                 }
                             }

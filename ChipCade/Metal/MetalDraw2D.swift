@@ -266,6 +266,7 @@ class MetalDraw2D
         vertexCount += 1
     }
     
+    // Drawing with uniform scaling
     func drawRect(_ x: Float, _ y: Float, _ width: Float, _ height: Float,_ c: float4 = float4(0, 0, 0, 1), _ rot: Float = 0.0) {
         
         //        right, bottom, 1.0, 0.0,
@@ -309,6 +310,65 @@ class MetalDraw2D
             let bottomRight = rotate(x: x + width, y: y + height)
             
             let arr : [Float ] = [
+                xToMetal(bottomRight.0), yToMetal(bottomRight.1), 1.0, 0.0, c.x, c.y, c.z, c.w,
+                xToMetal(bottomLeft.0), yToMetal(bottomLeft.1), 0.0, 0.0, c.x, c.y, c.z, c.w,
+                xToMetal(topLeft.0), yToMetal(topLeft.1), 0.0, 1.0, c.x, c.y, c.z, c.w,
+                 
+                xToMetal(bottomRight.0), yToMetal(bottomRight.1), 1.0, 0.0, c.x, c.y, c.z, c.w,
+                xToMetal(topLeft.0), yToMetal(topLeft.1), 0.0, 1.0, c.x, c.y, c.z, c.w,
+                xToMetal(topRight.0), yToMetal(topRight.1), 1.0, 1.0, c.x, c.y, c.z, c.w,
+            ]
+            
+            vertexData.append(contentsOf: arr)
+            vertexCount += 6
+        }
+    }
+    
+    // Drawing with non uniform scaling
+    func drawRect(_ x: Float, _ y: Float, _ width: Float, _ height: Float, _ c: float4 = float4(0, 0, 0, 1), _ rot: Float = 0.0, _ scaleX: Float = 1.0, _ scaleY: Float = 1.0) {
+
+        if rot == 0.0 {
+            // No rotation case
+            let arr: [Float] = [
+                xToMetal(x + width), yToMetal(y + height), 1.0, 0.0, c.x, c.y, c.z, c.w,
+                xToMetal(x), yToMetal(y + height), 0.0, 0.0, c.x, c.y, c.z, c.w,
+                xToMetal(x), yToMetal(y), 0.0, 1.0, c.x, c.y, c.z, c.w,
+                 
+                xToMetal(x + width), yToMetal(y + height), 1.0, 0.0, c.x, c.y, c.z, c.w,
+                xToMetal(x), yToMetal(y), 0.0, 1.0, c.x, c.y, c.z, c.w,
+                xToMetal(x + width), yToMetal(y), 1.0, 1.0, c.x, c.y, c.z, c.w,
+            ]
+            
+            vertexData.append(contentsOf: arr)
+            vertexCount += 6
+        } else {
+            // Rotation case with aspect correction
+            let radians = rot.degreesToRadians
+            let cosAngle = cos(radians)
+            let sinAngle = sin(radians)
+
+            // Center of the rectangle
+            let cx = x + width / 2.0
+            let cy = y + height / 2.0
+
+            // Helper function to rotate with aspect correction
+            func rotate(x: Float, y: Float) -> (Float, Float) {
+                let scaledX = (x - cx) * scaleX
+                let scaledY = (y - cy) * scaleY
+
+                let nx = cosAngle * scaledX - sinAngle * scaledY
+                let ny = sinAngle * scaledX + cosAngle * scaledY
+
+                return (nx / scaleX + cx, ny / scaleY + cy)
+            }
+
+            // Calculate the rotated vertices with aspect correction
+            let topLeft = rotate(x: x, y: y)
+            let topRight = rotate(x: x + width, y: y)
+            let bottomLeft = rotate(x: x, y: y + height)
+            let bottomRight = rotate(x: x + width, y: y + height)
+
+            let arr: [Float] = [
                 xToMetal(bottomRight.0), yToMetal(bottomRight.1), 1.0, 0.0, c.x, c.y, c.z, c.w,
                 xToMetal(bottomLeft.0), yToMetal(bottomLeft.1), 0.0, 0.0, c.x, c.y, c.z, c.w,
                 xToMetal(topLeft.0), yToMetal(topLeft.1), 0.0, 1.0, c.x, c.y, c.z, c.w,
