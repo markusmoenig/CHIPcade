@@ -231,6 +231,9 @@ public class CPU {
         case .sprimg:
             gcp.addCmd(.sprimg(spriteIndex: Int(instruction.register1!), value: getRegisterValueInt(instruction.register2!)))
             
+        case .sprpri:
+            gcp.addCmd(.sprpri(spriteIndex: Int(instruction.register1!), value: getRegisterValueInt(instruction.register2!)))
+            
         case .sprmxs:
             gcp.addCmd(.sprmxs(spriteIndex: Int(instruction.register1!), value: getRegisterValueFloat(instruction.register2!)))
       

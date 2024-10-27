@@ -23,6 +23,7 @@ public enum GCPCmd  {
     case sprimg(spriteIndex: Int, value: Int)
     case sprmxs(spriteIndex: Int, value: Float)
     case sprfri(spriteIndex: Int, value: Float)
+    case sprpri(spriteIndex: Int, value: Int)
 }
 
 public class GCP {
@@ -142,7 +143,7 @@ public class GCP {
         draw2D.setTexture(id: 0)
 
         draw2D.encodeStart()
-        //draw2D.clear(color: float4(0.0, 0.0, 0.0, 1.0))
+        draw2D.clear(color: float4(0.0, 0.0, 0.0, 0.0))
 
         for cmd in cmds {
             switch cmd {
@@ -198,6 +199,9 @@ public class GCP {
                 
             case .sprimg(let spriteIndex, let value) :
                 sprites[spriteIndex].currentImageIndex = value
+            
+            case .sprpri(let spriteIndex, let value) :
+                sprites[spriteIndex].priority = value
                 
             case .sprmxs(let spriteIndex, let value) :
                 sprites[spriteIndex].maxSpeed = CGFloat(value)
@@ -227,7 +231,8 @@ public class GCP {
                     scaleY = Float(layerSize.height) / Float(height)
                 }
                 
-                for sprite in sprites {
+                let sortedSprites = sortedSprites(in: layerIndex, from: sprites)
+                for sprite in sortedSprites {
                     if let imageGroup = sprite.imageGroup, sprite.isVisible, sprite.layer == layerIndex{
                         let index = sprite.currentImageIndex
                         
@@ -359,9 +364,21 @@ public class GCP {
         // Clear all commands as processed
         cmds.removeAll()
     }
-        
+     
+    // Get the image group of the given name
     func getImageGroup(name: String) -> ImageGroup? {
         return imageGroups.first { $0.name == name }
+    }
+    
+    // Sort the sprites based on their layer and priority
+    func sortedSprites(in layerIndex: Int?, from sprites: [Sprite]) -> [Sprite] {
+        // Filter sprites that belong to the given layer
+        let layerSprites = sprites.filter { $0.layer == layerIndex }
+        
+        // Sort the filtered sprites by priority (ascending)
+        let sortedSprites = layerSprites.sorted { $0.priority > $1.priority }
+        
+        return sortedSprites
     }
 }
 

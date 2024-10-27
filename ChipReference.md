@@ -69,6 +69,7 @@ Layers are drawn starting from index 0 up to 7. By default layers are in the res
 - **SPRX Sd, Rs**. Set the x position of the sprite.
 - **SPRY Sd, Rs**. Set the y position of the sprite.
 - **SPRROT Sd, Rs**. Set the rotation of the sprite.
+- **SPRPRI Sd, Rs**. Set the priority of the sprite. Sprite with a lower priority with be drawn last. Default is 0.
 
 - **SPRACC Sd, Rs**. Apply an acceleration impulse to the sprite.
 - **SPRSPD Sd, Rs**. Apply a constant speed to the sprite.

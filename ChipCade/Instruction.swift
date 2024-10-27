@@ -37,6 +37,7 @@ public enum InstructionType: String, Codable, CaseIterable {
     case sprimg
     case sprlyr
     case sprmxs
+    case sprpri
     case sprrot
     case sprset
     case sprspd
@@ -119,7 +120,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
             register1 = 0
             memory = "Data"
             memoryOffset = 0
-        case .spracc, .sprlyr, .sprrot, .sprspd, .sprvis, .sprx, .spry, .sprwrp, .sprimg, .sprmxs, .sprfri:
+        case .spracc, .sprlyr, .sprrot, .sprspd, .sprvis, .sprx, .spry, .sprwrp, .sprimg, .sprmxs, .sprfri, .sprpri:
             register1 = 0
             register2 = 0
         case .tag:
@@ -249,6 +250,9 @@ public class Instruction: ObservableObject, Codable, Equatable {
             
         case .sprmxs:
             return "SPRMXS S\(register1!) L\(register2!)"
+          
+        case .sprpri:
+            return "SPRPRI S\(register1!) L\(register2!)"
             
         case .sprrot:
             return "SPRROT S\(register1!) R\(register2!)"
@@ -339,6 +343,8 @@ public class Instruction: ObservableObject, Codable, Equatable {
             return "Set sprite layer"
         case .sprmxs:
             return "Set sprite maximum speed"
+        case .sprpri:
+            return "Set sprite priority"
         case .sprrot:
             return "Set sprite rotation"
         case .sprspd:
@@ -376,7 +382,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
             source = [register1!]
         case .sprset:
             source = [register1!]
-        case .spracc, .sprx, .spry, .sprrot, .sprspd, .sprimg, .sprfri, .sprmxs:
+        case .spracc, .sprx, .spry, .sprrot, .sprspd, .sprimg, .sprfri, .sprmxs, .sprpri:
             source = [register2!]
         default: break;
         }
@@ -388,7 +394,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
         switch type {
         case .tag: return .blue
         case .comnt: return .secondary
-        case .rect, .sprset,.sprvis, .sprx, .spry, .lyrres, .lyrvis, .sprrot, .sprwrp, .sprimg, .spracc, .sprmxs, .sprfri:
+        case .rect, .sprset,.sprvis, .sprx, .spry, .lyrres, .lyrvis, .sprrot, .sprwrp, .sprimg, .spracc, .sprmxs, .sprfri, .sprpri, .sprlyr:
             return .yellow
         default:
             return .primary
