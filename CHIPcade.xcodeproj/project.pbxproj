@@ -7,13 +7,14 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		DD72F1892CAC25790054826E /* ChipDocumentation.md in Resources */ = {isa = PBXBuildFile; fileRef = DD72F1882CAC25790054826E /* ChipDocumentation.md */; };
+		DD72F1892CAC25790054826E /* ChipReference.md in Resources */ = {isa = PBXBuildFile; fileRef = DD72F1882CAC25790054826E /* ChipReference.md */; };
 		DDFC5A8B2CCE209800CADD62 /* Readme.md in Resources */ = {isa = PBXBuildFile; fileRef = DDFC5A8A2CCE209800CADD62 /* Readme.md */; };
+		DDFC5A8E2CCE258E00CADD62 /* MarkdownUI in Frameworks */ = {isa = PBXBuildFile; productRef = DDFC5A8D2CCE258E00CADD62 /* MarkdownUI */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		DD72F1282CA82DC00054826E /* CHIPcade.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CHIPcade.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		DD72F1882CAC25790054826E /* ChipDocumentation.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = ChipDocumentation.md; sourceTree = "<group>"; };
+		DD72F1882CAC25790054826E /* ChipReference.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = ChipReference.md; sourceTree = "<group>"; };
 		DDFC5A8A2CCE209800CADD62 /* Readme.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Readme.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -43,6 +44,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				DDFC5A8E2CCE258E00CADD62 /* MarkdownUI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -53,7 +55,7 @@
 			isa = PBXGroup;
 			children = (
 				DDFC5A8A2CCE209800CADD62 /* Readme.md */,
-				DD72F1882CAC25790054826E /* ChipDocumentation.md */,
+				DD72F1882CAC25790054826E /* ChipReference.md */,
 				DD72F12A2CA82DC00054826E /* ChipCade */,
 				DD72F1292CA82DC00054826E /* Products */,
 			);
@@ -87,6 +89,7 @@
 			);
 			name = CHIPcade;
 			packageProductDependencies = (
+				DDFC5A8D2CCE258E00CADD62 /* MarkdownUI */,
 			);
 			productName = ChipCade;
 			productReference = DD72F1282CA82DC00054826E /* CHIPcade.app */;
@@ -116,6 +119,9 @@
 			);
 			mainGroup = DD72F11F2CA82DC00054826E;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				DDFC5A8C2CCE258E00CADD62 /* XCRemoteSwiftPackageReference "swift-markdown-ui" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = DD72F1292CA82DC00054826E /* Products */;
 			projectDirPath = "";
@@ -132,7 +138,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				DDFC5A8B2CCE209800CADD62 /* Readme.md in Resources */,
-				DD72F1892CAC25790054826E /* ChipDocumentation.md in Resources */,
+				DD72F1892CAC25790054826E /* ChipReference.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -373,6 +379,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		DDFC5A8C2CCE258E00CADD62 /* XCRemoteSwiftPackageReference "swift-markdown-ui" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/gonzalezreal/swift-markdown-ui";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.4.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		DDFC5A8D2CCE258E00CADD62 /* MarkdownUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DDFC5A8C2CCE258E00CADD62 /* XCRemoteSwiftPackageReference "swift-markdown-ui" */;
+			productName = MarkdownUI;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = DD72F1202CA82DC00054826E /* Project object */;
 }

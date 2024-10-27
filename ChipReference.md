@@ -1,4 +1,6 @@
-#  CPU / GCP Documentation
+# Chip Reference
+
+For more detailed information please see [CHIPcade.com](https://chipcade.com).
 
 ## CPU
 

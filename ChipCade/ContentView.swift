@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import MarkdownUI
 
 // Hack to avoid UndoManager closure warnings
 extension UndoManager: @unchecked @retroactive Sendable { }
@@ -114,7 +115,7 @@ struct ContentView: View {
                     isReferenceSelected = true
                 }) {
                     HStack {
-                        Text("Reference")
+                        Text("Chip Reference")
                             .foregroundColor(.primary)
                             .padding(.leading, 10)
                         Spacer()
@@ -209,7 +210,7 @@ struct ContentView: View {
                             .padding(4)
                     } else if isReferenceSelected {
                         ScrollView {
-                            Text(.init(referenceText))
+                            Markdown(referenceText)
                                 .padding(4)
                         }
                     }
@@ -306,7 +307,7 @@ struct ContentView: View {
             selectedCodeItem = document.game.data.codeItems[0]
             notes = document.game.data.notes
             
-            if let fileURL = Bundle.main.url(forResource: "ChipDocumentation", withExtension: "md") {
+            if let fileURL = Bundle.main.url(forResource: "ChipReference", withExtension: "md") {
                 do {
                     let data = try Data(contentsOf: fileURL)
                     if let fileContents = String(data: data, encoding: .utf8) {
