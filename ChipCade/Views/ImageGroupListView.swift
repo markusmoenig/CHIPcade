@@ -35,7 +35,7 @@ struct ImageGroupItemListView: View {
                     HStack {
                         // Display the image (assumes image data, update logic as needed)
                         #if os(iOS)
-                        if let uiImage = UIImage(data: spriteItem.images[index]) {
+                        if let uiImage = UIImage(data: imageGroupItem.images[index]) {
                             Image(uiImage: uiImage)
                                 .resizable()
                                 .aspectRatio(contentMode: .fit) // Maintain aspect ratio
@@ -111,8 +111,8 @@ struct ImageGroupItemListView: View {
         let documentPicker = UIDocumentPickerViewController(forOpeningContentTypes: [.image], asCopy: true)
         documentPicker.delegate = DocumentPickerDelegate { url in
             if let url = url, let imageData = try? Data(contentsOf: url) {
-                spriteItem.images.append(imageData)
-                selectedImageIndex = spriteItem.images.count - 1 // Set to new image index
+                imageGroupItem.images.append(imageData)
+                selectedImageIndex = imageGroupItem.images.count - 1 // Set to new image index
             }
         }
         if let controller = UIApplication.shared.windows.first?.rootViewController {

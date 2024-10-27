@@ -102,7 +102,10 @@ public class Game : ObservableObject
         reset()
 
         error = .none
-        errorChanged.send(false)
+        
+        DispatchQueue.main.async {
+            self.errorChanged.send(false)
+        }
 
         state = .paused
         gcp.draw2D.metalView.enableSetNeedsDisplay = true
@@ -213,17 +216,17 @@ public class Game : ObservableObject
     }
     
     public func reset() {
-        stack = []
-        callStack = []
+        DispatchQueue.main.async {
+            self.stack = []
         
-        flags.clearFlags()
+            self.flags.clearFlags()
                 
-        for i in 0...7 {
-            registers[i] = ChipCadeData.unsigned16Bit(0)
+            for i in 0...7 {
+                self.registers[i] = ChipCadeData.unsigned16Bit(0)
+            }
+            self.currCodeItemIndex = 0
+            self.currInstructionIndex = 0
         }
-        
-        currCodeItemIndex = 0
-        currInstructionIndex = 0
     }
     
     // Set an active eeror

@@ -221,7 +221,11 @@ struct ContentView: View {
                     StackView(game: document.game)
                         .frame(height: 150)
                 }
+                #if os(macOS)
                 .frame(maxWidth: 350)
+                #elseif os(iOS)
+                .frame(maxWidth: 400)
+                #endif
             }
         }        
         .toolbar {
@@ -328,7 +332,8 @@ struct ContentView: View {
                 selectedCodeItem = document.game.data.codeItems[document.game.errorCodeItemIndex]
                 selectedInstruction = document.game.data.codeItems[document.game.errorCodeItemIndex].codes[document.game.errorInstructionIndex]
                 selectedInstructionIndex = document.game.errorInstructionIndex
-            } else {
+            }
+            else {
                 selectedCodeItem = document.game.data.codeItems[document.game.currCodeItemIndex]
                 selectedInstruction = document.game.data.codeItems[document.game.currCodeItemIndex].codes[document.game.currInstructionIndex]
                 selectedInstructionIndex = document.game.currInstructionIndex

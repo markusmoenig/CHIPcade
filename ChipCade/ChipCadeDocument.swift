@@ -29,14 +29,17 @@ struct ChipCadeDocument: FileDocument {
     init(configuration: ReadConfiguration) throws {
         game = Game.shared
         game.reset()
-        
+
+        // Load game data using a temporary variable
         guard let data = configuration.file.regularFileContents else {
-            throw CocoaError(.fileReadNoSuchFile) // Changed to reflect the issue better
+            throw CocoaError(.fileReadNoSuchFile)
         }
-        
+
         do {
             let gameData = try JSONDecoder().decode(GameData.self, from: data)
-            self.game.data = gameData
+            DispatchQueue.main.async {
+                Game.shared.data = gameData
+            }
         } catch {
             print("Error: Failed to decode Game object. Details: \(error)")
             throw CocoaError(.fileReadCorruptFile)

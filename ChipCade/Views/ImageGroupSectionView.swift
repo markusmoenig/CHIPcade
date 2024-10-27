@@ -66,7 +66,7 @@ struct ImageGroupSectionView: View {
                     }
                     
                     Button {
-                        startRenaming(item: spriteItems[index])
+                        startRenaming(item: imageGroupItems[index])
                     } label: {
                         Label("Rename", systemImage: "pencil")
                     }
