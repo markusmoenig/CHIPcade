@@ -16,7 +16,14 @@ struct ContentView: View {
     @State private var selectedCodeItem: CodeItem? = nil
     @State private var selectedImageGroupItem: ImageGroupItem? = nil
     @State private var selectedMemoryItem: MemoryItem? = nil
-    
+
+    @State private var isPaletteSelected: Bool = false
+    @State private var isNotesSelected: Bool = false
+    @State private var isReferenceSelected: Bool = false
+
+    @State private var notes: String = ""
+    @State private var referenceText: String = ""
+
     @State private var selectedInstructionIndex: Int?
     @State private var selectedInstruction: Instruction?
 
@@ -54,6 +61,9 @@ struct ContentView: View {
                     selectedCodeItem = nil
                     selectedImageGroupItem = nil
                     selectedMemoryItem = nil
+                    isPaletteSelected = true
+                    isNotesSelected = false
+                    isReferenceSelected = false
                 }) {
                     HStack {
                         Text("Palette")
@@ -64,7 +74,55 @@ struct ContentView: View {
                     .padding(.vertical, 6)
                     .background(
                         RoundedRectangle(cornerRadius: 8)
-                            .fill((selectedCodeItem == nil && selectedMemoryItem == nil && selectedImageGroupItem == nil) ? Color.accentColor.opacity(0.2) : Color.clear)
+                            .fill((isPaletteSelected) ? Color.accentColor.opacity(0.2) : Color.clear)
+                    )
+                }
+                .buttonStyle(PlainButtonStyle())
+                
+                Button(action: {
+                    selectedCodeItem = nil
+                    selectedImageGroupItem = nil
+                    selectedMemoryItem = nil
+                    isPaletteSelected = false
+                    isNotesSelected = true
+                    isReferenceSelected = false
+                }) {
+                    HStack {
+                        Text("Notes")
+                            .foregroundColor(.primary)
+                            .padding(.leading, 10)
+                        Spacer()
+                    }
+                    .padding(.vertical, 6)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill((isNotesSelected) ? Color.accentColor.opacity(0.2) : Color.clear)
+                    )
+                }
+                .buttonStyle(PlainButtonStyle())
+                
+                #if !os(iOS)
+                Divider()
+                #endif
+                
+                Button(action: {
+                    selectedCodeItem = nil
+                    selectedImageGroupItem = nil
+                    selectedMemoryItem = nil
+                    isPaletteSelected = false
+                    isNotesSelected = false
+                    isReferenceSelected = true
+                }) {
+                    HStack {
+                        Text("Reference")
+                            .foregroundColor(.primary)
+                            .padding(.leading, 10)
+                        Spacer()
+                    }
+                    .padding(.vertical, 6)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill((isReferenceSelected) ? Color.accentColor.opacity(0.2) : Color.clear)
                     )
                 }
                 .buttonStyle(PlainButtonStyle())
@@ -143,11 +201,18 @@ struct ContentView: View {
                     } else
                     if let memoryItem = selectedMemoryItem {
                         MemoryGridView(memoryItem: memoryItem)
-                    } else {
+                    } else if isPaletteSelected {
                         PaletteView(game: document.game)
                             .padding(0)
+                    } else if isNotesSelected {
+                        TextEditor(text: $notes)
+                            .padding(4)
+                    } else if isReferenceSelected {
+                        ScrollView {
+                            Text(.init(referenceText))
+                                .padding(4)
+                        }
                     }
-
                     
                     Spacer()
                     Divider()
@@ -239,6 +304,22 @@ struct ContentView: View {
         }
         .onAppear {
             selectedCodeItem = document.game.data.codeItems[0]
+            notes = document.game.data.notes
+            
+            if let fileURL = Bundle.main.url(forResource: "ChipDocumentation", withExtension: "md") {
+                do {
+                    let data = try Data(contentsOf: fileURL)
+                    if let fileContents = String(data: data, encoding: .utf8) {
+                        referenceText = fileContents
+                    } else {
+                        referenceText = "Failed to decode the file contents."
+                    }
+                } catch {
+                    referenceText = "Failed to load reference document: \(error.localizedDescription)"
+                }
+            } else {
+                referenceText = "Reference document not found."
+            }
         }
         
         .onReceive(document.game.errorChanged) { value in
@@ -262,6 +343,10 @@ struct ContentView: View {
             document.game.cpuRender.update()
         }
         
+        .onChange(of: notes) {
+            document.game.data.notes = notes
+        }
+        
         .onChange(of: selectedCodeItem) {
             if let selectedCodeItem = selectedCodeItem {
                 if let index = document.game.getCodeItemIndex(byItem: selectedCodeItem) {
@@ -271,6 +356,30 @@ struct ContentView: View {
             document.game.currInstructionIndex = 0
             selectedInstructionIndex = 0
             document.game.selectionState = .code
+        }
+        
+        .onChange(of: selectedCodeItem) {
+            if selectedCodeItem != nil {
+                isPaletteSelected = false
+                isNotesSelected = false
+                isReferenceSelected = false
+            }
+        }
+        
+        .onChange(of: selectedMemoryItem) {
+            if selectedMemoryItem != nil {
+                isPaletteSelected = false
+                isNotesSelected = false
+                isReferenceSelected = false
+            }
+        }
+        
+        .onChange(of: selectedImageGroupItem) {
+            if selectedImageGroupItem != nil {
+                isPaletteSelected = false
+                isNotesSelected = false
+                isReferenceSelected = false
+            }
         }
         
         .searchable(text: $searchText) {

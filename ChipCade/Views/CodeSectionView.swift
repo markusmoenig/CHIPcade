@@ -85,8 +85,8 @@ struct CodeSectionView: View {
 
                     Button(action: {
                         gameData.deleteCodeItem(at: index, using: undoManager) { newItem in
-                           selectedCodeItem = newItem
-                           selectedMemoryItem = nil
+                            selectedCodeItem = newItem
+                            selectedMemoryItem = nil
                             selectedImageGroupItem = nil
                        }
                     }) {

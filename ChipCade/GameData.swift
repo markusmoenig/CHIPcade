@@ -13,9 +13,10 @@ class GameData: ObservableObject, Codable {
     @Published var imageGroupItems: [ImageGroupItem] = []
     @Published var dataItems: [MemoryItem] = []
     @Published var palette: [float4] = []
+    @Published var notes: String = String()
 
     enum CodingKeys: String, CodingKey {
-        case codeItems, imageGroupItems, dataItems, palette
+        case codeItems, imageGroupItems, dataItems, palette, notes
     }
     
     init() {
@@ -23,6 +24,7 @@ class GameData: ObservableObject, Codable {
         self.imageGroupItems = []
         self.dataItems = [MemoryItem(name: "Data", length: 1024)]
         self.palette = GameData.defaultPalette()
+        self.notes = ""
     }
     
     required public init(from decoder: Decoder) throws
@@ -32,6 +34,11 @@ class GameData: ObservableObject, Codable {
         imageGroupItems = try container.decode([ImageGroupItem].self, forKey: .imageGroupItems)
         dataItems = try container.decode([MemoryItem].self, forKey: .dataItems)
         palette = try container.decode([float4].self, forKey: .palette)
+        if let notes = try container.decodeIfPresent(String.self, forKey: .notes) {
+            self.notes = notes
+        } else {
+            self.notes = ""
+        }
     }
 
     public func encode(to encoder: Encoder) throws
@@ -41,6 +48,7 @@ class GameData: ObservableObject, Codable {
         try container.encode(imageGroupItems, forKey: .imageGroupItems)
         try container.encode(dataItems, forKey: .dataItems)
         try container.encode(palette, forKey: .palette)
+        try container.encode(notes, forKey: .notes)
     }
     
     // Get memory item.

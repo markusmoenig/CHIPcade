@@ -8,11 +8,13 @@
 
 /* Begin PBXBuildFile section */
 		DD72F1892CAC25790054826E /* ChipDocumentation.md in Resources */ = {isa = PBXBuildFile; fileRef = DD72F1882CAC25790054826E /* ChipDocumentation.md */; };
+		DDFC5A8B2CCE209800CADD62 /* Readme.md in Resources */ = {isa = PBXBuildFile; fileRef = DDFC5A8A2CCE209800CADD62 /* Readme.md */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		DD72F1282CA82DC00054826E /* CHIPcade.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CHIPcade.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		DD72F1882CAC25790054826E /* ChipDocumentation.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = ChipDocumentation.md; sourceTree = "<group>"; };
+		DDFC5A8A2CCE209800CADD62 /* Readme.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Readme.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -50,6 +52,7 @@
 		DD72F11F2CA82DC00054826E = {
 			isa = PBXGroup;
 			children = (
+				DDFC5A8A2CCE209800CADD62 /* Readme.md */,
 				DD72F1882CAC25790054826E /* ChipDocumentation.md */,
 				DD72F12A2CA82DC00054826E /* ChipCade */,
 				DD72F1292CA82DC00054826E /* Products */,
@@ -128,6 +131,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				DDFC5A8B2CCE209800CADD62 /* Readme.md in Resources */,
 				DD72F1892CAC25790054826E /* ChipDocumentation.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
