@@ -28,3 +28,25 @@ struct Int8VisibleMenu: View {
         .menuStyle(DefaultMenuStyle())
     }
 }
+
+struct Int8OnOffMenu: View {
+    @Binding var on: Int8
+    
+    let values: [Int8] = Array(0...1)
+
+    var body: some View {
+        Menu {
+            ForEach(values, id: \.self) { newValue in
+                Button(action: {
+                    on = newValue
+                    Game.shared.cpuRender.update()
+                }) {
+                    Text(newValue == 0 ? "Off" : "On")
+                }
+            }
+        } label: {
+            Text(on == 0 ? "Off" : "On")
+        }
+        .menuStyle(DefaultMenuStyle())
+    }
+}

@@ -225,6 +225,9 @@ public class CPU {
         case .sprspd:
             gcp.addCmd(.sprspd(spriteIndex: Int(instruction.register1!), value: getRegisterValueFloat(instruction.register2!)))
             
+        case .sprwrp:
+            gcp.addCmd(.sprwrp(spriteIndex: Int(instruction.register1!), value: Int(instruction.register2!)))
+            
         case .sub   :  if game.registers[Int(instruction.register1!)].sub(other: game.registers[Int(instruction.register2!)], flags: game.flags) {
             game.setError(.invalidArithmetic)
         }
@@ -234,7 +237,7 @@ public class CPU {
         
         return true
     }
-
+    
     func getRegisterValueInt(_ register: Int8) -> Int {
         Int(game.registers[Int(register)].toFloat32Bit())
     }

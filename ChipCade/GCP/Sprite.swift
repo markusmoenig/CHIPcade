@@ -21,7 +21,7 @@ class Sprite {
     var scale: CGFloat = 1.0
     
     var isVisible: Bool = false
-    var isWrapper: Bool = true
+    var isWrapped: Bool = false
     
     var priority: Int = 0
     

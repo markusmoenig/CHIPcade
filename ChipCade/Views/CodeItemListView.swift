@@ -411,8 +411,30 @@ struct CodeItemListView: View {
                                         set: { newRegister in
                                             let newInstruction = instruction.clone()
                                             newInstruction.register2 = newRegister
-                                            print("Setting visible to \(newRegister)")
                                             codeItem.aboutToChange(using: undoManager, newInstruction: newInstruction, at: index, text: "Visible Changed")
+                                        }
+                                    )
+                                )
+                            }
+                        case .sprwrp:
+                            HStack {
+                                SpriteIndexTextField(
+                                    spriteIndex: Binding(
+                                        get: { Int(instruction.register1!) },
+                                        set: { newRegister in
+                                            let newInstruction = instruction.clone()
+                                            newInstruction.register1 = Int8(newRegister)
+                                            codeItem.aboutToChange(using: undoManager, newInstruction: newInstruction, at: index, text: "Sprite Changed")
+                                        }
+                                    )
+                                )
+                                Int8OnOffMenu(
+                                    on: Binding(
+                                        get: { instruction.register2! },
+                                        set: { newRegister in
+                                            let newInstruction = instruction.clone()
+                                            newInstruction.register2 = newRegister
+                                            codeItem.aboutToChange(using: undoManager, newInstruction: newInstruction, at: index, text: "State Changed")
                                         }
                                     )
                                 )

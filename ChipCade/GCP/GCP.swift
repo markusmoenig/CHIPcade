@@ -17,6 +17,7 @@ public enum GCPCmd  {
     case sprrot(spriteIndex: Int, value: Float)
     case sprspd(spriteIndex: Int, value: Float)
     case spracc(spriteIndex: Int, value: Float)
+    case sprwrp(spriteIndex: Int, value: Int)
     case lyrres(layerIndex: Int, width: Int, height: Int)
     case lyrvis(layerIndex: Int, value: Int)
 }
@@ -87,77 +88,42 @@ public class GCP {
             if sprite.isVisible {
                 sprite.updatePosition()
                 
-                if sprite.isWrapper {
-                    
+                
+                if sprite.isWrapped {
                     // Default to screen size
                     var layerSize = screenSize
-                    var scaleX: Float = 1.0
-                    var scaleY: Float = 1.0
-                    var offsetX: Float = 0.0
-                    var offsetY: Float = 0.0
-                    var scaledLayerWidth: Float = Float(layerSize.width)
-                    var scaledLayerHeight: Float = Float(layerSize.height)
-                    
-                    // If sprite is associated with a layer, use the layer size and scaling
-                    if let layerIndex = sprite.layer {
-                        if let size = layers[layerIndex].size {
-                            layerSize = size
-                            
-                            // Calculate the scaling factors for the layer
-                            let layerAspectRatio = size.width / size.height
-                            let screenAspectRatio = CGFloat(width) / CGFloat(height)
-                            
-                            // Determine scaling and maintain aspect ratio
-                            if layerAspectRatio > screenAspectRatio {
-                                // Fit based on width
-                                scaledLayerWidth = Float(width)
-                                scaledLayerHeight = Float(width) / Float(layerAspectRatio)
-                            } else {
-                                // Fit based on height
-                                scaledLayerHeight = Float(height)
-                                scaledLayerWidth = Float(height) * Float(layerAspectRatio)
-                            }
-                            
-                            // Calculate offsets to center the layer
-                            offsetX = (Float(width) - scaledLayerWidth) / 2.0
-                            offsetY = (Float(height) - scaledLayerHeight) / 2.0
 
-                            // Calculate sprite scaling within the layer
-                            scaleX = scaledLayerWidth / Float(layerSize.width)
-                            scaleY = scaledLayerHeight / Float(layerSize.height)
-                        }
+                    // If sprite is associated with a layer, use the layer size
+                    if let layerIndex = sprite.layer, let size = layers[layerIndex].size {
+                        layerSize = size
                     }
-                    
-                    // Adjust the sprite's scaled size
-                    let scaledWidth = sprite.size.width * CGFloat(scaleX)
-                    let scaledHeight = sprite.size.height * CGFloat(scaleY)
-                    
-                    // Adjusted sprite position in screen coordinates
-                    let spritePosX = sprite.position.x * CGFloat(scaleX) + CGFloat(offsetX)
-                    let spritePosY = sprite.position.y * CGFloat(scaleY) + CGFloat(offsetY)
-                    
-                    // Check horizontal wrapping with scaling and centering offset
-                    if spritePosX + scaledWidth < 0 {
-                        // Moved left, reappear on the right
-                        sprite.position.x = (layerSize.width - sprite.size.width)
-                    } else if spritePosX > CGFloat(scaledLayerWidth) {
-                        // Moved right, reappear on the left
-                        sprite.position.x = -sprite.size.width
+
+                    // Buffer zone for wrapping
+                    let bufferX = sprite.size.width
+                    let bufferY = sprite.size.height
+
+                    // Wrap horizontally only if completely off-screen
+                    if sprite.position.x < -bufferX {
+                        // sprite.position.x += layerSize.width + bufferX
+                        sprite.position.x = layerSize.width - bufferX
+                    } else if sprite.position.x > layerSize.width {
+                        // sprite.position.x -= layerSize.width + bufferX
+                        sprite.position.x = 0
                     }
-                    
-                    // Check vertical wrapping with scaling and centering offset
-                    if spritePosY + scaledHeight < 0 {
-                        // Moved above, reappear at the bottom
-                        sprite.position.y = (layerSize.height - sprite.size.height)
-                    } else if spritePosY > CGFloat(scaledLayerHeight) {
-                        // Moved below, reappear at the top
-                        sprite.position.y = -sprite.size.height
+
+                    // Wrap vertically only if completely off-screen
+                    if sprite.position.y < -bufferY {
+                        //sprite.position.y += layerSize.height + bufferY
+                        sprite.position.y = layerSize.height - bufferY
+                    } else if sprite.position.y > layerSize.height {
+                        //sprite.position.y -= layerSize.height + bufferY
+                        sprite.position.y = 0
                     }
                 }
             }
         }
-                
-        //draw2D.syncTexturesToView()
+
+        // Make sure the layers are in the correct size (either screen or custom layer size)
         for layer in layers {
             if layer.size == nil {
                 draw2D.syncTextureToView(index: layer.index)
@@ -166,9 +132,8 @@ public class GCP {
             }
         }
         
+        // Process all graphic commands
         let targetLayer = 0
-//        let width = Int(draw2D.metalView.frame.width)
-//        let height = Int(draw2D.metalView.frame.height)
         
         draw2D.setTarget(id: targetLayer)
         draw2D.setTexture(id: 0)
@@ -224,29 +189,20 @@ public class GCP {
             case .spracc(let spriteIndex, let value) :
                 sprites[spriteIndex].acceleration = CGFloat(value)
                 sprites[spriteIndex].applyAccelerationImpulse()
+                
+            case .sprwrp(let spriteIndex, let value) :
+                sprites[spriteIndex].isWrapped = value == 1
             }
         }
         
         draw2D.encodeEnd()
 
-//        draw2D.setTarget(id: 0)
-//        draw2D.setTexture(id: 1)
-//
-//        draw2D.encodeStart()
+        // Draw all sprites bound to a layer
         
-        //draw2D.currentSampler = draw2D.nearestSampler
-
-//        draw2D.startShape(type: .triangle)
-//        draw2D.drawRect(0, 0, Float(width), Float(height))
-//        draw2D.endShape()
-        
-        //draw2D.copyTexture()
-        
-        // Draw all sprites bound to a texture
         for layerIndex in 0..<8 {
             let layer = layers[layerIndex]
             if layer.isVisible {
-                draw2D.setTarget(id: layerIndex+1)
+                draw2D.setTarget(id: 1)
                 draw2D.setTexture(id: 0)
                 draw2D.encodeStart()
                 draw2D.clear(color: float4(0.0, 0.0, 0.0, 1.0))
@@ -262,13 +218,63 @@ public class GCP {
                 for sprite in sprites {
                     if let imageGroup = sprite.imageGroup, sprite.isVisible, sprite.layer == layerIndex{
                         let index = sprite.currentImageIndex
-                        draw2D.startShape(type: .triangle)
                         
-                        let width = Float(imageGroup.images[index].width) / scaleX
-                        let height = Float(imageGroup.images[index].height) / scaleY
-
-                        draw2D.drawRect(Float(sprite.position.x), Float(sprite.position.y), width, height, float4(0, 0, 0, 1), Float(-sprite.rotation))
+                        // Calculate the sprite's scaled position
+                        let spriteX = Float(sprite.position.x) / scaleX
+                        let spriteY = Float(sprite.position.y) / scaleY
+                        
+                        let spriteWidth = Float(imageGroup.images[index].width) / scaleX
+                        let spriteHeight = Float(imageGroup.images[index].height) / scaleY
+                        
+                        draw2D.startShape(type: .triangle)
+                        draw2D.drawRect(spriteX, spriteY, spriteWidth, spriteHeight, float4(0, 0, 0, 1), Float(-sprite.rotation))
                         draw2D.endShape(externalTexture: imageGroup.images[index])
+                        
+                        if sprite.isWrapped {
+                            // The sprite gets wrapped around the layer dimensions
+                            // We need to blit off screen sprite areas on the mirror side
+                            let bufferX = sprite.size.width
+                            let bufferY = sprite.size.height
+                            
+                            var layerSize = screenSize
+                            if let layerIndex = sprite.layer, let size = layers[layerIndex].size {
+                                layerSize = size
+                            }
+                            
+                            // Horizontal blitting for wraps
+                            if sprite.position.x < 0 {
+                                let x = sprite.position.x
+                                if x > -bufferX {
+                                    draw2D.startShape(type: .triangle)
+                                    draw2D.drawRect(Float(layerSize.width + x) / scaleX, spriteY, spriteWidth, spriteHeight, float4(0, 0, 0, 1), Float(-sprite.rotation))
+                                    draw2D.endShape(externalTexture: imageGroup.images[index])
+                                }
+                            } else if sprite.position.x > layerSize.width - bufferX {
+                                let x = sprite.position.x - (layerSize.width - bufferX)
+                                if x < bufferX {
+                                    draw2D.startShape(type: .triangle)
+                                    draw2D.drawRect(Float(x - bufferX) / scaleX, spriteY, spriteWidth, spriteHeight, float4(0, 0, 0, 1), Float(-sprite.rotation))
+                                    draw2D.endShape(externalTexture: imageGroup.images[index])
+                                }
+                            }
+                            
+                            // Vertical blitting for wraps
+                            if sprite.position.y < 0 {
+                                let y = sprite.position.y
+                                if y > -bufferY {
+                                    draw2D.startShape(type: .triangle)
+                                    draw2D.drawRect(spriteX, Float(layerSize.height + y) / scaleY, spriteWidth, spriteHeight, float4(0, 0, 0, 1), Float(-sprite.rotation))
+                                    draw2D.endShape(externalTexture: imageGroup.images[index])
+                                }
+                            } else if sprite.position.y > layerSize.height - bufferY {
+                                let y = sprite.position.y - (layerSize.height - bufferY)
+                                if y < bufferY {
+                                    draw2D.startShape(type: .triangle)
+                                    draw2D.drawRect(spriteX, Float(y - bufferY) / scaleY, spriteWidth, spriteHeight, float4(0, 0, 0, 1), Float(-sprite.rotation))
+                                    draw2D.endShape(externalTexture: imageGroup.images[index])
+                                }
+                            }
+                        }
                     }
                 }
                 
@@ -277,7 +283,8 @@ public class GCP {
         }
         
         
-        // Copy the active layers
+        // Copy the active layers onto the screen
+        
         draw2D.setTarget(id: 0)
         for layerIndex in 0..<8 {
             let layer = layers[layerIndex]
@@ -319,12 +326,13 @@ public class GCP {
                 draw2D.encodeEnd()
             }
         }
+        
+        // Draw all sprites which are not in a layer
 
         draw2D.setTarget(id: 0)
         draw2D.setTexture(id: 0)
         draw2D.encodeStart()
 
-        // Draw all sprites which are not in a layer
         for sprite in sprites {
             if let imageGroup = sprite.imageGroup, sprite.isVisible, sprite.layer == nil {
                 let index = sprite.currentImageIndex
@@ -333,10 +341,10 @@ public class GCP {
                 draw2D.endShape(externalTexture: imageGroup.images[index])
             }
         }
-        
         draw2D.encodeEnd()
 
         
+        // Clear all commands as processed
         cmds.removeAll()
     }
         

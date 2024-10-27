@@ -4,14 +4,11 @@
 
 16bit processor with 8 registers, flags and a stack.
 
-### Flags
-
-- **Zero Flag (ZF)**. Set when the result of an operation is zero.
-- **Carry Flag (CF)**. Set when an arithmetic operation results in an unsigned overflow (carry out of the most significant bit) or underflow (borrow into the most significant bit).
-- **Overflow Flag (OF)**. Set when an arithmetic operation results in signed overflow (when the result exceeds the range of the signed data type).
-- ** Negative Flag (NF)**. Set when the result of an operation is negative (for signed operations).
-
 ### Instruction Set
+
+- **TAG CodeTag**. Sets a code tag (for Jump or Call instructions).
+- **COMNT Text**. Sets a comment.
+- **NOP**. No operation. Does nothing.
 
 - **LD Rd, Memory Address**. Load memory to the destination register.
 - **LDI Rd, Value**. Load an immediate value to the destination register.
@@ -19,26 +16,54 @@
 - **LDRESY Rd**. Load the y value of the screen resolution to the destination register.
 - **ST Memory Addres, Rs**. Store the source register at the destination memory address.
 
+- **ADD Rd, Rs**. Add the source to the destination register.
+- **SUB Rd, Rs**. Subtract the source from the destination register.
+- **MUL Rd, Rs**. Multiply the source with the destination register.
+- **DIV Rd, Rs**. Divide the destination by the source register.
+- **MOD Rd, Rs**. Modulus of the destination by the source register.
+
 - **INC Rd**. Increase the destination register by 1.
 - **DEC Rd**. Decrease the destination register by 1.
 
-- **CMP Rd Rs**. Compare two registers.
-- **JE Code Tag**. Jump if the zero flag is set (equality check).
-- **JNE Code Tag**. Jump if the zero flag is not set (inequality check).
-- **JL Code Tag**. Jump if the negative flag is set (less than).
-- **JG Code Tag**. Jump if the zero flag is clear and the negative flag is clear (greater than).
-- **JC Code Tag**. Jump if the carry flag is set (used for unsigned comparisons).
-- **JO Code Tag**. Jump if the overflow flag is set (used for signed overflows).
+- **CMP Rd, Rs**. Compare two registers.
+- **J CodeTag**. Unconditional jump.
+- **JE CodeTag**. Jump if the zero flag is set (equality check).
+- **JNE CodeTag**. Jump if the zero flag is not set (inequality check).
+- **JL CodeTag**. Jump if the negative flag is set (less than).
+- **JG CodeTag**. Jump if the zero flag is clear and the negative flag is clear (greater than).
+- **JC CodeTag**. Jump if the carry flag is set (used for unsigned comparisons).
+- **JO CodeTag**. Jump if the overflow flag is set (used for signed overflows).
+
+### Flags
+
+- **Zero Flag (ZF)**. Set when the result of an operation is zero.
+- **Carry Flag (CF)**. Set when an arithmetic operation results in an unsigned overflow (carry out of the most significant bit) or underflow (borrow into the most significant bit).
+- **Overflow Flag (OF)**. Set when an arithmetic operation results in signed overflow (when the result exceeds the range of the signed data type).
+- ** Negative Flag (NF)**. Set when the result of an operation is negative (for signed operations).
 
 ## GCP (Graphical Co-Processor)
 
 8 layers with 256 hardware sprites, a palette, image groups and other hardware supported features.
 
+### Layers
+
+Layers are drawn starting from index 0 up to 7. By default layers are in the resolution of the screen and invisible.
+
+- **LYRRES Ld, WidthxHeight**. Set a custom layer resolution in the form of "320x200". By default layers are in the resolution of the screen.
+- **LYRVIS Ld, State**. Set layer visibility. Default is invisible.
+
 ### Sprites
 
 256 hardware sprites
 
+- **SPRLYR Sd, Ls**. Assign a layer to the sprite. By default a sprite is not bound to a layer and will be drawn on top of all layers.
 - **SPRSET Sd, ImageGroup**. Assign the image group to the sprite.
-- **SPRVIS Sd, Rs**. Enable / disable visibility of the sprite (0, 1).
+- **SPRVIS Sd, State**. Set sprite visibility (Invisible/Visible). Default is invisible.
+- **SPRWRP Sd, State**. Set the wrapping mode for the sprite (Off/On). Wrapped sprites wrap around the layer or screen (i.e. when they go offscreen re-appear on the other side).
+
 - **SPRX Sd, Rs**. Set the x position of the sprite.
 - **SPRY Sd, Rs**. Set the y position of the sprite.
+- **SPRROT Sd, Rs**. Set the rotation of the sprite.
+
+- **SPRACC Sd, Rs**. Applies an acceleration impulse to the sprite.
+- **SPRSPD Sd, Rs**. Applies a constant speed to the sprite.
