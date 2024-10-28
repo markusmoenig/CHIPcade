@@ -19,8 +19,7 @@ public class CPUWidget    : ObservableObject
 
     func draw(draw2D: MetalDraw2D, game: Game)
     {
-        draw2D.encodeStart()
-        draw2D.clear(color: float4(0, 0, 0, 0))
+        draw2D.encodeStart(.clear)
         
         let width = Float(draw2D.metalView.frame.width)
         //let height = Float(draw2D.metalView.frame.height)

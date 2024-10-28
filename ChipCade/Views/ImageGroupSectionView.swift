@@ -46,7 +46,7 @@ struct ImageGroupSectionView: View {
                                     .padding(.leading, 10) // Add padding to the left side
                                 Spacer()
                             }
-                            .padding(.vertical, 6) // Add vertical padding
+                            .padding(.vertical, 2) // Add vertical padding
                             .background(
                                 RoundedRectangle(cornerRadius: 8) // Rounded background
                                     .fill(selectedImageGroupItem === imageGroupItems[index] ? Color.accentColor.opacity(0.2) : Color.clear)

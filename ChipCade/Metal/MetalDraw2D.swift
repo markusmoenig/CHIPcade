@@ -189,7 +189,7 @@ class MetalDraw2D
 //        encodeEnd()
 //    }
     
-    @discardableResult func encodeStart(_ clearColor: float4 = float4(0.125, 0.129, 0.137, 1)) -> MTLRenderCommandEncoder?
+    @discardableResult func encodeStart(_ loadAction: MTLLoadAction = .load,_ clearColor: float4 = float4(0.0, 0.0, 0.0, 0.0)) -> MTLRenderCommandEncoder?
     {
         viewportSize = vector_uint2( UInt32(metalView.bounds.width), UInt32(metalView.bounds.height) )
         viewSize = float2(Float(metalView.bounds.width), Float(metalView.bounds.height))
@@ -206,11 +206,16 @@ class MetalDraw2D
         
 //        renderPassDescriptor!.colorAttachments[0].loadAction = .clear
 //        renderPassDescriptor!.colorAttachments[0].clearColor = MTLClearColor( red: Double(clearColor.x), green: Double(clearColor.y), blue: Double(clearColor.z), alpha: Double(clearColor.w))
-//
-//        renderPassDescriptor!.colorAttachments[0].loadAction = .load
-//        renderPassDescriptor!.colorAttachments[0].storeAction = .store
+////
+        renderPassDescriptor!.colorAttachments[0].loadAction = loadAction
         
-        renderPassDescriptor!.colorAttachments[0].loadAction = .dontCare
+        if loadAction == .clear {
+            renderPassDescriptor!.colorAttachments[0].clearColor = MTLClearColor( red: Double(clearColor.x), green: Double(clearColor.y), blue: Double(clearColor.z), alpha: Double(clearColor.w))
+        }
+        
+        renderPassDescriptor!.colorAttachments[0].storeAction = .store
+        
+        //renderPassDescriptor!.colorAttachments[0].loadAction = .dontCare
 
         if renderPassDescriptor != nil {
             renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor! )

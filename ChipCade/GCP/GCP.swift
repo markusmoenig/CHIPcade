@@ -24,6 +24,8 @@ public enum GCPCmd  {
     case sprmxs(spriteIndex: Int, value: Float)
     case sprfri(spriteIndex: Int, value: Float)
     case sprpri(spriteIndex: Int, value: Int)
+    case sprgrp(spriteIndex: Int, value: Int)
+    case sprcol(spriteIndex: Int, value: Int)
 }
 
 public class GCP {
@@ -142,8 +144,8 @@ public class GCP {
         draw2D.setTarget(id: targetLayer)
         draw2D.setTexture(id: 0)
 
-        draw2D.encodeStart()
-        draw2D.clear(color: float4(0.0, 0.0, 0.0, 0.0))
+        draw2D.encodeStart(.clear)
+        //draw2D.clear(color: float4(0.0, 0.0, 0.0, 0.0))
 
         for cmd in cmds {
             switch cmd {
@@ -208,6 +210,22 @@ public class GCP {
                 
             case .sprfri(let spriteIndex, let value) :
                 sprites[spriteIndex].friction = CGFloat(value)
+                
+            case .sprgrp(let spriteIndex, let value) :
+                sprites[spriteIndex].collisionGroupIndex = value
+                
+            case .sprcol(let spriteIndex, let value) :
+                let sprite = sprites[spriteIndex]
+                Game.shared.flags.setZeroFlag(false)
+                for toCheck in sprites {
+                    if sprite.layer == toCheck.layer && sprite.index != toCheck.index && toCheck.collisionGroupIndex == value {
+                        if sprite.checkCollision(with: toCheck) {
+                            Game.shared.flags.setZeroFlag(true)
+                        }
+                    }
+                }
+                continue
+                //sprites[spriteIndex].collisionGroupIndex = value
             }
         }
         
@@ -220,8 +238,8 @@ public class GCP {
             if layer.isVisible {
                 draw2D.setTarget(id: 1)
                 draw2D.setTexture(id: 0)
-                draw2D.encodeStart()
-                draw2D.clear(color: float4(0.0, 0.0, 0.0, 1.0))
+                draw2D.encodeStart(.clear, float4(0.0, 0.0, 0.0, 1.0))
+                //draw2D.clear(color: float4(0.0, 0.0, 0.0, 1.0))
 
                 var scaleX : Float = 1.0
                 var scaleY : Float = 1.0

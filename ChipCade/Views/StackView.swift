@@ -25,7 +25,7 @@ struct StackView: View {
                         .frame(width: 60, alignment: .leading)
                     
                     // Display the name or value of the MemoryItem
-                    Text(game.stack[index].description())
+                    Text(game.stack[index].toString())
                         .font(.system(.body, design: .monospaced))
                         .padding(.leading, 5)
                 }

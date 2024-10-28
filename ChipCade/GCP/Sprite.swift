@@ -37,7 +37,8 @@ class Sprite {
     var imageGroup: ImageGroup? = nil
     var currentImageIndex: Int = 0 // Current image index for display or animation
 
-    // Collision flag and data
+    // Collision
+    var collisionGroupIndex: Int = 0
     var collisionFlag: Bool = false
     var collidedWithSpriteIndex: Int? = nil
     

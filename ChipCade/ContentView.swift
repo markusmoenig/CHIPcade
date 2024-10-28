@@ -39,7 +39,9 @@ struct ContentView: View {
     
     @State private var selectedLayer: Int = 0
     @State private var selectedSprite: Int = 0
-    
+
+    //@StateObject private var controllerManager = GameControllerManager()
+
     @Environment(\.undoManager) var undoManager
 
     var body: some View {
@@ -180,7 +182,7 @@ struct ContentView: View {
                     Divider()
 
                     MetalView(document.game, .CPU)
-                        .frame(maxHeight: 200)
+                        .frame(maxHeight: 250)
                 }
                 
                 Divider()
@@ -325,7 +327,20 @@ struct ContentView: View {
             } else {
                 referenceText = "Reference document not found."
             }
+            
+            //controllerManager.connectControllers()
         }
+        
+//        .onAppear {
+//            DispatchQueue.main.async {
+//                controllerManager.connectControllers()
+//            }
+//        }
+//
+//        .onDisappear {
+//            controllerManager.direction = "Center"
+//            controllerManager.isFiring = false
+//        }
         
         .onReceive(document.game.errorChanged) { value in
             if value {

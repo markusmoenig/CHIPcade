@@ -10,6 +10,7 @@ import SwiftUI
 public enum InstructionType: String, Codable, CaseIterable {
     case add
     case cmp
+    case call
     case comnt
     case dec
     case div
@@ -32,8 +33,11 @@ public enum InstructionType: String, Codable, CaseIterable {
     case nop
     case push
     case rect
+    case ret
     case spracc
+    case sprcol
     case sprfri
+    case sprgrp
     case sprimg
     case sprlyr
     case sprmxs
@@ -95,14 +99,14 @@ public class Instruction: ObservableObject, Codable, Equatable {
         case .inc, .dec:
             register1 = 0
         case .comnt:
-            memory = "Comment"
-        case .j, .je, .jne, .jl, .jg, .jc, .jo:
+            memory = ""
+        case .call, .j, .je, .jne, .jl, .jg, .jc, .jo:
             memory = "Module.Tag"
         case .ld:
             register1 = 0
             memory = "Data"
             memoryOffset = 0
-        case .ldi:
+        case .ldi, .sprcol, .sprgrp:
             register1 = 0
             value = .unsigned16Bit(0)
         case .ldresx, .ldresy:
@@ -161,6 +165,9 @@ public class Instruction: ObservableObject, Codable, Equatable {
         case .cmp:
             return "CMP R\(register1!), R\(register2!)"
          
+        case .call:
+            return "CALL"
+            
         case .comnt:
             return "COMNT"
             
@@ -227,6 +234,9 @@ public class Instruction: ObservableObject, Codable, Equatable {
         case .rect:
             return "RECT"
             
+        case .ret:
+            return "RET"
+            
         case .sprset:
             return "SPRSET S\(register1!) \(memory!)"
         
@@ -238,9 +248,15 @@ public class Instruction: ObservableObject, Codable, Equatable {
           
         case .spracc:
             return "SPRACC S\(register1!) L\(register2!)"
-           
+      
+        case .sprcol:
+            return "SPRCOL S\(register1!) \(value!.toString())"
+            
         case .sprfri:
             return "SPRFRI S\(register1!) L\(register2!)"
+            
+        case .sprgrp:
+            return "SPRGRP S\(register1!) \(value!.toString())"
             
         case .sprimg:
             return "SPRIMG S\(register1!) R\(register2!)"
@@ -283,6 +299,8 @@ public class Instruction: ObservableObject, Codable, Equatable {
             return "Add source to destination register"
         case .cmp:
             return "Compare two registers"
+        case .call:
+            return "Call a subroutine"
         case .comnt:
             return "Comment"
         case .dec:
@@ -325,6 +343,8 @@ public class Instruction: ObservableObject, Codable, Equatable {
             return "No operation"
         case .push:
             return "Push register to stack"
+        case .ret:
+            return "Return from subroutine"
         case .rect:
             return "Draw rectangle: R0=X, R1=Y, R2=Width, R3=Height, R4=Palette"
         case .sprset:
@@ -335,8 +355,12 @@ public class Instruction: ObservableObject, Codable, Equatable {
             return "Subtract source from destination register"
         case .spracc:
             return "Applies an acceleration impulse"
+        case .sprcol:
+            return "Sets the ZF to 0 if the sprite collides with the given group"
         case .sprfri:
             return "Set sprite friction"
+        case .sprgrp:
+            return "Assigns the sprite to the given collision group"
         case .sprimg:
             return "Set the image index for the sprite"
         case .sprlyr:
@@ -394,7 +418,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
         switch type {
         case .tag: return .blue
         case .comnt: return .secondary
-        case .rect, .sprset,.sprvis, .sprx, .spry, .lyrres, .lyrvis, .sprrot, .sprwrp, .sprimg, .spracc, .sprmxs, .sprfri, .sprpri, .sprlyr:
+        case .rect, .sprset,.sprvis, .sprx, .spry, .lyrres, .lyrvis, .sprrot, .sprwrp, .sprimg, .spracc, .sprmxs, .sprfri, .sprpri, .sprlyr, .sprcol, .sprgrp:
             return .yellow
         default:
             return .primary

@@ -190,7 +190,7 @@ struct CodeItemListView: View {
                                     )
                                 )                                
                             }
-                        case .j, .je, .jne, .jl, .jg, .jc, .jo:
+                        case .call, .j, .je, .jne, .jl, .jg, .jc, .jo:
                             CodeAddressTextField(
                                 instruction: instruction,
                                 undoManager: undoManager,
@@ -230,6 +230,29 @@ struct CodeItemListView: View {
                                     )
                                 )
                                 
+                                ChipCadeDataTextField(
+                                    chipCadeData: Binding(
+                                        get: { instruction.value! },
+                                        set: { newValue in
+                                            let newInstruction = instruction.clone()
+                                            newInstruction.value = newValue
+                                            codeItem.aboutToChange(using: undoManager, newInstruction: newInstruction, at: index, text: "Value Changed")
+                                        }
+                                    )
+                                )
+                            }
+                        case .sprgrp, .sprcol:
+                            HStack {
+                                SpriteIndexTextField(
+                                    spriteIndex: Binding(
+                                        get: { Int(instruction.register1!) },
+                                        set: { newRegister in
+                                            let newInstruction = instruction.clone()
+                                            newInstruction.register1 = Int8(newRegister)
+                                            codeItem.aboutToChange(using: undoManager, newInstruction: newInstruction, at: index, text: "Sprite Changed")
+                                        }
+                                    )
+                                )                                
                                 ChipCadeDataTextField(
                                     chipCadeData: Binding(
                                         get: { instruction.value! },

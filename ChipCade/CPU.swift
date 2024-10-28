@@ -5,6 +5,12 @@
 //  Created by Markus Moenig on 2/10/24.
 //
 
+public enum ExecuteResult {
+    case nextInstruction
+    case jumped
+    case stop
+}
+
 public class CPU {
         
     var game: Game!
@@ -12,7 +18,7 @@ public class CPU {
     init() {
     }
     
-    public func executeInstruction(instruction: Instruction, gcp: GCP) -> Bool {
+    public func executeInstruction(instruction: Instruction, gcp: GCP) -> ExecuteResult {
         
         switch instruction.type {
         
@@ -25,6 +31,40 @@ public class CPU {
         } else {
             game.lastCMPWasUnsigned = game.registers[Int(instruction.register1!)].isUnsigned()
         }
+            
+        case .call:
+            if let (codeItemIndex, instructionIndex) = game.data.getCodeAddress(name: instruction.memory!, currentCodeIndex: game.currCodeItemIndex) {
+                let memoryText = game.data.codeItems[game.currCodeItemIndex].name
+                let offsetText = String(format: "0x%X", game.currInstructionIndex + 1)
+                let string = "\(memoryText) + \(offsetText)"
+                game.stack.append(.address(string))
+                
+                game.currCodeItemIndex = codeItemIndex
+                game.currInstructionIndex = instructionIndex
+                
+                return .jumped
+            } else {
+                game.setError(.invalidCodeAddress)
+            }
+            
+        case .ret:
+            if let address = game.stack.popLast() {
+                let string = address.toString()
+                let components = string.split(separator: "+")
+                let moduleName = String(components[0]).trimmingCharacters(in: .whitespacesAndNewlines)
+                let hexString = String(components[1]).trimmingCharacters(in: .whitespacesAndNewlines)
+                let cleanedHexString = hexString.hasPrefix("0x") ? String(hexString.dropFirst(2)) : hexString
+
+                if let offset = Int(cleanedHexString, radix: 16) {
+                    if let codeItem = game.getCodeItem(byName: moduleName) {
+                        if let moduleIndex = game.getCodeItemIndex(byItem: codeItem) {
+                            game.currCodeItemIndex = moduleIndex
+                            game.currInstructionIndex = offset
+                            return .jumped
+                        }
+                    }
+                }
+            }
         
         case .inc   :  game.registers[Int(instruction.register1!)].inc(flags: game.flags)
         
@@ -36,14 +76,16 @@ public class CPU {
             if let (codeItemIndex, instructionIndex) = game.data.getCodeAddress(name: instruction.memory!, currentCodeIndex: game.currCodeItemIndex) {
                 game.currCodeItemIndex = codeItemIndex
                 game.currInstructionIndex = instructionIndex
-                return false
+                return .jumped
+            } else {
+                game.setError(.invalidCodeAddress)
             }
             
         case .je    : if game.flags.zeroFlag {
             if let (codeItemIndex, instructionIndex) = game.data.getCodeAddress(name: instruction.memory!, currentCodeIndex: game.currCodeItemIndex) {
                 game.currCodeItemIndex = codeItemIndex
                 game.currInstructionIndex = instructionIndex
-                return false
+                return .jumped
             } else {
                 game.setError(.invalidCodeAddress)
             }
@@ -53,7 +95,7 @@ public class CPU {
             if let (codeItemIndex, instructionIndex) = game.data.getCodeAddress(name: instruction.memory!, currentCodeIndex: game.currCodeItemIndex) {
                 game.currCodeItemIndex = codeItemIndex
                 game.currInstructionIndex = instructionIndex
-                return false
+                return .jumped
             } else {
                 game.setError(.invalidCodeAddress)
             }
@@ -69,7 +111,7 @@ public class CPU {
             if let (codeItemIndex, instructionIndex) = game.data.getCodeAddress(name: instruction.memory!, currentCodeIndex: game.currCodeItemIndex) {
                 game.currCodeItemIndex = codeItemIndex
                 game.currInstructionIndex = instructionIndex
-                return false
+                return .jumped
             } else {
                 game.setError(.invalidCodeAddress)
             }
@@ -85,7 +127,7 @@ public class CPU {
             if let (codeItemIndex, instructionIndex) = game.data.getCodeAddress(name: instruction.memory!, currentCodeIndex: game.currCodeItemIndex) {
                 game.currCodeItemIndex = codeItemIndex
                 game.currInstructionIndex = instructionIndex
-                return false
+                return .jumped
             } else {
                 game.setError(.invalidCodeAddress)
             }
@@ -95,7 +137,7 @@ public class CPU {
             if let (codeItemIndex, instructionIndex) = game.data.getCodeAddress(name: instruction.memory!, currentCodeIndex: game.currCodeItemIndex) {
                 game.currCodeItemIndex = codeItemIndex
                 game.currInstructionIndex = instructionIndex
-                return false
+                return .jumped
             } else {
                 game.setError(.invalidCodeAddress)
             }
@@ -105,7 +147,7 @@ public class CPU {
             if let (codeItemIndex, instructionIndex) = game.data.getCodeAddress(name: instruction.memory!, currentCodeIndex: game.currCodeItemIndex) {
                 game.currCodeItemIndex = codeItemIndex
                 game.currInstructionIndex = instructionIndex
-                return false
+                return .jumped
             } else {
                 game.setError(.invalidCodeAddress)
             }
@@ -167,7 +209,7 @@ public class CPU {
             game.setError(.invalidArithmetic)
         }
             
-        case .push  : game.stack.append(instruction.value!)
+        case .push  : game.stack.append(.value(instruction.value!))
         
         case .rect  :
             let x : Float = game.registers[0].toFloat32Bit()
@@ -196,6 +238,22 @@ public class CPU {
             
         case .spracc:
             gcp.addCmd(.spracc(spriteIndex: Int(instruction.register1!), value: getRegisterValueFloat(instruction.register2!)))
+            
+        case .sprcol:
+            let spriteIndex = Int(instruction.register1!)
+            if spriteIndex >= 0 && spriteIndex <= 255 {
+                gcp.addCmd(.sprcol(spriteIndex: Int(instruction.register1!), value: instruction.value!.toInt32Bit()))
+            } else {
+                game.setError(.invalidSpriteIndex)
+            }
+            
+        case .sprgrp:
+            let spriteIndex = Int(instruction.register1!)
+            if spriteIndex >= 0 && spriteIndex <= 255 {
+                gcp.addCmd(.sprgrp(spriteIndex: Int(instruction.register1!), value: instruction.value!.toInt32Bit()))
+            } else {
+                game.setError(.invalidSpriteIndex)
+            }
             
         case .sprlyr:
             let spriteIndex = Int(instruction.register1!)
@@ -247,7 +305,7 @@ public class CPU {
         default: break
         }
         
-        return true
+        return .nextInstruction
     }
     
     func getRegisterValueInt(_ register: Int8) -> Int {

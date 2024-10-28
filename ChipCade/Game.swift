@@ -27,7 +27,7 @@ public class Game : ObservableObject
 
     @Published var data: GameData
     
-    @Published var stack: [ChipCadeData]
+    @Published var stack: [StackValue]
     @Published var registers: [ChipCadeData]
 
     @Published var flags = CPUFlags()
@@ -35,9 +35,6 @@ public class Game : ObservableObject
     // The instruction pointer
     @Published var currCodeItemIndex: Int = 0
     @Published var currInstructionIndex: Int = 0
-    
-    // Stack
-    var callStack: [UInt] = []
     
     // Drawing widgets
     var cpuRender = MetalDraw2D();
@@ -91,8 +88,14 @@ public class Game : ObservableObject
         
         // init
         while let instruction = getInstruction(), error == .none {
-            if cpu.executeInstruction(instruction: instruction, gcp: gcp) {
+            let result = cpu.executeInstruction(instruction: instruction, gcp: gcp)
+
+            if result == .nextInstruction {
                 currInstructionIndex += 1
+            } else
+            if result == .stop
+            {
+                break;
             }
         }
     }
@@ -131,8 +134,14 @@ public class Game : ObservableObject
         
         // init
         while let instruction = getInstruction() {
-            if cpu.executeInstruction(instruction: instruction, gcp: gcp) {
+            let result = cpu.executeInstruction(instruction: instruction, gcp: gcp)
+
+            if result == .nextInstruction {
                 currInstructionIndex += 1
+            } else
+            if result == .stop
+            {
+                break;
             }
         }
         cpuRender.update()
@@ -141,9 +150,7 @@ public class Game : ObservableObject
     // Execute the current instruction (single step mode)
     public func executeInstruction() {
         if let instruction = getInstruction() {
-            if cpu.executeInstruction(instruction: instruction, gcp: gcp) {
-                
-            }
+            _ = cpu.executeInstruction(instruction: instruction, gcp: gcp)                
             gcp.draw2D.update()
         }
     }
