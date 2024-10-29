@@ -182,7 +182,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
             return "CALL"
             
         case .comnt:
-            return "#"
+            return "# \(memory!)"
             
         case .dec:
             return "DEC R\(register1!)"
@@ -308,7 +308,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
             return "SPRWRP S\(register1!) \(register2!)"
             
         case .tag:
-            return "TAG"
+            return "\(memory!):"
         }
     }
     
@@ -321,7 +321,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
         case .call:
             return "Call a subroutine."
         case .comnt:
-            return "Comment."
+            return "Comment"
         case .dec:
             return "Decrement register by 1."
         case .div:

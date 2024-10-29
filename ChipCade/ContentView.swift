@@ -149,6 +149,7 @@ struct ContentView: View {
                             selectedInstruction: $selectedInstruction,
                             selectedInstructionIndex: $selectedInstructionIndex
                         )
+//                        CodeEditorView(codeItem: $selectedCodeItem)
                     } else {
                         MetalView(document.game, .Game)
                     }
@@ -361,6 +362,7 @@ struct ContentView: View {
             } else {
                 referenceText = "Reference document not found."
             }
+            document.game.play()
         }
         
         .onReceive(document.game.errorChanged) { value in
@@ -385,8 +387,13 @@ struct ContentView: View {
         
         .onChange(of: selectedInstructionIndex) {
             if let selectedInstructionIndex = selectedInstructionIndex {
-                document.game.currInstructionIndex = selectedInstructionIndex
-                selectedInstruction = document.game.getInstruction()
+                if let codeItem = selectedCodeItem {
+                    if let codeItemIndex = document.game.getCodeItemIndex(byItem: codeItem) {
+                        document.game.currCodeItemIndex = codeItemIndex
+                        document.game.currInstructionIndex = selectedInstructionIndex
+                        selectedInstruction = document.game.getInstruction()
+                    }
+                }
             }
             document.game.cpuRender.update()
         }

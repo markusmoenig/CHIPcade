@@ -183,6 +183,23 @@ public class Game : ObservableObject
         return codeItem.codes[currInstructionIndex]
     }
     
+    // Get the instruction at the given positions
+    public func getInstructionAt(codeItemIndex: Int, instructionIndex: Int) -> Instruction? {
+        // Check if the currCodeItemIndex is within bounds
+        guard codeItemIndex >= 0 && codeItemIndex < data.codeItems.count else {
+            return nil
+        }
+
+        let codeItem = data.codeItems[currCodeItemIndex]
+
+        // Check if the currInstructionIndex is within bounds for the selected codeItem
+        guard instructionIndex >= 0 && instructionIndex < codeItem.codes.count else {
+            return nil
+        }
+
+        return codeItem.codes[instructionIndex]
+    }
+    
     // Returns the codeItem of a given name
     func getCodeItem(byName name: String) -> CodeItem? {
         return data.codeItems.first { $0.name == name }
