@@ -327,20 +327,7 @@ struct ContentView: View {
             } else {
                 referenceText = "Reference document not found."
             }
-            
-            //controllerManager.connectControllers()
         }
-        
-//        .onAppear {
-//            DispatchQueue.main.async {
-//                controllerManager.connectControllers()
-//            }
-//        }
-//
-//        .onDisappear {
-//            controllerManager.direction = "Center"
-//            controllerManager.isFiring = false
-//        }
         
         .onReceive(document.game.errorChanged) { value in
             if value {

@@ -33,6 +33,11 @@ struct ChipCadeDataTextField: View {
 
     // Parse the ChipCadeData from the text input, auto-detect negative, float, and Unicode values
     func parseChipCadeData(from text: String) -> ChipCadeData? {
+        
+        if let data = ChipCadeData.fromString(text) {
+            return data
+        }
+            /*
         // Handle single-character input in quotes or backticks
         if (text.first == "\"" && text.last == "\"") || (text.first == "`" && text.last == "`") {
             let character = text.dropFirst().dropLast()
@@ -76,7 +81,7 @@ struct ChipCadeDataTextField: View {
                 let float16 = chipCadeData.float32ToFloat16(value)
                 return .float16Bit(float16)
             }
-        }
+        }*/
 
         // Default handling based on current data type
         switch chipCadeData {
@@ -90,7 +95,7 @@ struct ChipCadeDataTextField: View {
             }
         case .float16Bit:
             if let value = Float(text) {
-                let float16 = chipCadeData.float32ToFloat16(value)
+                let float16 = ChipCadeData.float32ToFloat16(value)
                 return .float16Bit(float16)
             }
         case .unicodeChar:

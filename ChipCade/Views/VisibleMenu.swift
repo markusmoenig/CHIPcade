@@ -8,9 +8,9 @@
 import SwiftUI
 
 struct Int8VisibleMenu: View {
-    @Binding var visible: Int8
+    @Binding var visible: UInt8
     
-    let values: [Int8] = Array(0...1)
+    let values: [UInt8] = Array(0...1)
 
     var body: some View {
         Menu {
@@ -30,9 +30,9 @@ struct Int8VisibleMenu: View {
 }
 
 struct Int8OnOffMenu: View {
-    @Binding var on: Int8
+    @Binding var on: UInt8
     
-    let values: [Int8] = Array(0...1)
+    let values: [UInt8] = Array(0...1)
 
     var body: some View {
         Menu {

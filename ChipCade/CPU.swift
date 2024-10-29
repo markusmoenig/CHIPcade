@@ -64,6 +64,8 @@ public class CPU {
                         }
                     }
                 }
+            } else {
+                return .stop
             }
         
         case .inc   :  game.registers[Int(instruction.register1!)].inc(flags: game.flags)
@@ -308,11 +310,11 @@ public class CPU {
         return .nextInstruction
     }
     
-    func getRegisterValueInt(_ register: Int8) -> Int {
+    func getRegisterValueInt(_ register: UInt8) -> Int {
         Int(game.registers[Int(register)].toFloat32Bit())
     }
     
-    func getRegisterValueFloat(_ register: Int8) -> Float {
+    func getRegisterValueFloat(_ register: UInt8) -> Float {
         Float(game.registers[Int(register)].toFloat32Bit())
     }
 }

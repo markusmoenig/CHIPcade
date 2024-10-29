@@ -28,7 +28,7 @@ For more detailed information and tutorials please visit [CHIPcade.com](https://
 - **DEC Rd**. Decrease the destination register by 1.
 
 - **CALL CodeTag**. Saves the current code address on the stack and invokes the subroutine.
-- **RET**. Returns from a subroutine invoked by CALL. Pops the code address from the stack and continues execution after the original CALL statement.
+- **RET**. Returns from a subroutine invoked by CALL. Pops the code address from the stack and continues execution after the original CALL statement. If there is no address on the stack, stops execution.
 
 - **CMP Rd, Rs**. Compare two registers.
 - **J CodeTag**. Unconditional jump.
@@ -72,12 +72,12 @@ Layers are drawn starting from index 0 up to 7. By default layers are in the res
 - **SPRX Sd, Rs**. Set the x position of the sprite.
 - **SPRY Sd, Rs**. Set the y position of the sprite.
 - **SPRROT Sd, Rs**. Set the rotation of the sprite.
-- **SPRPRI Sd, Rs**. Set the priority of the sprite. Sprite with a lower priority with be drawn last. Default is 0.
+- **SPRPRI Sd, Rs**. Set the priority of the sprite. Sprite with a lower priority are drawn last. Default is 0.
 
 - **SPRACC Sd, Rs**. Apply an acceleration impulse to the sprite.
-- **SPRSPD Sd, Rs**. Apply a constant speed to the sprite.
+- **SPRSPD Sd, Rs**. Set a constant speed to the sprite.
 - **SPRMXS Sd, Rs**. Set the maximum speed for the sprite (for acceleration / impulse driven games).
-- **SPRFRI Sd, Rs**. Set the friction for the sprite.
+- **SPRFRI Sd, Rs**. Set the friction of the sprite (default is 1.0). A friction lower than 1.0 will reduce speed.
 
 - **SPRGRP Sd, Value**. Set the collision group of the sprite to the given value. The value can be any numerical value.
-- **SPRCOL Sd, Value**. Checks if the sprite collides with any sprite in the collision group. If no, it sets the ZF to 1, if yes it sets the ZF to 0.
+- **SPRCOL Sd, Value**. Checks if the sprite collides with any sprite in the collision group. If no, sets the ZF to 1, if yes sets the ZF to 0.

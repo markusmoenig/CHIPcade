@@ -97,12 +97,12 @@ enum ChipCadeData: Codable {
         switch self {
         case .unsigned16Bit(let unsignedVal):
             let float32 = Float(unsignedVal)
-            let float16 = float32ToFloat16(float32)
+            let float16 = ChipCadeData.float32ToFloat16(float32)
             return .float16Bit(float16)
 
         case .signed16Bit(let signedVal):
             let float32 = Float(signedVal)
-            let float16 = float32ToFloat16(float32)
+            let float16 = ChipCadeData.float32ToFloat16(float32)
             return .float16Bit(float16)
 
         case .float16Bit(let float16):
@@ -110,7 +110,7 @@ enum ChipCadeData: Codable {
 
         case .unicodeChar(let unicodeVal):
             let float32 = Float(unicodeVal)
-            let float16 = float32ToFloat16(float32)
+            let float16 = ChipCadeData.float32ToFloat16(float32)
             return .float16Bit(float16)
         }
     }
@@ -236,7 +236,7 @@ enum ChipCadeData: Codable {
     }
     
     // Convert 32-bit float to 16-bit float
-    func float32ToFloat16(_ value: Float) -> UInt16 {
+    static func float32ToFloat16(_ value: Float) -> UInt16 {
         let bits = value.bitPattern
         let sign = UInt16((bits >> 31) & 0x1)  // Cast sign to UInt16
         let exponent = Int((bits >> 23) & 0xFF) - 127 + 15
@@ -394,7 +394,7 @@ extension ChipCadeData {
             let newFloat32 = float32 + 1.0
             flags.setZeroFlag(newFloat32 == 0)
             flags.setNegativeFlag(newFloat32 < 0)
-            let newFloat16 = float32ToFloat16(newFloat32)
+            let newFloat16 = ChipCadeData.float32ToFloat16(newFloat32)
             self = .float16Bit(newFloat16)
 
         default: break;
@@ -422,7 +422,7 @@ extension ChipCadeData {
             let newFloat32 = float32 - 1.0
             flags.setZeroFlag(newFloat32 == 0)
             flags.setNegativeFlag(newFloat32 < 0)
-            let newFloat16 = float32ToFloat16(newFloat32)
+            let newFloat16 = ChipCadeData.float32ToFloat16(newFloat32)
             self = .float16Bit(newFloat16)
             
         default: break;
@@ -451,7 +451,7 @@ extension ChipCadeData {
             let result = float32_1 + float32_2
             flags.setZeroFlag(result == 0)
             flags.setNegativeFlag(result < 0)
-            let float16Result = float32ToFloat16(result)
+            let float16Result = ChipCadeData.float32ToFloat16(result)
             self = .float16Bit(float16Result)
 
         default:
@@ -483,7 +483,7 @@ extension ChipCadeData {
             let result = float32_1 - float32_2
             flags.setZeroFlag(result == 0)
             flags.setNegativeFlag(result < 0)
-            let float16Result = float32ToFloat16(result)
+            let float16Result = ChipCadeData.float32ToFloat16(result)
             self = .float16Bit(float16Result)
 
         default:
@@ -515,7 +515,7 @@ extension ChipCadeData {
             let result = float32_1 * float32_2
             flags.setZeroFlag(result == 0)
             flags.setNegativeFlag(result < 0)
-            let float16Result = float32ToFloat16(result)
+            let float16Result = ChipCadeData.float32ToFloat16(result)
             self = .float16Bit(float16Result)
             
         default:
@@ -562,7 +562,7 @@ extension ChipCadeData {
             let result = float32_1 / float32_2
             flags.setZeroFlag(result == 0)
             flags.setNegativeFlag(result < 0)
-            let float16Result = float32ToFloat16(result)
+            let float16Result = ChipCadeData.float32ToFloat16(result)
             self = .float16Bit(float16Result)
 
         default:
@@ -609,7 +609,7 @@ extension ChipCadeData {
             let result = fmod(float32_1, float32_2) // Use fmod for floating-point modulus
             flags.setZeroFlag(result == 0)
             flags.setNegativeFlag(result < 0)
-            self = .float16Bit(float32ToFloat16(result))
+            self = .float16Bit(ChipCadeData.float32ToFloat16(result))
 
         default:
             return true
@@ -648,5 +648,74 @@ extension ChipCadeData {
         }
 
         return false
+    }
+}
+
+// From String
+extension ChipCadeData {
+ 
+    static func fromString(_ text: String) -> ChipCadeData? {
+        
+        // Handle single-character input in quotes or backticks
+        if (text.first == "\"" && text.last == "\"") || (text.first == "`" && text.last == "`") {
+            let character = text.dropFirst().dropLast()
+            if character.count == 1, let unicodeValue = character.unicodeScalars.first?.value, unicodeValue <= UInt16.max {
+                return .unicodeChar(UInt16(unicodeValue))
+            }
+        }
+        
+        // Handle float values
+        if text.contains(".") {
+            if let value = Float(text) {
+                let float16 = ChipCadeData.float32ToFloat16(value)
+                return .float16Bit(float16)
+            }
+        }
+        
+        // Handle hexadecimal values (starting with "0x")
+        if text.lowercased().hasPrefix("0x") {
+            if let value = UInt16(text.dropFirst(2), radix: 16) {
+                return .unsigned16Bit(value)
+            }
+        }
+        
+        // Handle binary values (starting with "0b" or "%")
+        if text.lowercased().hasPrefix("0b") || text.hasPrefix("%") {
+            let binaryText = text.starts(with: "%") ? text.dropFirst() : text.dropFirst(2)
+            if let value = UInt16(binaryText, radix: 2) {
+                return .unsigned16Bit(value)
+            }
+        }
+        
+        // Handle signed 16-bit integers
+        if text.hasPrefix("-") {
+            if let value = Int16(text) {
+                return .signed16Bit(value)
+            }
+        }
+        
+        // Handle unsigned 16-bit integers with suffixes
+        if text.hasSuffix("u") {
+            if let value = UInt16(text.dropLast()) {
+                return .unsigned16Bit(value)
+            }
+        }
+        
+        // Handle signed 16-bit integers with suffixes
+        if text.hasSuffix("s") {
+            if let value = Int16(text.dropLast()) {
+                return .signed16Bit(value)
+            }
+        }
+        
+        // Handle 16-bit float values with suffixes
+        if text.hasSuffix("f") {
+            if let value = Float(text.dropLast()) {
+                let float16 = ChipCadeData.float32ToFloat16(value)
+                return .float16Bit(float16)
+            }
+        }
+     
+        return nil
     }
 }

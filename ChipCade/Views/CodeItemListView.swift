@@ -248,7 +248,7 @@ struct CodeItemListView: View {
                                         get: { Int(instruction.register1!) },
                                         set: { newRegister in
                                             let newInstruction = instruction.clone()
-                                            newInstruction.register1 = Int8(newRegister)
+                                            newInstruction.register1 = UInt8(newRegister)
                                             codeItem.aboutToChange(using: undoManager, newInstruction: newInstruction, at: index, text: "Sprite Changed")
                                         }
                                     )
@@ -326,7 +326,7 @@ struct CodeItemListView: View {
                                         get: { Int(instruction.register1!) },
                                         set: { newRegister in
                                             let newInstruction = instruction.clone()
-                                            newInstruction.register1 = Int8(newRegister)
+                                            newInstruction.register1 = UInt8(newRegister)
                                             codeItem.aboutToChange(using: undoManager, newInstruction: newInstruction, at: index, text: "Sprite Changed")
                                         }
                                     )
@@ -349,7 +349,7 @@ struct CodeItemListView: View {
                                         get: { Int(instruction.register1!) },
                                         set: { newRegister in
                                             let newInstruction = instruction.clone()
-                                            newInstruction.register1 = Int8(newRegister)
+                                            newInstruction.register1 = UInt8(newRegister)
                                             codeItem.aboutToChange(using: undoManager, newInstruction: newInstruction, at: index, text: "Sprite Changed")
                                         }
                                     )
@@ -369,7 +369,7 @@ struct CodeItemListView: View {
                                         get: { Int(instruction.register1!) },
                                         set: { newRegister in
                                             let newInstruction = instruction.clone()
-                                            newInstruction.register1 = Int8(newRegister)
+                                            newInstruction.register1 = UInt8(newRegister)
                                             codeItem.aboutToChange(using: undoManager, newInstruction: newInstruction, at: index, text: "Sprite Changed")
                                         }
                                     )
@@ -392,7 +392,7 @@ struct CodeItemListView: View {
                                         get: { Int(instruction.register1!) },
                                         set: { newRegister in
                                             let newInstruction = instruction.clone()
-                                            newInstruction.register1 = Int8(newRegister)
+                                            newInstruction.register1 = UInt8(newRegister)
                                             codeItem.aboutToChange(using: undoManager, newInstruction: newInstruction, at: index, text: "Sprite Changed")
                                         }
                                     )
@@ -415,7 +415,7 @@ struct CodeItemListView: View {
                                         get: { Int(instruction.register1!) },
                                         set: { newRegister in
                                             let newInstruction = instruction.clone()
-                                            newInstruction.register1 = Int8(newRegister)
+                                            newInstruction.register1 = UInt8(newRegister)
                                             codeItem.aboutToChange(using: undoManager, newInstruction: newInstruction, at: index, text: "Sprite Changed")
                                         }
                                     )

@@ -8,9 +8,9 @@
 import SwiftUI
 
 struct Int8RegisterMenu: View {
-    @Binding var selectedRegister: Int8
+    @Binding var selectedRegister: UInt8
     
-    let registers: [Int8] = Array(0...7)
+    let registers: [UInt8] = Array(0...7)
 
     var body: some View {
         Menu {
@@ -31,9 +31,9 @@ struct Int8RegisterMenu: View {
 }
 
 struct Int8FullRegisterMenu: View {
-    @Binding var selectedRegister: Int8
+    @Binding var selectedRegister: UInt8
     
-    let registers: [Int8] = Array(0...11)
+    let registers: [UInt8] = Array(0...11)
 
     var body: some View {
         Menu {

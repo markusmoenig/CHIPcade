@@ -35,6 +35,7 @@ public enum InstructionType: String, Codable, CaseIterable {
     case rect
     case ret
     case spracc
+    //case spranm
     case sprcol
     case sprfri
     case sprgrp
@@ -71,8 +72,8 @@ public class Instruction: ObservableObject, Codable, Equatable {
     
     @Published var type: InstructionType
 
-    @Published var register1: Int8? = nil
-    @Published var register2: Int8? = nil
+    @Published var register1: UInt8? = nil
+    @Published var register2: UInt8? = nil
     @Published var value: ChipCadeData? = nil
 
     @Published var memory: String? = nil
@@ -150,8 +151,8 @@ public class Instruction: ObservableObject, Codable, Equatable {
 
         id = try container.decode(UUID.self, forKey: .id)
         type = try container.decode(InstructionType.self, forKey: .type)  // Correctly decode the enum type
-        register1 = try container.decodeIfPresent(Int8.self, forKey: .register1)
-        register2 = try container.decodeIfPresent(Int8.self, forKey: .register2)
+        register1 = try container.decodeIfPresent(UInt8.self, forKey: .register1)
+        register2 = try container.decodeIfPresent(UInt8.self, forKey: .register2)
         value = try container.decodeIfPresent(ChipCadeData.self, forKey: .value)
         memory = try container.decodeIfPresent(String.self, forKey: .memory)
         memoryOffset = try container.decodeIfPresent(Int.self, forKey: .memoryOffset)
@@ -390,9 +391,9 @@ public class Instruction: ObservableObject, Codable, Equatable {
         self.type.toString()
     }
     
-    func registers() -> (Int8?, [Int8]) {
-        var dest : Int8? = nil
-        var source : [Int8] = []
+    func registers() -> (UInt8?, [UInt8]) {
+        var dest : UInt8? = nil
+        var source : [UInt8] = []
         
         switch type {
         case .cmp:

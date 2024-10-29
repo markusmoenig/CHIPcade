@@ -31,8 +31,8 @@ public class CPUWidget    : ObservableObject
         let red = colorToFloat4(Color.red)
         let green = colorToFloat4(Color.green)
 
-        var dest : Int8? = nil
-        var source : [Int8] = []
+        var dest : UInt8? = nil
+        var source : [UInt8] = []
         
         draw2D.drawText(position: float2(10, 160), text: "\(game.flags.displayFlags())", size: 14, color: prim)
         
@@ -74,7 +74,7 @@ public class CPUWidget    : ObservableObject
                         color = red
                     }
                 }
-                if source.contains(Int8(i)) {
+                if source.contains(UInt8(i)) {
                     color = green
                 }
                 

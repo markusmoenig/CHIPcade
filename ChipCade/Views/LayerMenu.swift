@@ -8,9 +8,9 @@
 import SwiftUI
 
 struct Int8LayerMenu: View {
-    @Binding var selectedLayer: Int8
+    @Binding var selectedLayer: UInt8
     
-    let layers: [Int8] = Array(0...7)
+    let layers: [UInt8] = Array(0...7)
 
     var body: some View {
         Menu {
