@@ -35,7 +35,7 @@ public enum InstructionType: String, Codable, CaseIterable {
     case rect
     case ret
     case spracc
-    //case spranm
+    case spranm
     case sprcol
     case sprfri
     case sprgrp
@@ -74,6 +74,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
 
     @Published var register1: UInt8? = nil
     @Published var register2: UInt8? = nil
+    @Published var register3: UInt8? = nil
     @Published var value: ChipCadeData? = nil
 
     @Published var memory: String? = nil
@@ -84,6 +85,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
         case type
         case register1
         case register2
+        case register3
         case value
         case memory
         case memoryOffset
@@ -128,6 +130,10 @@ public class Instruction: ObservableObject, Codable, Equatable {
         case .spracc, .sprlyr, .sprrot, .sprspd, .sprvis, .sprx, .spry, .sprwrp, .sprimg, .sprmxs, .sprfri, .sprpri:
             register1 = 0
             register2 = 0
+        case .spranm:
+            register1 = 0
+            register2 = 0
+            register3 = 0
         case .tag:
             memory = "Tag"
         default: break
@@ -140,6 +146,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
         try container.encode(type, forKey: .type)
         try container.encodeIfPresent(register1, forKey: .register1)
         try container.encodeIfPresent(register2, forKey: .register2)
+        try container.encodeIfPresent(register3, forKey: .register3)
         try container.encodeIfPresent(value, forKey: .value)
         try container.encodeIfPresent(memory, forKey: .memory)
         try container.encodeIfPresent(memoryOffset, forKey: .memoryOffset)
@@ -153,6 +160,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
         type = try container.decode(InstructionType.self, forKey: .type)  // Correctly decode the enum type
         register1 = try container.decodeIfPresent(UInt8.self, forKey: .register1)
         register2 = try container.decodeIfPresent(UInt8.self, forKey: .register2)
+        register3 = try container.decodeIfPresent(UInt8.self, forKey: .register3)
         value = try container.decodeIfPresent(ChipCadeData.self, forKey: .value)
         memory = try container.decodeIfPresent(String.self, forKey: .memory)
         memoryOffset = try container.decodeIfPresent(Int.self, forKey: .memoryOffset)
@@ -250,6 +258,9 @@ public class Instruction: ObservableObject, Codable, Equatable {
         case .spracc:
             return "SPRACC S\(register1!) L\(register2!)"
       
+        case .spranm:
+            return "SPRANM S\(register1!) \(register2!) \(register2!)"
+            
         case .sprcol:
             return "SPRCOL S\(register1!) \(value!.toString())"
             
@@ -356,8 +367,10 @@ public class Instruction: ObservableObject, Codable, Equatable {
             return "Subtract source from destination register"
         case .spracc:
             return "Applies an acceleration impulse"
+        case .spranm:
+            return "Set the animation range for the sprite"
         case .sprcol:
-            return "Sets the ZF to 0 if the sprite collides with the given group"
+            return "Set the ZF to 0 if the sprite collides with the given group, 1 otherwise"
         case .sprfri:
             return "Set sprite friction"
         case .sprgrp:
@@ -419,7 +432,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
         switch type {
         case .tag: return .blue
         case .comnt: return .secondary
-        case .rect, .sprset,.sprvis, .sprx, .spry, .lyrres, .lyrvis, .sprrot, .sprwrp, .sprimg, .spracc, .sprmxs, .sprfri, .sprpri, .sprlyr, .sprcol, .sprgrp:
+        case .rect, .sprset,.sprvis, .sprx, .spry, .lyrres, .lyrvis, .sprrot, .sprwrp, .sprimg, .spracc, .sprmxs, .sprfri, .sprpri, .sprlyr, .sprcol, .sprgrp, .spranm:
             return .yellow
         default:
             return .primary

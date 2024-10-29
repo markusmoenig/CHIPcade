@@ -300,6 +300,14 @@ public class CPU {
         case .sprfri:
             gcp.addCmd(.sprfri(spriteIndex: Int(instruction.register1!), value: getRegisterValueFloat(instruction.register2!)))
             
+        case .spranm:
+            let spriteIndex = Int(instruction.register1!)
+            if spriteIndex >= 0 && spriteIndex <= 255 {
+                gcp.addCmd(.spranm(spriteIndex: Int(instruction.register1!), from: Int(instruction.register2!), to: Int(instruction.register3!)))
+            } else {
+                game.setError(.invalidSpriteIndex)
+            }
+            
         case .sub   :  if game.registers[Int(instruction.register1!)].sub(other: game.registers[Int(instruction.register2!)], flags: game.flags) {
             game.setError(.invalidArithmetic)
         }

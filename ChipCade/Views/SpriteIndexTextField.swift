@@ -28,7 +28,7 @@ struct SpriteIndexTextField: View {
                     textValue = String(spriteIndex)
                 }
             }
-            .frame(maxWidth: 60)
+            .frame(maxWidth: 55)
     }
 
     // Parse the sprite index from the text input, ensuring it's between 0 and 128

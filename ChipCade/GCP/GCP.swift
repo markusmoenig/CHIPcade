@@ -26,6 +26,7 @@ public enum GCPCmd  {
     case sprpri(spriteIndex: Int, value: Int)
     case sprgrp(spriteIndex: Int, value: Int)
     case sprcol(spriteIndex: Int, value: Int)
+    case spranm(spriteIndex: Int, from: Int, to: Int)
 }
 
 public class GCP {
@@ -36,6 +37,9 @@ public class GCP {
     var imageGroups: [ImageGroup] = []
     var layers: [Layer] = []
     var sprites: [Sprite] = []
+    
+    var elapsedTime : Float = 0
+    let deltaTime: Float = 1.0 / 60.0
     
     init() {
     }
@@ -80,6 +84,8 @@ public class GCP {
             let sprite = Sprite(index: index)
             sprites.append(sprite)
         }
+        
+        elapsedTime = 0.0
     }
     
     func draw() {
@@ -201,7 +207,8 @@ public class GCP {
                 
             case .sprimg(let spriteIndex, let value) :
                 sprites[spriteIndex].currentImageIndex = value
-            
+                sprites[spriteIndex].isAnimating = false
+                
             case .sprpri(let spriteIndex, let value) :
                 sprites[spriteIndex].priority = value
                 
@@ -224,8 +231,14 @@ public class GCP {
                         }
                     }
                 }
-                continue
-                //sprites[spriteIndex].collisionGroupIndex = value
+            case .spranm(let spriteIndex, let from, let to) :
+                let sprite = sprites[spriteIndex]
+                sprite.animationRange = from...to
+                sprite.isAnimating = true
+                if !sprite.animationRange.contains(sprite.currentImageIndex) {
+                    sprite.currentImageIndex = from
+                    sprite.timeSinceLastFrame = 0.0
+                }
             }
         }
         
@@ -264,6 +277,18 @@ public class GCP {
                         // Calculate aspect ratio correction factors
                         let aspectX = scaleX
                         let aspectY = scaleY
+                        
+                        if sprite.isAnimating {
+                            sprite.timeSinceLastFrame += deltaTime
+                            let frameDuration = 1.0 / sprite.animationSpeed
+                            if sprite.timeSinceLastFrame >= frameDuration {
+                                sprite.timeSinceLastFrame = 0.0
+                                sprite.currentImageIndex += 1
+                                if sprite.currentImageIndex > sprite.animationRange.last! {
+                                    sprite.currentImageIndex = sprite.animationRange.first!
+                                }
+                            }
+                        }
                         
                         draw2D.startShape(type: .triangle)
                         draw2D.drawRect(spriteX, spriteY, spriteWidth, spriteHeight, float4(0, 0, 0, 1), Float(sprite.rotation), aspectX, aspectY)
@@ -375,6 +400,18 @@ public class GCP {
         for sprite in sprites {
             if let imageGroup = sprite.imageGroup, sprite.isVisible, sprite.layer == nil {
                 let index = sprite.currentImageIndex
+                
+                if sprite.isAnimating {
+                    sprite.timeSinceLastFrame += deltaTime
+                    let frameDuration = 1.0 / sprite.animationSpeed
+                    if sprite.timeSinceLastFrame >= frameDuration {
+                        sprite.timeSinceLastFrame = 0.0
+                        sprite.currentImageIndex += 1
+                        if sprite.currentImageIndex > sprite.animationRange.last! {
+                            sprite.currentImageIndex = sprite.animationRange.first!
+                        }
+                    }
+                }
                 draw2D.startShape(type: .triangle)
                 draw2D.drawRect(Float(sprite.position.x), Float(sprite.position.y), Float(imageGroup.images[index].width), Float(imageGroup.images[index].height), float4(0, 0, 0, 1), Float(-sprite.rotation))
                 draw2D.endShape(externalTexture: imageGroup.images[index])
@@ -382,9 +419,10 @@ public class GCP {
         }
         draw2D.encodeEnd()
 
-        
         // Clear all commands as processed
         cmds.removeAll()
+        
+        elapsedTime += deltaTime
     }
      
     // Get the image group of the given name

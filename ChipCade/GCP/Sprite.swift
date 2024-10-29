@@ -44,8 +44,9 @@ class Sprite {
     
     // Animation properties
     var isAnimating: Bool = false
-    var animationSpeed: Double = 1.0
-    var animationRange: Range<Int>? = nil
+    var animationSpeed: Float = 10.0
+    var animationRange: ClosedRange<Int> = 0...1
+    var timeSinceLastFrame: Float = 0.0
 
     // Initialization
     init(index: Int) {
@@ -78,18 +79,6 @@ class Sprite {
         self.collisionFlag = false
         self.collidedWithSpriteIndex = nil
         return false
-    }
-
-    // Method to start or stop animation
-    func startAnimation(range: Range<Int>, speed: Double) {
-        self.animationRange = range
-        self.animationSpeed = speed
-        self.isAnimating = true
-    }
-    
-    func stopAnimation() {
-        self.isAnimating = false
-        self.animationRange = nil
     }
     
     func setRotation(_ rotation: Float) {

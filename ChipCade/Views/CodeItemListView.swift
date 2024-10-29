@@ -408,6 +408,37 @@ struct CodeItemListView: View {
                                     )
                                 )
                             }
+                        case .spranm:
+                            SpriteIndexTextField(
+                                spriteIndex: Binding(
+                                    get: { Int(instruction.register1!) },
+                                    set: { newRegister in
+                                        let newInstruction = instruction.clone()
+                                        newInstruction.register1 = UInt8(newRegister)
+                                        codeItem.aboutToChange(using: undoManager, newInstruction: newInstruction, at: index, text: "Sprite Changed")
+                                    }
+                                )
+                            )
+                            SpriteIndexTextField(
+                                spriteIndex: Binding(
+                                    get: { Int(instruction.register2!) },
+                                    set: { newRegister in
+                                        let newInstruction = instruction.clone()
+                                        newInstruction.register2 = UInt8(newRegister)
+                                        codeItem.aboutToChange(using: undoManager, newInstruction: newInstruction, at: index, text: "Range Changed")
+                                    }
+                                )
+                            )
+                            SpriteIndexTextField(
+                                spriteIndex: Binding(
+                                    get: { Int(instruction.register3!) },
+                                    set: { newRegister in
+                                        let newInstruction = instruction.clone()
+                                        newInstruction.register3 = UInt8(newRegister)
+                                        codeItem.aboutToChange(using: undoManager, newInstruction: newInstruction, at: index, text: "Range Changed")
+                                    }
+                                )
+                            )
                         case .sprrot, .sprx, .spry, .sprspd, .spracc, .sprimg, .sprmxs, .sprfri, .sprpri:
                             HStack {
                                 SpriteIndexTextField(
