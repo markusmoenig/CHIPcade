@@ -37,6 +37,7 @@ public enum InstructionType: String, Codable, CaseIterable {
     case spracc
     case spranm
     case sprcol
+    case sprfps
     case sprfri
     case sprgrp
     case sprimg
@@ -112,6 +113,9 @@ public class Instruction: ObservableObject, Codable, Equatable {
         case .ldi, .sprcol, .sprgrp:
             register1 = 0
             value = .unsigned16Bit(0)
+        case .sprfps:
+            register1 = 0
+            value = .unsigned16Bit(10)
         case .ldresx, .ldresy:
             register1 = 0
         case .lyrres:
@@ -264,6 +268,9 @@ public class Instruction: ObservableObject, Codable, Equatable {
         case .sprcol:
             return "SPRCOL S\(register1!) \(value!.toString())"
             
+        case .sprfps:
+            return "SPRFPS S\(register1!) \(value!.toString())"
+            
         case .sprfri:
             return "SPRFRI S\(register1!) L\(register2!)"
             
@@ -371,6 +378,8 @@ public class Instruction: ObservableObject, Codable, Equatable {
             return "Set the animation range for the sprite"
         case .sprcol:
             return "Set the ZF to 0 if the sprite collides with the given group, 1 otherwise"
+        case .sprfps:
+            return "Set the frames per second for the sprite's animation"
         case .sprfri:
             return "Set sprite friction"
         case .sprgrp:
@@ -432,7 +441,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
         switch type {
         case .tag: return .blue
         case .comnt: return .secondary
-        case .rect, .sprset,.sprvis, .sprx, .spry, .lyrres, .lyrvis, .sprrot, .sprwrp, .sprimg, .spracc, .sprmxs, .sprfri, .sprpri, .sprlyr, .sprcol, .sprgrp, .spranm:
+        case .rect, .sprset,.sprvis, .sprx, .spry, .lyrres, .lyrvis, .sprrot, .sprwrp, .sprimg, .spracc, .sprmxs, .sprfri, .sprpri, .sprlyr, .sprcol, .sprgrp, .spranm, .sprfps:
             return .yellow
         default:
             return .primary

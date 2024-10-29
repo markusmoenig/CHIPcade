@@ -64,9 +64,9 @@ Layers are drawn starting from index 0 up to 7. By default layers are in the res
 - **SPRLYR Sd, Ls**. Assign a layer to the sprite. By default a sprite is not bound to a layer and will be drawn on top of all layers.
 
 - **SPRSET Sd, ImageGroup**. Assign an image group to the sprite.
-- **SPRIMG Sd, Rs**. Set the index of the image in the current image group. Default is 0.
+- **SPRIMG Sd, Rs**. Set the index of the image in the current image group. Stops any animation. Default is 0.
 - **SPRANM Sd, From, To**. Set the animation range for the sprite and start animation. If the current image index is not inside the range set it to the animation start frame.
-
+- **SPRFPS Sd, Value**. Set the fps for the sprite's animation. Default is 10.
 
 - **SPRVIS Sd, State**. Set sprite visibility (Invisible/Visible). Default is invisible.
 - **SPRWRP Sd, State**. Set the wrapping mode for the sprite (Off/On). Wrapped sprites wrap around the layer or screen (i.e. when they go offscreen re-appear on the other side).

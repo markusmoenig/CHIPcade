@@ -308,6 +308,14 @@ public class CPU {
                 game.setError(.invalidSpriteIndex)
             }
             
+        case .sprfps:
+            let spriteIndex = Int(instruction.register1!)
+            if spriteIndex >= 0 && spriteIndex <= 255 {
+                gcp.addCmd(.sprfps(spriteIndex: Int(instruction.register1!), value: instruction.value!.toInt32Bit()))
+            } else {
+                game.setError(.invalidSpriteIndex)
+            }
+            
         case .sub   :  if game.registers[Int(instruction.register1!)].sub(other: game.registers[Int(instruction.register2!)], flags: game.flags) {
             game.setError(.invalidArithmetic)
         }

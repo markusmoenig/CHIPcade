@@ -241,7 +241,7 @@ struct CodeItemListView: View {
                                     )
                                 )
                             }
-                        case .sprgrp, .sprcol:
+                        case .sprgrp, .sprcol, .sprfps:
                             HStack {
                                 SpriteIndexTextField(
                                     spriteIndex: Binding(

@@ -27,6 +27,7 @@ public enum GCPCmd  {
     case sprgrp(spriteIndex: Int, value: Int)
     case sprcol(spriteIndex: Int, value: Int)
     case spranm(spriteIndex: Int, from: Int, to: Int)
+    case sprfps(spriteIndex: Int, value: Int)
 }
 
 public class GCP {
@@ -239,6 +240,9 @@ public class GCP {
                     sprite.currentImageIndex = from
                     sprite.timeSinceLastFrame = 0.0
                 }
+                
+                case .sprfps(let spriteIndex, let value) :
+                    sprites[spriteIndex].animationSpeed = Float(value)
             }
         }
         
