@@ -182,7 +182,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
             return "CALL"
             
         case .comnt:
-            return "COMNT"
+            return "#"
             
         case .dec:
             return "DEC R\(register1!)"
@@ -230,7 +230,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
             return "LYRRES L\(register1!) \(memory!)"
             
         case .lyrvis:
-            return "LYRVIS L\(register1!) \(value!)"
+            return "LYRVIS L\(register1!) \(register2!)"
             
         case .mod:
             return "MOD R\(register1!), R\(register2!)"
@@ -296,7 +296,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
             return "SPRSPD S\(register1!) R\(register2!)"
             
         case .sprvis:
-            return "SPRVIS S\(register1!) R\(register2!)"
+            return "SPRVIS S\(register1!) \(register2!)"
             
         case .sprx:
             return "SPRX S\(register1!) R\(register2!)"
@@ -305,7 +305,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
             return "SPRY S\(register1!) R\(register2!)"
             
         case .sprwrp:
-            return "SPRWRP S\(register1!) R\(register2!)"
+            return "SPRWRP S\(register1!) \(register2!)"
             
         case .tag:
             return "TAG"
@@ -315,97 +315,97 @@ public class Instruction: ObservableObject, Codable, Equatable {
     func description() -> String {
         switch type {
         case .add:
-            return "Add source to destination register"
+            return "Add source to destination register."
         case .cmp:
-            return "Compare two registers"
+            return "Compare two registers."
         case .call:
-            return "Call a subroutine"
+            return "Call a subroutine."
         case .comnt:
-            return "Comment"
+            return "Comment."
         case .dec:
-            return "Decrement register by 1"
+            return "Decrement register by 1."
         case .div:
-            return "Divide destination by source register"
+            return "Divide destination by source register."
         case .inc:
-            return "Increment register by 1"
+            return "Increment register by 1."
         case .j:
-            return "Unconditional jump"
+            return "Unconditional jump."
         case .je:
-            return "Jump if the zero flag is set (equality check)"
+            return "Jump if the zero flag is set (equality check)."
         case .jne:
-            return "Jump if the zero flag is not set (inequality check)"
+            return "Jump if the zero flag is not set (inequality check)."
         case .jl:
-            return "Jump if the negative flag is set (less than)"
+            return "Jump if the negative flag is set (less than)."
         case .jg:
-            return "Jump if the zero flag is clear and the negative flag is clear (greater than)"
+            return "Jump if the zero flag is clear and the negative flag is clear (greater than)."
         case .jc:
-            return "Jump if the carry flag is set (used for unsigned comparisons)"
+            return "Jump if the carry flag is set (used for unsigned comparisons)."
         case .jo:
-            return "Jump if the overflow flag is set (used for signed overflows)"            
+            return "Jump if the overflow flag is set (used for signed overflows)."
         case .ld:
-            return "Load memory into register"
+            return "Load memory into register."
         case .ldi:
-            return "Load immediate value into register"
+            return "Load immediate value into register."
         case .ldresx:
-            return "Load resolution x value into register"
+            return "Load resolution x value into register."
         case .ldresy:
-            return "Load resolution y value into register"
+            return "Load resolution y value into register."
         case .lyrres:
             return "Set the layer resolution (WidthxHeight)."
         case .lyrvis:
             return "Set the layer visibility."
         case .mod:
-            return "Modulus of destination by source register"
+            return "Modulus of destination by source register."
         case .mul:
-            return "Multiply source with destination register"
+            return "Multiply source with destination register."
         case .nop:
-            return "No operation"
+            return "No operation."
         case .push:
-            return "Push register to stack"
+            return "Push register to stack."
         case .ret:
-            return "Return from subroutine"
+            return "Return from subroutine."
         case .rect:
-            return "Draw rectangle: R0=X, R1=Y, R2=Width, R3=Height, R4=Palette"
+            return "Draw rectangle: R0=X, R1=Y, R2=Width, R3=Height, R4=Palette."
         case .sprset:
-            return "Set image group for sprite"
+            return "Set image group for sprite."
         case .st:
-            return "Store register to memory"
+            return "Store register to memory."
         case .sub:
-            return "Subtract source from destination register"
+            return "Subtract source from destination register."
         case .spracc:
-            return "Applies an acceleration impulse"
+            return "Applies an acceleration impulse."
         case .spranm:
-            return "Set the animation range for the sprite"
+            return "Set the animation range for the sprite."
         case .sprcol:
-            return "Set the ZF to 0 if the sprite collides with the given group, 1 otherwise"
+            return "Set the ZF to 0 if the sprite collides with the given group, 1 otherwise."
         case .sprfps:
-            return "Set the frames per second for the sprite's animation"
+            return "Set the frames per second for the sprite's animation."
         case .sprfri:
-            return "Set sprite friction"
+            return "Set sprite friction."
         case .sprgrp:
-            return "Assigns the sprite to the given collision group"
+            return "Assigns the sprite to the given collision group."
         case .sprimg:
-            return "Set the image index for the sprite"
+            return "Set the image index for the sprite."
         case .sprlyr:
-            return "Set sprite layer"
+            return "Set sprite layer."
         case .sprmxs:
-            return "Set sprite maximum speed"
+            return "Set sprite maximum speed."
         case .sprpri:
-            return "Set sprite priority"
+            return "Set sprite priority."
         case .sprrot:
-            return "Set sprite rotation"
+            return "Set sprite rotation."
         case .sprspd:
-            return "Set sprite speed"
+            return "Set sprite speed."
         case .sprvis:
-            return "Set sprite visibility"
+            return "Set sprite visibility."
         case .sprx:
-            return "Set sprite x position"
+            return "Set sprite x position."
         case .spry:
-            return "Set sprite y position"
+            return "Set sprite y position."
         case .sprwrp:
-            return "Set sprite wrapping mode"
+            return "Set sprite wrapping mode."
         case .tag:
-            return "Tag"
+            return "Set a code tag for conditional execution."
         }
     }
     

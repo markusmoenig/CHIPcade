@@ -95,8 +95,6 @@ class MetalDraw2D
     
     public func setupView(_ metalView: ChipCadeView)
     {
-        guard self.metalView == nil else { return }
-        
         self.metalView = metalView
         #if os(iOS)
         metalView.layer.isOpaque = false

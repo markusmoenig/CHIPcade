@@ -36,6 +36,9 @@ public class Game : ObservableObject
     @Published var currCodeItemIndex: Int = 0
     @Published var currInstructionIndex: Int = 0
     
+    var prevCodeItemIndex: Int = 0
+    var prevInstructionIndex: Int = 0
+    
     // Drawing widgets
     var cpuRender = MetalDraw2D();
     var cpuWidget = CPUWidget()
@@ -77,7 +80,13 @@ public class Game : ObservableObject
     // Start playback, execute init
     public func play() {
         reset()
-                
+             
+        prevCodeItemIndex = currCodeItemIndex
+        prevInstructionIndex = currInstructionIndex
+        
+        currCodeItemIndex = 0
+        currInstructionIndex = 0
+        
         gcp.setupGameData(gameData: data)
         
         error = .none
@@ -103,9 +112,11 @@ public class Game : ObservableObject
     // Stop playback
     public func stop() {
         reset()
-
-        error = .none
         
+        currCodeItemIndex = prevCodeItemIndex
+        currInstructionIndex = prevInstructionIndex
+        
+        error = .none
         DispatchQueue.main.async {
             self.errorChanged.send(false)
         }
@@ -150,7 +161,7 @@ public class Game : ObservableObject
     // Execute the current instruction (single step mode)
     public func executeInstruction() {
         if let instruction = getInstruction() {
-            _ = cpu.executeInstruction(instruction: instruction, gcp: gcp)                
+            _ = cpu.executeInstruction(instruction: instruction, gcp: gcp)
             gcp.draw2D.update()
         }
     }
@@ -231,8 +242,6 @@ public class Game : ObservableObject
             for i in 0...7 {
                 self.registers[i] = ChipCadeData.unsigned16Bit(0)
             }
-            self.currCodeItemIndex = 0
-            self.currInstructionIndex = 0
         }
     }
     

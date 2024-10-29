@@ -13,24 +13,26 @@ struct StackView: View {
     
     var body: some View {
         VStack {
-            Text("Stack")
-                .font(.headline)
-                .foregroundColor(.gray)
-
-            List(Array(game.stack.enumerated()), id: \.offset) { index, data in
-                HStack {
-
-                    Text(String(format: "%04X", index))
-                        .font(.system(.body, design: .monospaced))
-                        .frame(width: 60, alignment: .leading)
-                    
-                    // Display the name or value of the MemoryItem
-                    Text(game.stack[index].toString())
-                        .font(.system(.body, design: .monospaced))
-                        .padding(.leading, 5)
+            
+            if game.stack.isEmpty {
+                Text("Stack is Empty")
+                    .foregroundStyle(.secondary)
+            } else {
+                List(Array(game.stack.enumerated()), id: \.offset) { index, data in
+                    HStack {
+                        
+                        Text(String(format: "%04X", index))
+                            .font(.system(.body, design: .monospaced))
+                            .frame(width: 60, alignment: .leading)
+                        
+                        // Display the name or value of the MemoryItem
+                        Text(game.stack[index].toString())
+                            .font(.system(.body, design: .monospaced))
+                            .padding(.leading, 5)
+                    }
                 }
+                .frame(maxHeight: 150, alignment: .bottom)
             }
-            .frame(maxHeight: 150, alignment: .bottom)
         }
     }
 }

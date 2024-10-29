@@ -404,15 +404,13 @@ struct MetalView: NSViewRepresentable {
             }
             self.metalCommandQueue = metalDevice.makeCommandQueue()!
             super.init()
+
         }
         
         func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
 //            if let mtkView = view as? ChipCadeView {
 //                if parent.viewType == .Game {
 //                    parent.game.gcp.setupView(mtkView)
-//                } else
-//                if parent.viewType == .CPU {
-//                    parent.game.cpuRender.setupView(mtkView)
 //                }
 //            }
         }

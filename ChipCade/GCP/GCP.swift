@@ -49,10 +49,12 @@ public class GCP {
     {
         draw2D.setupView(metalView)
         
-        for _ in 0..<8 {
-            if let index = draw2D.createTexture(width: 100, height: 100) {
-                let layer = Layer(index: index)
-                layers.append(layer)
+        if layers.isEmpty {
+            for _ in 0..<8 {
+                if let index = draw2D.createTexture(width: 100, height: 100) {
+                    let layer = Layer(index: index)
+                    layers.append(layer)
+                }
             }
         }
     }

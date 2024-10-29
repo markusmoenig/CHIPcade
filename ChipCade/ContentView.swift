@@ -40,6 +40,11 @@ struct ContentView: View {
     @State private var selectedLayer: Int = 0
     @State private var selectedSprite: Int = 0
 
+    @State private var selectedInfoType: Int = 0
+
+    @State private var infoViewIcon: String = "info.circle.fill"
+    @State private var stackViewIcon: String = "square.3.layers.3d"
+
     //@StateObject private var controllerManager = GameControllerManager()
 
     @Environment(\.undoManager) var undoManager
@@ -218,10 +223,41 @@ struct ContentView: View {
                     }
                     
                     Spacer()
-                    Divider()
+                    //Divider()
+                    
+                    HStack(spacing: 8) {
+                        Button(action: {
+                            selectedInfoType = 0
+                            infoViewIcon = "info.circle.fill"
+                            stackViewIcon = "square.3.layers.3d"
+                        }) {
+                            Label("", systemImage: infoViewIcon)
+                        }
+                        .buttonStyle(.borderless)
+                        .padding(.leading, 8)
+                        .controlSize(.large)
+
+                        Button(action: {
+                            selectedInfoType = 1
+                            infoViewIcon = "info.circle"
+                            stackViewIcon = "square.3.layers.3d.top.filled"
+                        }) {
+                            Label("", systemImage: "square.3.layers.3d")
+                        }
+                        .buttonStyle(.borderless)
+                        .controlSize(.large)
+
+                        Spacer()
+                    }
+                    .padding(.bottom, 6)
                         
-                    StackView(game: document.game)
-                        .frame(height: 150)
+                    if selectedInfoType == 0 {
+                        InstructionInfoView(selectedInstruction: $selectedInstruction)
+                            .frame(maxHeight: 100)
+                    } else {
+                        StackView(game: document.game)
+                            .frame(maxHeight: 100)
+                    }
                 }
                 #if os(macOS)
                 .frame(maxWidth: 350)
@@ -318,8 +354,6 @@ struct ContentView: View {
                     let data = try Data(contentsOf: fileURL)
                     if let fileContents = String(data: data, encoding: .utf8) {
                         referenceText = fileContents
-                    } else {
-                        referenceText = "Failed to decode the file contents."
                     }
                 } catch {
                     referenceText = "Failed to load reference document: \(error.localizedDescription)"
@@ -337,6 +371,11 @@ struct ContentView: View {
             }
             else {
                 selectedCodeItem = document.game.data.codeItems[document.game.currCodeItemIndex]
+                
+                if document.game.currInstructionIndex >= document.game.data.codeItems[document.game.currCodeItemIndex].codes.count {
+                    document.game.currInstructionIndex = 0
+                }
+                
                 selectedInstruction = document.game.data.codeItems[document.game.currCodeItemIndex].codes[document.game.currInstructionIndex]
                 selectedInstructionIndex = document.game.currInstructionIndex
             }
@@ -347,6 +386,7 @@ struct ContentView: View {
         .onChange(of: selectedInstructionIndex) {
             if let selectedInstructionIndex = selectedInstructionIndex {
                 document.game.currInstructionIndex = selectedInstructionIndex
+                selectedInstruction = document.game.getInstruction()
             }
             document.game.cpuRender.update()
         }
