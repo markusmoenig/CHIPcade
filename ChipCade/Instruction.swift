@@ -99,7 +99,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
         
         case .cmp, .add, .sub, .mul, .div, .mod:
             register1 = 0
-            register2 = 1
+            register2 = 0
         case .inc, .dec:
             register1 = 0
         case .comnt:
@@ -120,7 +120,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
             register1 = 0
         case .lyrres:
             register1 = 0
-            memory = "320x200"
+            memory = "320 200"
         case .lyrvis:
             register1 = 0
             register2 = 0
@@ -173,10 +173,10 @@ public class Instruction: ObservableObject, Codable, Equatable {
     func format() -> String {
         switch type {
         case .add:
-            return "ADD R\(register1!), R\(register2!)"
+            return "ADD R\(register1!) R\(register2!)"
             
         case .cmp:
-            return "CMP R\(register1!), R\(register2!)"
+            return "CMP R\(register1!) R\(register2!)"
          
         case .call:
             return "CALL"
@@ -188,7 +188,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
             return "DEC R\(register1!)"
             
         case .div:
-            return "DIV R\(register1!), R\(register2!)"
+            return "DIV R\(register1!) R\(register2!)"
             
         case .inc:
             return "INC R\(register1!)"
@@ -233,10 +233,10 @@ public class Instruction: ObservableObject, Codable, Equatable {
             return "LYRVIS L\(register1!) \(register2!)"
             
         case .mod:
-            return "MOD R\(register1!), R\(register2!)"
+            return "MOD R\(register1!) R\(register2!)"
             
         case .mul:
-            return "MUL R\(register1!), R\(register2!)"
+            return "MUL R\(register1!) R\(register2!)"
             
         case .nop:
             return "NOP"
@@ -257,7 +257,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
             return "ST \(memory!) + \(memoryOffset!) R\(register1!)"
             
         case .sub:
-            return "SUB R\(register1!), R\(register2!)"
+            return "SUB R\(register1!) R\(register2!)"
           
         case .spracc:
             return "SPRACC S\(register1!) L\(register2!)"
@@ -351,7 +351,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
         case .ldresy:
             return "Load resolution y value into register."
         case .lyrres:
-            return "Set the layer resolution (WidthxHeight)."
+            return "Set the layer resolution (Width Height)."
         case .lyrvis:
             return "Set the layer visibility."
         case .mod:

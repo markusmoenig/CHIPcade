@@ -175,7 +175,7 @@ public class CPU {
         case .lyrres:
             let layerIndex = Int(instruction.register1!)
             if layerIndex >= 0 && layerIndex <= 7 {
-                let components = instruction.memory!.split(separator: "x")
+                let components = instruction.memory!.split(separator: " ")
                 if components.count == 2 {
                     let width = Int(components[0])
                     let height = Int(components[1])

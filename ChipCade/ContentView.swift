@@ -7,6 +7,13 @@
 
 import SwiftUI
 import MarkdownUI
+import CodeEditorView
+import LanguageSupport
+
+enum EditingMode {
+    case list
+    case code
+}
 
 // Hack to avoid UndoManager closure warnings
 extension UndoManager: @unchecked @retroactive Sendable { }
@@ -45,9 +52,16 @@ struct ContentView: View {
     @State private var infoViewIcon: String = "info.circle.fill"
     @State private var stackViewIcon: String = "square.3.layers.3d"
 
+    @State private var editingMode: EditingMode = .list
+    @State private var editingIcon: String = "list.bullet.rectangle"
+
+    @State private var codeText: String = ""
+    @State private var codePosition: CodeEditor.Position = CodeEditor.Position()
+    @State private var codeMessages: Set<TextLocated<Message>> = Set()
     //@StateObject private var controllerManager = GameControllerManager()
 
     @Environment(\.undoManager) var undoManager
+    @Environment(\.colorScheme) private var colorScheme: ColorScheme
 
     var body: some View {
         NavigationView {
@@ -144,12 +158,16 @@ struct ContentView: View {
                     Spacer()
                     
                     if let codeItem = selectedCodeItem, previewIsLeftSide == true {
-                        CodeItemListView(
-                            codeItem: codeItem,
-                            selectedInstruction: $selectedInstruction,
-                            selectedInstructionIndex: $selectedInstructionIndex
-                        )
-//                        CodeEditorView(codeItem: $selectedCodeItem)
+                        if editingMode == .list {
+                            CodeItemListView(
+                                codeItem: codeItem,
+                                selectedInstruction: $selectedInstruction,
+                                selectedInstructionIndex: $selectedInstructionIndex
+                            )
+                        } else {
+                            CodeEditor(text: $codeText, position: $codePosition, messages: $codeMessages, language: LanguageConfiguration.build_chipcade())
+                                .environment(\.codeEditorTheme, colorScheme == .dark ? Theme.defaultDark : Theme.defaultLight)
+                        }
                     } else {
                         MetalView(document.game, .Game)
                     }
@@ -196,11 +214,16 @@ struct ContentView: View {
                 VStack(spacing: 0) {
                     if let codeItem = selectedCodeItem {
                         if !previewIsLeftSide {
-                            CodeItemListView(
-                                codeItem: codeItem,
-                                selectedInstruction: $selectedInstruction,
-                                selectedInstructionIndex: $selectedInstructionIndex
-                            )
+                            if editingMode == .list {
+                                CodeItemListView(
+                                    codeItem: codeItem,
+                                    selectedInstruction: $selectedInstruction,
+                                    selectedInstructionIndex: $selectedInstructionIndex
+                                )
+                            } else {
+                                CodeEditor(text: $codeText, position: $codePosition, messages: $codeMessages, language: LanguageConfiguration.build_chipcade())
+                                        .environment(\.codeEditorTheme, colorScheme == .dark ? Theme.defaultDark : Theme.defaultLight)
+                            }
                         } else {
                             MetalView(document.game, .Game)
                         }
@@ -330,7 +353,19 @@ struct ContentView: View {
                 Button(action: {
                     previewIsLeftSide.toggle()
                 }) {
-                    Label("Swap", systemImage: "rectangle.2.swap")
+                    Label("Swap Views", systemImage: "rectangle.2.swap")
+                }
+                
+                Button(action: {
+                    if editingMode == .list {
+                        editingMode = .code
+                        editingIcon = "list.bullet.rectangle.fill"
+                    } else {
+                        editingMode = .list
+                        editingIcon = "list.bullet.rectangle"
+                    }
+                }) {
+                    Label("Editing Mode", systemImage: editingIcon)
                 }
                 
                 Spacer()
@@ -407,6 +442,8 @@ struct ContentView: View {
                 if let index = document.game.getCodeItemIndex(byItem: selectedCodeItem) {
                     document.game.currCodeItemIndex = index
                 }
+                
+                codeText = selectedCodeItem.codes.map { $0.format() }.joined(separator: "\n")
             }
             document.game.currInstructionIndex = 0
             selectedInstructionIndex = 0
@@ -437,6 +474,14 @@ struct ContentView: View {
             }
         }
         
+        .onChange(of: codePosition.rawValue) {
+            print("codePosition: \(codePosition)")
+        }
+        
+        .onChange(of: codeText) {
+            compile()
+        }
+        
         .searchable(text: $searchText) {
             ForEach(searchResults, id: \.self) { result in
                 Text("\(result)").searchCompletion(result)
@@ -459,6 +504,48 @@ struct ContentView: View {
         
         //document.model.searchResultsChanged.send(results)
         return results
+    }
+    
+    // The codeText has changed in .code editing mode, we have to compile back into Instructions
+    func compile() {
+        if let codeItem = selectedCodeItem {
+
+            var instructions = [Instruction]()
+            let lines = codeText.split(separator: "\n", omittingEmptySubsequences: false)
+            
+            for line in lines {
+                // If line is empty, treat it as NOP
+                if line.trimmingCharacters(in: .whitespaces).isEmpty {
+                    instructions.append(Instruction(.nop))
+                    continue
+                }
+                
+                // Check if the line is a tag (ends with ':')
+                if line.hasSuffix(":") {
+                    let tagName = String(line.dropLast()) // Remove the colon
+                    
+                    // Validate the tag name
+                    if tagName.isEmpty || tagName.contains(" ") || tagName.first?.isNumber == true {
+                        break
+                    }
+                    
+                    // Create the tag instruction
+                    let instruction = Instruction(.tag)
+                    instruction.memory = tagName
+                    print(instruction.format())
+                    instructions.append(instruction)
+                    continue
+                }
+                
+                if let instruction = Instruction.fromString(String(line)) {
+                    print(instruction.format())
+                    instructions.append(instruction)
+                } else {
+                    break;
+                }
+            }
+            
+        }
     }
 }
 

@@ -13,6 +13,7 @@ struct ChipCadeApp: App {
         DocumentGroup(newDocument: ChipCadeDocument()) { file in
             ContentView(document: file.$document)
         }
+        /*
         .commands {
             CommandGroup(replacing: .pasteboard) {
                 Button("Cut") {
@@ -57,7 +58,7 @@ struct ChipCadeApp: App {
                 }
                 .keyboardShortcut("v", modifiers: .command)
             }
-        }
+        }*/
         .defaultSize(width: 1200, height: 800)
     }
 }

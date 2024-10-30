@@ -16,7 +16,7 @@ struct ResolutionTextField: View {
     @State private var resolutionText: String = ""
 
     var body: some View {
-        TextField("WidthxHeight", text: $resolutionText)
+        TextField("Width Height", text: $resolutionText)
             .textFieldStyle(RoundedBorderTextFieldStyle())
             .onAppear {
                 // Initialize with the formatted resolution from the instruction
@@ -32,18 +32,18 @@ struct ResolutionTextField: View {
                     
                     // Register the change with undo/redo
                     codeItem.aboutToChange(using: undoManager, newInstruction: newInstruction, at: index, text: "Resolution Changed")
-                    resolutionText = instruction.memory ?? "320x200"
+                    resolutionText = instruction.memory ?? "320 200"
 
                 } else {
                     // Revert to the old value if the input is invalid
-                    resolutionText = instruction.memory ?? "320x200"
+                    resolutionText = instruction.memory ?? "320 200"
                 }
             }
     }
 
     private func validateResolution(text: String) -> Bool {
         // Check if the text is in the format "WIDTHxHEIGHT" where both WIDTH and HEIGHT are integers
-        let components = text.split(separator: "x")
+        let components = text.split(separator: " ")
         if components.count == 2,
            let width = Int(components[0]),
            let height = Int(components[1]),

@@ -16,12 +16,14 @@ extension Instruction {
         
         switch type {
         case .add, .cmp, .sub, .mul, .div, .mod:
-            // ADD R0, R1
+            // XXX Rd Rs
             if components.count == 3,
                let reg1 = parseRegister(components[1]),
                let reg2 = parseRegister(components[2]) {
                 instruction.register1 = reg1
                 instruction.register2 = reg2
+            } else {
+                return nil
             }
 
         case .inc, .dec:
@@ -29,6 +31,8 @@ extension Instruction {
             if components.count == 2,
                let reg1 = parseRegister(components[1]) {
                 instruction.register1 = reg1
+            } else {
+                return nil
             }
 
         case .ldi:
@@ -38,22 +42,47 @@ extension Instruction {
                let value = ChipCadeData.fromString(components[2]) {
                 instruction.register1 = reg1
                 instruction.value = value
+            } else {
+                return nil
             }
 
         case .ld:
-            // LD R0 Data + 10
-            if components.count >= 3,
-               let reg1 = parseRegister(components[1]) {
-                let (memory, offset) = parseMemory(components[2...])
-                instruction.register1 = reg1
-                instruction.memory = memory
-                instruction.memoryOffset = offset
+            // Ensure we have at least 3 components: "LD R0 Data"
+            guard components.count >= 3 else { return nil }
+
+            // Parse the register
+            guard let reg1 = parseRegister(components[1]) else {
+                return nil // Invalid register
             }
+            
+            // Extract memory part
+            let memory = String(components[2])
+            var offset = 0
+
+            // Handle offset variations: "LD R0 Data", "LD R0 Data +10", "LD R0 Data + 10"
+            if components.count >= 4 {
+                // Join components 3 and 4 to handle spaces
+                let offsetString = components[3...].joined().replacingOccurrences(of: " ", with: "")
+
+                // Match "+N" where N is the offset
+                if offsetString.starts(with: "+"),
+                   let offsetValue = Int(offsetString.dropFirst()) {
+                    offset = offsetValue
+                } else {
+                    return nil // Invalid offset
+                }
+            }
+
+            instruction.register1 = reg1
+            instruction.memory = memory
+            instruction.memoryOffset = offset
 
         case .j, .je, .jne, .jl, .jg, .jc, .jo, .call:
             // J Module.Tag
             if components.count == 2 {
                 instruction.memory = components[1]
+            } else {
+                return nil
             }
 
         case .rect:
@@ -61,31 +90,66 @@ extension Instruction {
             break
 
         case .lyrres:
-            // LYRRES L0 320x200
-            if components.count == 3,
+            // LYRRES L0 320 200
+            if components.count == 4,
                let reg1 = parseRegister(components[1]) {
                 instruction.register1 = reg1
-                instruction.memory = components[2]
+                instruction.memory = "\(components[2]) \(components[3])"
+            } else {
+                return nil
             }
 
         case .lyrvis:
-            // LYRVIS L0 1
+            // LYRVIS L0 0
+            //print("\(components) \(parseRegister(components[1])) \(parseData(components[2]))")
             if components.count == 3,
                let reg1 = parseRegister(components[1]),
-               let value = ChipCadeData.fromString(components[2]) {
+               let reg2 = UInt8(components[2]) {
                 instruction.register1 = reg1
-                instruction.value = value
+                instruction.register2 = reg2
+            } else {
+                return nil
+            }
+            
+        case .sprvis, .sprwrp:
+            // SPRVIS S0 0
+            if components.count == 3,
+               let reg1 = parseRegister(components[1]),
+               let reg2 = UInt8(components[2]) {
+                instruction.register1 = reg1
+                instruction.register2 = reg2
+            } else {
+                return nil
             }
 
         case .st:
-            // ST Data + 10 R0
-            if components.count >= 4,
-               let reg1 = parseRegister(components[3]) {
-                let (memory, offset) = parseMemory(components[1...2])
-                instruction.register1 = reg1
-                instruction.memory = memory
-                instruction.memoryOffset = offset
+            // Ensure we have at least 3 components: "ST Data R0"
+            guard components.count >= 3 else { return nil }
+
+            // Extract memory part
+            let memory = String(components[1])
+            var offset = 0
+
+            // Handle offset variations: "ST Data R0", "ST Data +1 R0", "ST Data + 1 R0"
+            if components.count == 4 {
+                // Handle "ST Data +1 R0" or "ST Data + 1 R0"
+                let offsetString = components[2].trimmingCharacters(in: .whitespaces)
+                if offsetString.starts(with: "+"),
+                   let offsetValue = Int(offsetString.dropFirst()) {
+                    offset = offsetValue
+                } else {
+                    return nil // Invalid offset
+                }
             }
+
+            // Parse the register (last component)
+            guard let reg1 = parseRegister(components.last!) else {
+                return nil // Invalid register
+            }
+
+            instruction.register1 = reg1
+            instruction.memory = memory
+            instruction.memoryOffset = offset
 
         case .sprset:
             // SPRSET S0 ImageGroup
@@ -93,24 +157,43 @@ extension Instruction {
                let reg1 = parseRegister(components[1]) {
                 instruction.register1 = reg1
                 instruction.memory = components[2]
+            } else {
+                return nil
             }
 
-        case .spracc, .sprlyr, .sprrot, .sprspd, .sprvis, .sprx, .spry, .sprwrp, .sprimg, .sprmxs, .sprfri, .sprpri:
-            // SPRACC S0 L1
+        case .spracc, .sprlyr, .sprrot, .sprspd, .sprx, .spry, .sprimg, .sprmxs, .sprfri, .sprpri:
+            // XXXXXX Sd Rs
             if components.count == 3,
                let reg1 = parseRegister(components[1]),
                let reg2 = parseRegister(components[2]) {
                 instruction.register1 = reg1
                 instruction.register2 = reg2
+            } else {
+                return nil
             }
 
-        case .sprcol, .sprgrp:
-            // SPRCOL S0 10
+        case .spranm:
+            // XXXXXX Sd From To
+            if components.count == 4,
+               let reg1 = parseRegister(components[1]),
+               let reg2 = UInt8(components[2]),
+               let reg3 = UInt8(components[3]) {
+                instruction.register1 = reg1
+                instruction.register2 = reg2
+                instruction.register3 = reg3
+            } else {
+                return nil
+            }
+            
+        case .sprcol, .sprgrp, .sprfps:
+            // XXXXXX Sd Value
             if components.count == 3,
                let reg1 = parseRegister(components[1]),
                let value = ChipCadeData.fromString(components[2]) {
                 instruction.register1 = reg1
                 instruction.value = value
+            } else {
+                return nil
             }
 
         case .push:
@@ -130,12 +213,6 @@ extension Instruction {
                 instruction.memory = String(comment)
             }
 
-        case .tag:
-            // TAG (Everything after 'TAG' is a tag)
-            if components.count == 2 {
-                instruction.memory = components[1]
-            }
-
         default:
             return nil
         }
@@ -143,7 +220,17 @@ extension Instruction {
         return instruction
     }
 
+    private static func parseData(_ component: String) -> ChipCadeData? {
+        if let data = ChipCadeData.fromString(component) {
+            return data
+        } else if let value = UInt16(component) {
+            return .unsigned16Bit(value)
+        }
+        return nil
+    }
+    
     private static func parseRegister(_ component: String) -> UInt8? {
+        let component = component.uppercased()
         if component.starts(with: "R"),
            let regNumber = UInt8(component.dropFirst()) {
             return regNumber

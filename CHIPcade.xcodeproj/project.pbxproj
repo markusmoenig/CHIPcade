@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		DD22825D2CD0E2AE00F7D6E9 /* CodeEditorView in Frameworks */ = {isa = PBXBuildFile; productRef = DD22825C2CD0E2AE00F7D6E9 /* CodeEditorView */; };
+		DD22825F2CD0E2AE00F7D6E9 /* LanguageSupport in Frameworks */ = {isa = PBXBuildFile; productRef = DD22825E2CD0E2AE00F7D6E9 /* LanguageSupport */; };
 		DD72F1892CAC25790054826E /* ChipReference.md in Resources */ = {isa = PBXBuildFile; fileRef = DD72F1882CAC25790054826E /* ChipReference.md */; };
 		DDFC5A8B2CCE209800CADD62 /* Readme.md in Resources */ = {isa = PBXBuildFile; fileRef = DDFC5A8A2CCE209800CADD62 /* Readme.md */; };
 		DDFC5A8E2CCE258E00CADD62 /* MarkdownUI in Frameworks */ = {isa = PBXBuildFile; productRef = DDFC5A8D2CCE258E00CADD62 /* MarkdownUI */; };
@@ -45,6 +47,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				DDFC5A8E2CCE258E00CADD62 /* MarkdownUI in Frameworks */,
+				DD22825F2CD0E2AE00F7D6E9 /* LanguageSupport in Frameworks */,
+				DD22825D2CD0E2AE00F7D6E9 /* CodeEditorView in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -90,6 +94,8 @@
 			name = CHIPcade;
 			packageProductDependencies = (
 				DDFC5A8D2CCE258E00CADD62 /* MarkdownUI */,
+				DD22825C2CD0E2AE00F7D6E9 /* CodeEditorView */,
+				DD22825E2CD0E2AE00F7D6E9 /* LanguageSupport */,
 			);
 			productName = ChipCade;
 			productReference = DD72F1282CA82DC00054826E /* CHIPcade.app */;
@@ -121,6 +127,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				DDFC5A8C2CCE258E00CADD62 /* XCRemoteSwiftPackageReference "swift-markdown-ui" */,
+				DD22825B2CD0E2AE00F7D6E9 /* XCRemoteSwiftPackageReference "CodeEditorView" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = DD72F1292CA82DC00054826E /* Products */;
@@ -381,6 +388,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		DD22825B2CD0E2AE00F7D6E9 /* XCRemoteSwiftPackageReference "CodeEditorView" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/mchakravarty/CodeEditorView.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.14.0;
+			};
+		};
 		DDFC5A8C2CCE258E00CADD62 /* XCRemoteSwiftPackageReference "swift-markdown-ui" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/gonzalezreal/swift-markdown-ui";
@@ -392,6 +407,16 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		DD22825C2CD0E2AE00F7D6E9 /* CodeEditorView */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DD22825B2CD0E2AE00F7D6E9 /* XCRemoteSwiftPackageReference "CodeEditorView" */;
+			productName = CodeEditorView;
+		};
+		DD22825E2CD0E2AE00F7D6E9 /* LanguageSupport */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DD22825B2CD0E2AE00F7D6E9 /* XCRemoteSwiftPackageReference "CodeEditorView" */;
+			productName = LanguageSupport;
+		};
 		DDFC5A8D2CCE258E00CADD62 /* MarkdownUI */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = DDFC5A8C2CCE258E00CADD62 /* XCRemoteSwiftPackageReference "swift-markdown-ui" */;
