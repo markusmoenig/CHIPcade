@@ -213,6 +213,9 @@ public class CPU {
             
         case .push  : game.stack.append(.value(instruction.value!))
         
+        case .rand:
+            game.registers[Int(instruction.register1!)] = ChipCadeData.random(upTo: instruction.value!)
+            
         case .rect  :
             let x : Float = game.registers[0].toFloat32Bit()
             let y : Float = game.registers[1].toFloat32Bit()

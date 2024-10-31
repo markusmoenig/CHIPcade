@@ -107,14 +107,14 @@ public class Game : ObservableObject
                 break;
             }
         }
+        
+        currCodeItemIndex = prevCodeItemIndex
+        currInstructionIndex = prevInstructionIndex
     }
     
     // Stop playback
     public func stop() {
         reset()
-        
-        currCodeItemIndex = prevCodeItemIndex
-        currInstructionIndex = prevInstructionIndex
         
         error = .none
         DispatchQueue.main.async {
@@ -140,6 +140,9 @@ public class Game : ObservableObject
     
     // Called when running from the updater
     public func update() {
+        prevCodeItemIndex = currCodeItemIndex
+        prevInstructionIndex = currInstructionIndex
+        
         currCodeItemIndex = 1
         currInstructionIndex = 0
         
@@ -156,6 +159,9 @@ public class Game : ObservableObject
             }
         }
         cpuRender.update()
+        
+        currCodeItemIndex = prevCodeItemIndex
+        currInstructionIndex = prevInstructionIndex
     }
     
     // Execute the current instruction (single step mode)

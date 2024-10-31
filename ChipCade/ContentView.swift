@@ -10,7 +10,7 @@ import MarkdownUI
 import CodeEditorView
 import LanguageSupport
 
-enum EditingMode {
+enum EditingMode: Int {
     case list
     case code
 }
@@ -39,7 +39,7 @@ struct ContentView: View {
 
     @State private var showingAddMemoryItemPopover = false
 
-    @State private var editorIsOnLeftSide = false
+    @AppStorage("editorIsOnLeftSide") private var editorIsOnLeftSide = false
 
     @State private var searchText: String = ""
     @State private var filteredResults: [(index: Int, instruction: Instruction)] = []
@@ -52,8 +52,8 @@ struct ContentView: View {
     @State private var infoViewIcon: String = "info.circle.fill"
     @State private var stackViewIcon: String = "square.3.layers.3d"
 
-    @State private var editingMode: EditingMode = .list
-    @State private var editingIcon: String = "list.bullet.rectangle"
+    @AppStorage("editingMode") private var editingMode: Int = EditingMode.list.rawValue
+    @AppStorage("editingIcon") private var editingIcon: String = "list.bullet.rectangle"
 
     @State private var codeText: String = ""
     @State private var codePosition: CodeEditor.Position = CodeEditor.Position()
@@ -217,7 +217,7 @@ struct ContentView: View {
                 VStack(spacing: 0) {
                     if let codeItem = selectedCodeItem {
                         if !editorIsOnLeftSide {
-                            if editingMode == .list {
+                            if editingMode == EditingMode.list.rawValue {
                                 CodeItemListView(
                                     codeItem: codeItem,
                                     selectedInstruction: $selectedInstruction,
@@ -356,7 +356,7 @@ struct ContentView: View {
                 Button(action: {
                     editorIsOnLeftSide.toggle()
                     if editorIsOnLeftSide {
-                        editingMode = .code
+                        editingMode = EditingMode.code.rawValue
                         editingIcon = "list.bullet.rectangle.fill"
                     }
                 }) {
@@ -364,11 +364,11 @@ struct ContentView: View {
                 }
                 
                 Button(action: {
-                    if editingMode == .list {
-                        editingMode = .code
+                    if editingMode == EditingMode.list.rawValue {
+                        editingMode = EditingMode.code.rawValue
                         editingIcon = "list.bullet.rectangle.fill"
                     } else {
-                        editingMode = .list
+                        editingMode = EditingMode.list.rawValue
                         editingIcon = "list.bullet.rectangle"
                     }
                 }) {
@@ -516,7 +516,7 @@ struct ContentView: View {
     
     // The codeText has changed in .code editing mode, we have to compile back into Instructions
     func compile() {
-        guard editingMode == .code else { return }
+        guard editingMode == EditingMode.code.rawValue else { return }
         
         if let codeItem = selectedCodeItem {
 

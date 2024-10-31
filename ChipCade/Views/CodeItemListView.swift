@@ -217,7 +217,7 @@ struct CodeItemListView: View {
                                     index: index
                                 )
                             }
-                        case .ldi:
+                        case .ldi, .rand:
                             HStack {
                                 Int8RegisterMenu(
                                     selectedRegister: Binding(

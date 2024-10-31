@@ -32,6 +32,7 @@ public enum InstructionType: String, Codable, CaseIterable {
     case mul
     case nop
     case push
+    case rand
     case rect
     case ret
     case spracc
@@ -113,6 +114,9 @@ public class Instruction: ObservableObject, Codable, Equatable {
         case .ldi, .sprcol, .sprgrp:
             register1 = 0
             value = .unsigned16Bit(0)
+        case .rand:
+            register1 = 0
+            value = .unsigned16Bit(10)
         case .sprfps:
             register1 = 0
             value = .unsigned16Bit(10)
@@ -244,6 +248,9 @@ public class Instruction: ObservableObject, Codable, Equatable {
         case .push:
             return "PUSH \(value!.toString())"
             
+        case .rand:
+            return "RAND R\(register1!) \(value!.toString())"
+            
         case .rect:
             return "RECT"
             
@@ -364,6 +371,8 @@ public class Instruction: ObservableObject, Codable, Equatable {
             return "Push register to stack."
         case .ret:
             return "Return from subroutine."
+        case .rand:
+            return "Create a random value between 0 and max value."
         case .rect:
             return "Draw rectangle: R0=X, R1=Y, R2=Width, R3=Height, R4=Palette."
         case .sprset:

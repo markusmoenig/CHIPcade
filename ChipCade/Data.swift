@@ -373,19 +373,19 @@ enum ChipCadeData: Codable {
     static func random(upTo maxValue: ChipCadeData) -> ChipCadeData {
         switch maxValue {
         case .unsigned16Bit(let max):
-            let randomValue = UInt16.random(in: 0..<max)
+            let randomValue = UInt16.random(in: 0...max)
             return .unsigned16Bit(randomValue)
             
         case .signed16Bit(let max):
-            let randomValue = Int16.random(in: 0..<max)
+            let randomValue = Int16.random(in: 0...max)
             return .signed16Bit(randomValue)
             
-        case .float16Bit(let max):
-            let randomValue = UInt16.random(in: 0..<max)
-            return .float16Bit(randomValue)  // This preserves float representation as UInt16
+        case .float16Bit(_):
+            let randomValue = Float.random(in: 0.0...maxValue.toFloat32Bit())
+            return .float16Bit(float32ToFloat16(randomValue))
             
         case .unicodeChar(let max):
-            let randomValue = UInt16.random(in: 0..<max)
+            let randomValue = UInt16.random(in: 0...max)
             return .unicodeChar(randomValue)
         }
     }

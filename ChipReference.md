@@ -39,6 +39,8 @@ For more detailed information and tutorials please visit [CHIPcade.com](https://
 - **JC CodeTag**. Jump if the carry flag is set (used for unsigned comparisons).
 - **JO CodeTag**. Jump if the overflow flag is set (used for signed overflows).
 
+- **RAND Rd Value**. Generates a random number of type Value in the range of 0...Value and stores it in the destination register.
+
 ### CPU Flags
 
 - **Zero Flag (ZF)**. Set when the result of an operation is zero.
