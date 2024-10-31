@@ -48,8 +48,8 @@ extension LanguageConfiguration {
           ZeroOrMore { symbolCharacter }
         }
     return LanguageConfiguration(name: "Haskell",
-                                 supportsSquareBrackets: true,
-                                 supportsCurlyBrackets: true,
+                                 supportsSquareBrackets: false,
+                                 supportsCurlyBrackets: false,
                                  stringRegex: /\"(?:\\\"|[^\"])*+\"/,
                                  characterRegex: /'(?:\\'|[^']|\\[^']*+)'/,
                                  numberRegex: numberRegex,

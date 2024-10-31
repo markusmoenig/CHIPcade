@@ -7,6 +7,7 @@
 
 enum ChipCadeError: Error {
     case none
+    case syntaxError
     case invalidMemoryAddress
     case invalidCodeAddress
     case invalidComparison
@@ -20,6 +21,8 @@ enum ChipCadeError: Error {
         switch self {
         case .none:
             return "No error"
+        case .syntaxError:
+            return "Syntax Error"
         case .invalidMemoryAddress:
             return "Invalid memory address"
         case .invalidCodeAddress:

@@ -93,7 +93,7 @@ struct CodeItemListView: View {
             .padding(.leading, 8)
 
             List(Array(codeItem.codes.enumerated()), id: \.1.id) { index, instruction in
-                let offset = String(format: "%04X", index)
+                let offset = String(format: "%04d", index)
                 
                 VStack(alignment: .leading) {
                     HStack {

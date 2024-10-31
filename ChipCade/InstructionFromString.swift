@@ -61,10 +61,10 @@ extension Instruction {
 
             // Handle offset variations: "LD R0 Data", "LD R0 Data +10", "LD R0 Data + 10"
             if components.count >= 4 {
-                // Join components 3 and 4 to handle spaces
+                // Join offset components, removing any spaces, to handle cases like "+ 10"
                 let offsetString = components[3...].joined().replacingOccurrences(of: " ", with: "")
 
-                // Match "+N" where N is the offset
+                // Check for and parse "+N" where N is the offset
                 if offsetString.starts(with: "+"),
                    let offsetValue = Int(offsetString.dropFirst()) {
                     offset = offsetValue
@@ -131,14 +131,14 @@ extension Instruction {
             var offset = 0
 
             // Handle offset variations: "ST Data R0", "ST Data +1 R0", "ST Data + 1 R0"
-            if components.count == 4 {
-                // Handle "ST Data +1 R0" or "ST Data + 1 R0"
-                let offsetString = components[2].trimmingCharacters(in: .whitespaces)
-                if offsetString.starts(with: "+"),
-                   let offsetValue = Int(offsetString.dropFirst()) {
+            if components.count == 4 || components.count == 5 {
+                // Join the "+" and offset number if separated by a space
+                let offsetPart = components[2...components.count - 2].joined(separator: " ").trimmingCharacters(in: .whitespaces)
+                
+                if offsetPart.starts(with: "+"), let offsetValue = Int(offsetPart.dropFirst().trimmingCharacters(in: .whitespaces)) {
                     offset = offsetValue
                 } else {
-                    return nil // Invalid offset
+                    return nil // Invalid offset format
                 }
             }
 
@@ -210,7 +210,7 @@ extension Instruction {
         case .comnt:
             // COMNT (Everything after '#' is a comment)
             if let comment = string.split(separator: "#").last {
-                instruction.memory = String(comment)
+                instruction.memory = String(comment.trimmingCharacters(in: .whitespaces))
             }
 
         default:

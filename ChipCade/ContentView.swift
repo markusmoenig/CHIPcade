@@ -39,7 +39,7 @@ struct ContentView: View {
 
     @State private var showingAddMemoryItemPopover = false
 
-    @State private var previewIsLeftSide = false
+    @State private var editorIsOnLeftSide = false
 
     @State private var searchText: String = ""
     @State private var filteredResults: [(index: Int, instruction: Instruction)] = []
@@ -58,6 +58,9 @@ struct ContentView: View {
     @State private var codeText: String = ""
     @State private var codePosition: CodeEditor.Position = CodeEditor.Position()
     @State private var codeMessages: Set<TextLocated<Message>> = Set()
+    
+    @State private var currError: ChipCadeError = .none
+    
     //@StateObject private var controllerManager = GameControllerManager()
 
     @Environment(\.undoManager) var undoManager
@@ -157,17 +160,17 @@ struct ContentView: View {
                 VStack(spacing: 0) {
                     Spacer()
                     
-                    if let codeItem = selectedCodeItem, previewIsLeftSide == true {
-                        if editingMode == .list {
-                            CodeItemListView(
-                                codeItem: codeItem,
-                                selectedInstruction: $selectedInstruction,
-                                selectedInstructionIndex: $selectedInstructionIndex
-                            )
-                        } else {
+                    if let codeItem = selectedCodeItem, editorIsOnLeftSide == true {
+//                        if editingMode == .list {
+//                            CodeItemListView(
+//                                codeItem: codeItem,
+//                                selectedInstruction: $selectedInstruction,
+//                                selectedInstructionIndex: $selectedInstructionIndex
+//                            )
+//                        } else {
                             CodeEditor(text: $codeText, position: $codePosition, messages: $codeMessages, language: LanguageConfiguration.build_chipcade())
                                 .environment(\.codeEditorTheme, colorScheme == .dark ? Theme.defaultDark : Theme.defaultLight)
-                        }
+                        //}
                     } else {
                         MetalView(document.game, .Game)
                     }
@@ -213,7 +216,7 @@ struct ContentView: View {
                 
                 VStack(spacing: 0) {
                     if let codeItem = selectedCodeItem {
-                        if !previewIsLeftSide {
+                        if !editorIsOnLeftSide {
                             if editingMode == .list {
                                 CodeItemListView(
                                     codeItem: codeItem,
@@ -276,7 +279,7 @@ struct ContentView: View {
                     .padding(.bottom, 6)
                         
                     if selectedInfoType == 0 {
-                        InstructionInfoView(selectedInstruction: $selectedInstruction)
+                        InstructionInfoView(selectedInstruction: $selectedInstruction, error: $currError)
                             .frame(maxHeight: 100)
                     } else {
                         StackView(game: document.game)
@@ -351,7 +354,11 @@ struct ContentView: View {
                 Spacer()
                 
                 Button(action: {
-                    previewIsLeftSide.toggle()
+                    editorIsOnLeftSide.toggle()
+                    if editorIsOnLeftSide {
+                        editingMode = .code
+                        editingIcon = "list.bullet.rectangle.fill"
+                    }
                 }) {
                     Label("Swap Views", systemImage: "rectangle.2.swap")
                 }
@@ -397,11 +404,12 @@ struct ContentView: View {
             } else {
                 referenceText = "Reference document not found."
             }
-            document.game.play()
+            //document.game.play()
         }
         
-        .onReceive(document.game.errorChanged) { value in
-            if value {
+        .onReceive(document.game.errorChanged) { error in
+            currError = error
+            if error != .none {
                 selectedCodeItem = document.game.data.codeItems[document.game.errorCodeItemIndex]
                 selectedInstruction = document.game.data.codeItems[document.game.errorCodeItemIndex].codes[document.game.errorInstructionIndex]
                 selectedInstructionIndex = document.game.errorInstructionIndex
@@ -474,9 +482,9 @@ struct ContentView: View {
             }
         }
         
-        .onChange(of: codePosition.rawValue) {
-            print("codePosition: \(codePosition)")
-        }
+//        .onChange(of: codePosition.rawValue) {
+//            print("codePosition: \(codePosition)")
+//        }
         
         .onChange(of: codeText) {
             compile()
@@ -508,12 +516,16 @@ struct ContentView: View {
     
     // The codeText has changed in .code editing mode, we have to compile back into Instructions
     func compile() {
+        guard editingMode == .code else { return }
+        
         if let codeItem = selectedCodeItem {
 
             var instructions = [Instruction]()
             let lines = codeText.split(separator: "\n", omittingEmptySubsequences: false)
             
-            for line in lines {
+            var errorLine : Int? = nil
+            
+            for (index, line) in lines.enumerated() {
                 // If line is empty, treat it as NOP
                 if line.trimmingCharacters(in: .whitespaces).isEmpty {
                     instructions.append(Instruction(.nop))
@@ -526,6 +538,7 @@ struct ContentView: View {
                     
                     // Validate the tag name
                     if tagName.isEmpty || tagName.contains(" ") || tagName.first?.isNumber == true {
+                        errorLine = index
                         break
                     }
                     
@@ -541,79 +554,27 @@ struct ContentView: View {
                     print(instruction.format())
                     instructions.append(instruction)
                 } else {
+                    errorLine = index
                     break;
                 }
             }
             
-        }
-    }
-}
-
-struct AddMemoryItemView: View {
-    @ObservedObject var game: Game
-    @Binding var selectedMemoryItem: MemoryItem?
-    @Environment(\.presentationMode) var presentationMode
-    
-    @State private var name: String = "New Memory Item"
-    //@State private var selectedType: MemoryType = .code
-    @State private var length: Int = 64
-
-    var body: some View {
-        VStack(alignment: .leading) {
-            Text("Add Memory Item")
-                .font(.headline)
-                .padding(.top)
-                //.foregroundColor(Color.secondary)
-
-            VStack(alignment: .leading, spacing: 10) {
-                TextField("Enter name", text: $name)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .padding(.bottom, 10)
-                
-//                Picker("Type", selection: $selectedType) {
-//                    Text("Code").tag(MemoryType.code)
-//                    Text("Sprite").tag(MemoryType.sprite)
-//                    Text("Data").tag(MemoryType.data)
-//                }
-//                .pickerStyle(SegmentedPickerStyle())
-//                .padding(.bottom, 10)
-                
-//                Text("Length: \(length) bytes")
-//                Stepper(value: $length, in: 1...1024) {
-//                    Text("Length: \(length) bytes")
-//                }
-            }
-            .padding()
-            
-            HStack {
-                //Spacer()
-                Button("Add") {
-                    addMemoryItem()
-                    presentationMode.wrappedValue.dismiss()
+            if let errorLine {
+                selectedInstructionIndex = errorLine
+                if let codeItemIndex = document.game.getCodeItemIndex(byItem: codeItem) {
+                    document.game.error = .syntaxError
+                    document.game.errorCodeItemIndex = codeItemIndex
+                    document.game.errorInstructionIndex = errorLine
+                    document.game.errorChanged.send(.syntaxError)
                 }
-                //.buttonStyle(DefaultButtonStyle())
+            } else {
+                selectedCodeItem = nil
+                selectedCodeItem = codeItem
+                codeItem.codes = instructions
+                document.game.error = .none
+                document.game.errorChanged.send(.none)
             }
-            .padding(.bottom)
         }
-        .padding()
-    }
-    
-    private func addMemoryItem() {
-        //let newItem = MemoryItem(name: name, length: length)
-        //let newCodeItem = CodeItem(name: name)
-
-        // Add the new memory item to the appropriate section
-//        switch selectedType {
-//        case .code:
-//            game.data.codeItems.append(newCodeItem)
-//        case .sprite:
-//            game.data.spriteItems.append(newItem)
-//        case .data:
-//            game.data.dataItems.append(newItem)
-//        }
-
-        // Automatically select the new memory item
-        //selectedMemoryItem = newItem
     }
 }
 

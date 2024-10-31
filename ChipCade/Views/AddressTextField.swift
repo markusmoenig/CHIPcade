@@ -37,7 +37,7 @@ struct MemoryAddressTextField: View {
 
     private func formatLDInstruction() -> String {
         let memoryText = instruction.memory ?? "Data"
-        let offsetText = instruction.memoryOffset != nil ? String(format: "0x%X", instruction.memoryOffset!) : "0x0"
+        let offsetText = instruction.memoryOffset != nil ? String(format: "%d", instruction.memoryOffset!) : "0"
         return "\(memoryText) + \(offsetText)"
     }
 
@@ -54,7 +54,7 @@ struct MemoryAddressTextField: View {
                 let hexOffset = String(offsetString.dropFirst(2))
                 instruction.memoryOffset = Int(hexOffset, radix: 16) ?? 0
             } else {
-                instruction.memoryOffset = Int(offsetString, radix: 16) ?? 0
+                instruction.memoryOffset = Int(offsetString) ?? 0
             }
         } else if components.count == 1 {
             // No offset provided, set memory and default offset to 0

@@ -23,7 +23,7 @@ public class Game : ObservableObject
 {
     static var shared = Game()
     
-    let errorChanged = PassthroughSubject<Bool, Never>()
+    let errorChanged = PassthroughSubject<ChipCadeError, Never>()
 
     @Published var data: GameData
     
@@ -118,7 +118,7 @@ public class Game : ObservableObject
         
         error = .none
         DispatchQueue.main.async {
-            self.errorChanged.send(false)
+            self.errorChanged.send(.none)
         }
 
         state = .paused
@@ -269,6 +269,6 @@ public class Game : ObservableObject
         errorInstructionIndex = currInstructionIndex
         
         pause()
-        errorChanged.send(true)
+        errorChanged.send(error)
     }
 }

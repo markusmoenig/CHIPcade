@@ -179,7 +179,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
             return "CMP R\(register1!) R\(register2!)"
          
         case .call:
-            return "CALL"
+            return "CALL \(memory!)"
             
         case .comnt:
             return "# \(memory!)"
@@ -263,7 +263,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
             return "SPRACC S\(register1!) L\(register2!)"
       
         case .spranm:
-            return "SPRANM S\(register1!) \(register2!) \(register2!)"
+            return "SPRANM S\(register1!) \(register2!) \(register3!)"
             
         case .sprcol:
             return "SPRCOL S\(register1!) \(value!.toString())"
