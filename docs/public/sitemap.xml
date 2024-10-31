@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url>
+    <loc>http://localhost:1313/language/layers/index.html</loc>
+  </url>
+  <url>
+    <loc>http://localhost:1313/news/index.html</loc>
+  </url>
+  <url>
+    <loc>http://localhost:1313/language/sprites/index.html</loc>
+  </url>
+  <url>
+    <loc>http://localhost:1313/language/reference/index.html</loc>
+  </url>
+  <url>
+    <loc>http://localhost:1313/language/index.html</loc>
+  </url>
+  <url>
+    <loc>http://localhost:1313/tutorials/index.html</loc>
+  </url>
+  <url>
+    <loc>http://localhost:1313/categories/index.html</loc>
+  </url>
+  <url>
+    <loc>http://localhost:1313/more/credits/index.html</loc>
+  </url>
+  <url>
+    <loc>http://localhost:1313/index.html</loc>
+  </url>
+  <url>
+    <loc>http://localhost:1313/tags/index.html</loc>
+  </url>
+</urlset>

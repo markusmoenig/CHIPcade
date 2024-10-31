@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script>
+    <meta charset="utf-8">
+    <meta name="viewport" content="height=device-height, width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <meta name="generator" content="Hugo 0.125.7">
+    <meta name="generator" content="Relearn 5.11.2+tip">
+    <meta name="description" content="ForgedThoughts is a 3D modeling and rendering programming language utilizing SDFs.">
+    <meta name="author" content="Markus Moenig">
+    <title>Polygonization - Modeling &amp; Rendering Language</title>
+    <link href="/rendering/polygonization/index.xml" rel="alternate" type="application/rss+xml" title="Polygonization - Modeling &amp; Rendering Language">
+    <link href="/images/favicon.png?1730363359" rel="icon" type="image/png">
+    <!-- https://github.com/filamentgroup/loadCSS/blob/master/README.md#how-to-use -->
+    <link href="/css/fontawesome-all.min.css?1730363359" rel="stylesheet" media="print" onload="this.media='all';this.onload=null;"><noscript><link href="/css/fontawesome-all.min.css?1730363359" rel="stylesheet"></noscript>
+    <link href="/css/nucleus.css?1730363359" rel="stylesheet">
+    <link href="/css/auto-complete.css?1730363359" rel="stylesheet" media="print" onload="this.media='all';this.onload=null;"><noscript><link href="/css/auto-complete.css?1730363359" rel="stylesheet"></noscript>
+    <link href="/css/perfect-scrollbar.min.css?1730363359" rel="stylesheet">
+    <link href="/css/fonts.css?1730363359" rel="stylesheet" media="print" onload="this.media='all';this.onload=null;"><noscript><link href="/css/fonts.css?1730363359" rel="stylesheet"></noscript>
+    <link href="/css/theme.css?1730363359" rel="stylesheet">
+    <link href="/css/theme-auto.css?1730363359" rel="stylesheet" id="variant-style">
+    <link href="/css/variant.css?1730363359" rel="stylesheet">
+    <link href="/css/print.css?1730363359" rel="stylesheet" media="print">
+    <link href="/css/ie.css?1730363359" rel="stylesheet">
+    <script src="/js/url.js?1730363359"></script>
+    <script src="/js/variant.js?1730363359"></script>
+    <script>
+      // hack to let hugo tell us how to get to the root when using relativeURLs, it needs to be called *url= for it to do its magic:
+      // https://github.com/gohugoio/hugo/blob/145b3fcce35fbac25c7033c91c1b7ae6d1179da8/transform/urlreplacers/absurlreplacer.go#L72
+      window.index_js_url="/index.search.js";
+      var root_url="/";
+      var baseUri=root_url.replace(/\/$/, '');
+      // translations
+      window.T_Copy_to_clipboard = 'Copy to clipboard';
+      window.T_Copied_to_clipboard = 'Copied to clipboard!';
+      window.T_Copy_link_to_clipboard = 'Copy link to clipboard';
+      window.T_Link_copied_to_clipboard = 'Copied link to clipboard!';
+      window.T_No_results_found = 'No results found for \u0022{0}\u0022';
+      window.T_N_results_found = '{1} results found for \u0022{0}\u0022';
+      // some further base stuff
+      var baseUriFull='http:\/\/localhost:1313/';
+      window.variants && variants.init( [ 'auto' ] );
+    </script>
+  </head>
+  <body class="mobile-support html" data-url="/rendering/polygonization/index.html">
+    <div id="body" class="default-animation">
+      <div id="sidebar-overlay"></div>
+      <div id="toc-overlay"></div>
+      <nav id="topbar" class="highlightable">
+        <div>
+          <div id="breadcrumbs">
+            <span id="sidebar-toggle-span">
+              <a href="#" id="sidebar-toggle" class="topbar-link" title='Menu (CTRL+ALT+n)'><i class="fas fa-bars fa-fw"></i></a>
+            </span>
+            <span class="links">
+              Polygonization
+            </span>
+          </div>
+        </div>
+      </nav>
+      <main id="body-inner" class="highlightable default" tabindex="-1">
+        <div class="flex-block-wrapper">
+          <div id="head-tags">
+          </div>
+          <article class="default">
+<h1 id="polygonization">Polygonization</h1>
+
+<p>If you do not want to render the scene to an image but would rather triangulate it. Use the <code>polygonize</code> command for <em>ftc</em>.</p>
+<p>You have a number of settings available to customize the triangulation:</p>
+<ul>
+<li><code>grid_size</code>. This defines the area of the scene which gets triangulated. A value of 1.0 (the default) will triangulate from -1.0 to 1.0 in the x, y and z axis. So the actual area which gets sampled is actually double the grid_size.</li>
+<li><code>grid_step_size</code>. The step size in the grid, the smaller the more triangles will get created. The default value is <em>0.01</em>. You will probably need smaller values for complex objects.</li>
+<li><code>iso_value</code>. This value defines the triangulation threshold in the volume field, the default value is 0.006.</li>
+</ul>
+<p>You can define these values in the settings structure like this.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-rust" data-lang="rust"><span style="display:flex;"><span>settings.grid_size <span style="color:#f92672">=</span> <span style="color:#ae81ff">0.5</span>;           <span style="color:#75715e">// Sample from -0.5..0.5.
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>settings.height <span style="color:#f92672">=</span> <span style="color:#ae81ff">0.005</span>;            <span style="color:#75715e">// A sample every 0.005 units.
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>settings.iso_value <span style="color:#f92672">=</span> <span style="color:#ae81ff">0.001</span>;         <span style="color:#75715e">// Set the sampling threshold to 0.001
+</span></span></span></code></pre></div>
+            <footer class="footline">
+            </footer>
+          </article>
+        </div>
+      </main>
+    </div>
+    <aside id="sidebar" class="default-animation">
+      <div id="header-wrapper" class="default-animation">
+        <div id="header" class="default-animation">
+<style>
+    #header {
+        background-color: #444;
+    }
+    #header-wrapper  {
+        background-color: #444;
+    }
+</style>
+<a href="/"><img src="/images/logo.png" alt="logo"></a>
+        </div>
+        <div class="searchbox default-animation">
+          <i class="fas fa-search" title="Search (CTRL+ALT+f)"></i>
+          <label class="a11y-only" for="search-by">Search</label>
+          <input data-search-input id="search-by" name="search-by" class="search-by" type="search" placeholder="Search...">
+          <span data-search-clear=""><i class="fas fa-times"></i></span>
+        </div>
+        <script>
+          var contentLangs=['en'];
+        </script>
+        <script src="/js/auto-complete.js?1730363360" defer></script>
+        <script src="/js/lunr/lunr.min.js?1730363360" defer></script>
+        <script src="/js/lunr/lunr.stemmer.support.min.js?1730363360" defer></script>
+        <script src="/js/lunr/lunr.multi.min.js?1730363360" defer></script>
+        <script src="/js/lunr/lunr.en.min.js?1730363360" defer></script>
+        <script src="/js/search.js?1730363360" defer></script>
+      </div>
+      <div id="content-wrapper" class="highlightable">
+        <ul class="topics">
+          <li data-nav-id="/basics/index.html" class="dd-item alwaysopen"><a href="/basics/index.html">Getting Started</a><ul id="subsections-a6deabe447afe1b2e1405bfc57ca61ff">
+          <li data-nav-id="/basics/whatsnew/index.html" class="dd-item"><a href="/basics/whatsnew/index.html">What&#39;s New</a></li>
+          <li data-nav-id="/basics/installation/index.html" class="dd-item"><a href="/basics/installation/index.html">Installation</a></li>
+          <li data-nav-id="/basics/raymarching/index.html" class="dd-item"><a href="/basics/raymarching/index.html">Raymarching</a></li></ul></li>
+          <li data-nav-id="/modeling/index.html" class="dd-item"><a href="/modeling/index.html">Modeling</a><ul id="subsections-ae3d4a9b22c5864d721fdc60b9209194">
+          <li data-nav-id="/modeling/basics/index.html" class="dd-item"><a href="/modeling/basics/index.html">Basics</a></li>
+          <li data-nav-id="/modeling/booleans/index.html" class="dd-item"><a href="/modeling/booleans/index.html">Booleans</a></li>
+          <li data-nav-id="/modeling/modifier/index.html" class="dd-item"><a href="/modeling/modifier/index.html">Modifiers</a></li>
+          <li data-nav-id="/modeling/merging/index.html" class="dd-item"><a href="/modeling/merging/index.html">Merging</a></li></ul></li>
+          <li data-nav-id="/rendering/index.html" class="dd-item parent"><a href="/rendering/index.html">Rendering</a><ul id="subsections-cb27e6cf7f29e4bdb73f15b9e2c4f3d6">
+          <li data-nav-id="/rendering/basics/index.html" class="dd-item"><a href="/rendering/basics/index.html">Basics</a></li>
+          <li data-nav-id="/rendering/lighting/index.html" class="dd-item"><a href="/rendering/lighting/index.html">Lighting</a></li>
+          <li data-nav-id="/rendering/materials/index.html" class="dd-item"><a href="/rendering/materials/index.html">Materials</a></li>
+          <li data-nav-id="/rendering/background/index.html" class="dd-item"><a href="/rendering/background/index.html">Backgrounds</a></li>
+          <li data-nav-id="/rendering/polygonization/index.html" class="dd-item active"><a href="/rendering/polygonization/index.html">Polygonization</a></li></ul></li>
+          <li data-nav-id="/language/index.html" class="dd-item"><a href="/language/index.html">Language Reference</a><ul id="subsections-84e0c5289a63136422908a7e4241adc6">
+          <li data-nav-id="/language/math/index.html" class="dd-item"><a href="/language/math/index.html">Math</a></li>
+          <li data-nav-id="/language/vectors/index.html" class="dd-item"><a href="/language/vectors/index.html">Vectors</a></li>
+          <li data-nav-id="/language/sdfs/index.html" class="dd-item"><a href="/language/sdfs/index.html">3D SDFs</a></li></ul></li>
+          <li data-nav-id="/examples/index.html" class="dd-item"><a href="/examples/index.html">Examples</a><ul id="subsections-09293e995b11754c4445aab5dfe0a859">
+          <li data-nav-id="/examples/wine_glass/index.html" class="dd-item"><a href="/examples/wine_glass/index.html">Wine Glass</a></li>
+          <li data-nav-id="/examples/helmet/index.html" class="dd-item"><a href="/examples/helmet/index.html">Helmet</a></li></ul></li>
+        </ul>
+        <div id="shortcuts">
+          <div class="nav-title">More</div>
+          <ul>
+            <li><a class="padding" href="https://github.com/markusmoenig/CHIPcade"><i class='fab fa-fw fa-github'></i> GitHub repo</a></li>
+            <li><a class="padding" href="https://discord.gg/KKteWArT"><i class='fab fa-fw fa-discord'></i> Discord</a></li>
+            <li><a class="padding" href="/more/credits/index.html"><i class='fas fa-fw fa-bullhorn'></i> Credits</a></li>
+            <li><a class="padding" href="https://twitter.com/MarkusMoenig"><i class='fab fa-fw fa-twitter'></i> Twitter</a></li>
+          </ul>
+        </div>
+        <div class="footermargin footerLangSwitch footerVariantSwitch footerVisitedLinks footerFooter"></div>
+        <hr class="default-animation footerLangSwitch footerVariantSwitch footerVisitedLinks footerFooter">
+        <div id="prefooter" class="footerLangSwitch footerVariantSwitch footerVisitedLinks">
+          <ul>
+            <li id="select-language-container" class="footerLangSwitch">
+              <div class="padding select-container">
+                <i class="fas fa-language fa-fw"></i>
+                <span>&nbsp;</span>
+                <div class="select-style">
+                  <label class="a11y-only" for="select-language">Language</label>
+                  <select id="select-language" onchange="location = baseUri + this.value;">
+                    <option lang="en" id="en" value="/rendering/polygonization/index.html" selected></option>
+                  </select>
+                </div>
+                <div class="select-clear"></div>
+              </div>
+            </li>
+            <li id="select-variant-container" class="footerVariantSwitch">
+              <div class="padding select-container">
+                <i class="fas fa-paint-brush fa-fw"></i>
+                <span>&nbsp;</span>
+                <div class="select-style">
+                  <label class="a11y-only" for="select-variant">Theme</label>
+                  <select id="select-variant" onchange="window.variants && variants.changeVariant( this.value );">
+                    <option id="auto" value="auto" selected>Auto</option>
+                  </select>
+                </div>
+                <div class="select-clear"></div>
+              </div>
+              <script>window.variants && variants.markSelectedVariant();</script>
+            </li>
+            <li class="footerVisitedLinks"><button class="padding" onclick="clearHistory();"><i class="fas fa-history fa-fw"></i> Clear History</button></li>
+          </ul>
+        </div>
+        <div id="footer" class="footerFooter">
+        </div>
+      </div>
+    </aside>
+    <script src="/js/clipboard.min.js?1730363360" defer></script>
+    <script src="/js/perfect-scrollbar.min.js?1730363360" defer></script>
+    <script>
+      function useMathJax( config ){
+        if( !Object.assign ){
+          
+          return;
+        }
+        window.MathJax = Object.assign( window.MathJax || {}, {
+          loader: {
+            load: ['[tex]/mhchem']
+          },
+          startup: {
+            elements: [
+              '.math'
+            ]
+          },
+          tex: {
+            inlineMath: [
+              ['$', '$'], 
+              ['\\(', '\\)']
+            ]
+          },
+          options: {
+            enableMenu: false 
+          }
+        }, config );
+      }
+      useMathJax( JSON.parse("{}") );
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="/js/d3/d3-color.min.js?1730363360" defer></script>
+    <script src="/js/d3/d3-dispatch.min.js?1730363360" defer></script>
+    <script src="/js/d3/d3-drag.min.js?1730363360" defer></script>
+    <script src="/js/d3/d3-ease.min.js?1730363360" defer></script>
+    <script src="/js/d3/d3-interpolate.min.js?1730363360" defer></script>
+    <script src="/js/d3/d3-selection.min.js?1730363360" defer></script>
+    <script src="/js/d3/d3-timer.min.js?1730363360" defer></script>
+    <script src="/js/d3/d3-transition.min.js?1730363360" defer></script>
+    <script src="/js/d3/d3-zoom.min.js?1730363360" defer></script>
+    <script src="https://unpkg.com/mermaid/dist/mermaid.min.js" defer></script>
+    <script>
+      window.themeUseMermaid = JSON.parse("{ \"theme\": \"default\" }");
+    </script>
+    <script src="https://unpkg.com/rapidoc/dist/rapidoc-min.js" defer></script>
+    <script>
+      window.themeUseSwagger = JSON.parse("{ \"theme\": \"light\" }");
+    </script>
+    <script src="/js/theme.js?1730363360" defer></script>
+  </body>
+</html>

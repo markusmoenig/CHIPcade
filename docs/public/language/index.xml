@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>CHIPcade Assembly on Modeling &amp; Rendering Language</title>
+    <link>http://localhost:1313/language/index.html</link>
+    <description>Recent content in CHIPcade Assembly on Modeling &amp; Rendering Language</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language><atom:link href="http://localhost:1313/language/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Layers</title>
+      <link>http://localhost:1313/language/layers/index.html</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/language/layers/index.html</guid>
+      <description>TODO</description>
+    </item>
+    <item>
+      <title>Sprites</title>
+      <link>http://localhost:1313/language/sprites/index.html</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/language/sprites/index.html</guid>
+      <description>TODO</description>
+    </item>
+    <item>
+      <title>Reference</title>
+      <link>http://localhost:1313/language/reference/index.html</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/language/reference/index.html</guid>
+      <description>CPU 16bit processor with 8 registers, flags and a stack.
+Instruction Set TAG CodeTag. Set a code tag (for Jump or Call instructions).
+# Text. Set a comment.
+NOP. No operation. Does nothing.
+LD Rd Memory + Offset. Load memory to the destination register.
+LDI Rd Value. Load an immediate value to the destination register.
+LDRESX Rd. Load the x value of the screen resolution to the destination register.
+LDRESY Rd.</description>
+    </item>
+  </channel>
+</rss>

@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Modeling on Modeling &amp; Rendering Language</title>
+    <link>http://localhost:1313/modeling/index.html</link>
+    <description>Recent content in Modeling on Modeling &amp; Rendering Language</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language><atom:link href="http://localhost:1313/modeling/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Basics</title>
+      <link>http://localhost:1313/modeling/basics/index.html</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/modeling/basics/index.html</guid>
+      <description>All top-level SDF shapes in a scene are automatically rendered.
+For example
+let sphere = Sphere(); would create a unit sphere.
+For a list of all currently available SDFs consult the reference.
+Booleans Boolean operations can be used by using the appropriate operator.
+let sphere1 = Sphere(1.2); let sphere2 = Sphere(1.2); sphere2.position.x = 1.0; sphere1 -= sphere2; Would subtract sphere2 from sphere1.
+In this case sphere2 will not be rendered anymore as a standalone top-level object.</description>
+    </item>
+    <item>
+      <title>Booleans</title>
+      <link>http://localhost:1313/modeling/booleans/index.html</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/modeling/booleans/index.html</guid>
+      <description>Use booleans to merge, subtract and intersect shapes with each other. These boolean operations come with quite a few options and operators.
+Addition You can merge two shapes by just adding them:
+let sphere1 = Sphere(1.2); sphere1.material.rgb = F3(0.3); let sphere2 = Sphere(1.2); sphere2.position.x = 1.0; sphere1 += sphere2; The shape on the right is added to the shape on the left. This is actually the default operation for shapes, however you will need it when you want two add two shapes and then for example subtract them from another shape (together).</description>
+    </item>
+    <item>
+      <title>Modifiers</title>
+      <link>http://localhost:1313/modeling/modifier/index.html</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/modeling/modifier/index.html</guid>
+      <description>You can modify shapes in a lot of different ways. Some modifiers are built into the Forged Thoughts language itself, others you can program yourself.
+Here we discuss all the modification tools available.
+Twist You can twist a shape around an axis using it&amp;rsquo;s twist property.
+For example
+let prim = Box(F3(0.3, 1.0, 0.3)); prim.material.rgb = F3(1.0, 0.186, 0.0); prim.material.roughness = 0.3; prim.twist.y = 2.0; settings.step_size = 0.5; will twist a box along the Y-axis and will look something like this:</description>
+    </item>
+    <item>
+      <title>Merging</title>
+      <link>http://localhost:1313/modeling/merging/index.html</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/modeling/merging/index.html</guid>
+      <description>Forged Thoughts supports merging SDF primitives with the use of the smin() and smax() functions.
+smin The smin() function in Forged Thoughts is based on the cubic polynomial smin function described by Inigo Quilez here.
+Given we have two shapes:
+let sphere = Sphere(); sphere.material.rgb = F3(0.2, 0.4, 0.6); sphere.material.roughness = 1.0; sphere.material.subsurface = 1.0; let cone = Cone(); cone.material = sphere.material; We can merge them with smin() into a new shape.</description>
+    </item>
+  </channel>
+</rss>

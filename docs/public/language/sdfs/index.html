@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script>
+    <meta charset="utf-8">
+    <meta name="viewport" content="height=device-height, width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <meta name="generator" content="Hugo 0.125.7">
+    <meta name="generator" content="Relearn 5.11.2+tip">
+    <meta name="description" content="ForgedThoughts is a 3D modeling and rendering programming language utilizing SDFs.">
+    <meta name="author" content="Markus Moenig">
+    <title>3D SDFs - Modeling &amp; Rendering Language</title>
+    <link href="/language/sdfs/index.xml" rel="alternate" type="application/rss+xml" title="3D SDFs - Modeling &amp; Rendering Language">
+    <link href="/images/favicon.png?1730364679" rel="icon" type="image/png">
+    <!-- https://github.com/filamentgroup/loadCSS/blob/master/README.md#how-to-use -->
+    <link href="/css/fontawesome-all.min.css?1730364679" rel="stylesheet" media="print" onload="this.media='all';this.onload=null;"><noscript><link href="/css/fontawesome-all.min.css?1730364679" rel="stylesheet"></noscript>
+    <link href="/css/nucleus.css?1730364679" rel="stylesheet">
+    <link href="/css/auto-complete.css?1730364679" rel="stylesheet" media="print" onload="this.media='all';this.onload=null;"><noscript><link href="/css/auto-complete.css?1730364679" rel="stylesheet"></noscript>
+    <link href="/css/perfect-scrollbar.min.css?1730364679" rel="stylesheet">
+    <link href="/css/fonts.css?1730364679" rel="stylesheet" media="print" onload="this.media='all';this.onload=null;"><noscript><link href="/css/fonts.css?1730364679" rel="stylesheet"></noscript>
+    <link href="/css/theme.css?1730364679" rel="stylesheet">
+    <link href="/css/theme-auto.css?1730364679" rel="stylesheet" id="variant-style">
+    <link href="/css/variant.css?1730364679" rel="stylesheet">
+    <link href="/css/print.css?1730364679" rel="stylesheet" media="print">
+    <link href="/css/ie.css?1730364679" rel="stylesheet">
+    <script src="/js/url.js?1730364679"></script>
+    <script src="/js/variant.js?1730364679"></script>
+    <script>
+      // hack to let hugo tell us how to get to the root when using relativeURLs, it needs to be called *url= for it to do its magic:
+      // https://github.com/gohugoio/hugo/blob/145b3fcce35fbac25c7033c91c1b7ae6d1179da8/transform/urlreplacers/absurlreplacer.go#L72
+      window.index_js_url="/index.search.js";
+      var root_url="/";
+      var baseUri=root_url.replace(/\/$/, '');
+      // translations
+      window.T_Copy_to_clipboard = 'Copy to clipboard';
+      window.T_Copied_to_clipboard = 'Copied to clipboard!';
+      window.T_Copy_link_to_clipboard = 'Copy link to clipboard';
+      window.T_Link_copied_to_clipboard = 'Copied link to clipboard!';
+      window.T_No_results_found = 'No results found for \u0022{0}\u0022';
+      window.T_N_results_found = '{1} results found for \u0022{0}\u0022';
+      // some further base stuff
+      var baseUriFull='http:\/\/localhost:1313/';
+      window.variants && variants.init( [ 'auto' ] );
+    </script>
+  </head>
+  <body class="mobile-support html" data-url="/language/sdfs/index.html">
+    <div id="body" class="default-animation">
+      <div id="sidebar-overlay"></div>
+      <div id="toc-overlay"></div>
+      <nav id="topbar" class="highlightable">
+        <div>
+          <div id="breadcrumbs">
+            <span id="sidebar-toggle-span">
+              <a href="#" id="sidebar-toggle" class="topbar-link" title='Menu (CTRL+ALT+n)'><i class="fas fa-bars fa-fw"></i></a>
+            </span>
+            <span id="toc-menu" title='Table of Contents (CTRL+ALT+t)'><i class="fas fa-list-alt fa-fw"></i></span>
+            <span class="links">
+              3D SDFs
+            </span>
+          </div>
+          <div class="default-animation progress">
+            <div class="toc-wrapper"><nav id="TableOfContents">
+  <ul>
+    <li><a href="#transformations">Transformations</a></li>
+    <li><a href="#modifiers">Modifiers</a></li>
+    <li><a href="#available-3d-sdfs">Available 3D SDFs</a>
+      <ul>
+        <li><a href="#sphere">Sphere</a></li>
+        <li><a href="#plane">Plane</a></li>
+        <li><a href="#box">Box</a></li>
+        <li><a href="#cone--cappedcone">Cone / CappedCone</a></li>
+        <li><a href="#ellipsoid">Ellipsoid</a></li>
+        <li><a href="#torus">Torus</a></li>
+        <li><a href="#cylinder">Cylinder</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+            </div>
+          </div>
+        </div>
+      </nav>
+      <main id="body-inner" class="highlightable default" tabindex="-1">
+        <div class="flex-block-wrapper">
+          <div id="head-tags">
+          </div>
+          <article class="default">
+<h1 id="3d-sdfs">3D SDFs</h1>
+
+<p>On overview of all currently available 3D SDFs (signed distance functions) classes and their properties and available transformations.</p>
+<p>The SDFs will always be created at the center of the scene with a standard size of 1.0 by default.</p>
+<h2 id="transformations">Transformations</h2>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-rust" data-lang="rust"><span style="display:flex;"><span><span style="color:#75715e">// Change the position
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>v.position <span style="color:#f92672">=</span> F3(<span style="color:#f92672">-</span><span style="color:#ae81ff">1.0</span>, <span style="color:#ae81ff">2.0</span>, <span style="color:#ae81ff">3.0</span>);
+</span></span><span style="display:flex;"><span>v.position.x <span style="color:#f92672">+=</span> <span style="color:#ae81ff">2</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Rotation
+</span></span></span></code></pre></div><h2 id="modifiers">Modifiers</h2>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-rust" data-lang="rust"><span style="display:flex;"><span>v.rounding <span style="color:#f92672">=</span> <span style="color:#ae81ff">0.2</span>;                       <span style="color:#75715e">// Rounding of the SDF shape
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>v.mirror.x <span style="color:#f92672">=</span> <span style="color:#66d9ef">true</span>;                      <span style="color:#75715e">// Mirror on the x-axis
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>v.mirror <span style="color:#f92672">=</span> B3(<span style="color:#66d9ef">true</span>, <span style="color:#66d9ef">false</span>, <span style="color:#66d9ef">false</span>);      <span style="color:#75715e">// Same as above
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>v.visible <span style="color:#f92672">=</span> <span style="color:#66d9ef">false</span>;                      <span style="color:#75715e">// Mark an SDF as invisible
+</span></span></span></code></pre></div><h2 id="available-3d-sdfs">Available 3D SDFs</h2>
+<h3 id="sphere">Sphere</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-rust" data-lang="rust"><span style="display:flex;"><span><span style="color:#75715e">// Sphere
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">let</span> v <span style="color:#f92672">=</span> Sphere();                       <span style="color:#75715e">// Create a sphere with a radius of 1.0.
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">let</span> v <span style="color:#f92672">=</span> Sphere(<span style="color:#ae81ff">1.5</span>);                    <span style="color:#75715e">// Create a sphere with a custom radius
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>v.radius <span style="color:#f92672">=</span> <span style="color:#ae81ff">1.2</span>;                         <span style="color:#75715e">// Change the radius later
+</span></span></span></code></pre></div><p>
+<a href="#image-0c601c5bbf932bf5514f5554de2ebc21" class="lightbox-link">
+<img src="../../sphere.png" alt="Sphere" style="height: auto; width: auto;" loading="lazy">
+</a>
+<a href="javascript:history.back();" class="lightbox" id="image-0c601c5bbf932bf5514f5554de2ebc21">
+<img src="../../sphere.png" alt="Sphere" class="lightbox-image" loading="lazy">
+</a></p>
+<h3 id="plane">Plane</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-rust" data-lang="rust"><span style="display:flex;"><span><span style="color:#75715e">// Plane
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">let</span> v <span style="color:#f92672">=</span> Plane();                        <span style="color:#75715e">// Creates a ground plane (normal is F3(0.0, 1.0, 0.0))
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">let</span> v <span style="color:#f92672">=</span> Plane(F3(<span style="color:#ae81ff">1.0</span>, <span style="color:#ae81ff">0.0</span>, <span style="color:#ae81ff">0.0</span>), <span style="color:#ae81ff">0.0</span>);  <span style="color:#75715e">// Creates a plane based on a normal vector and an axis-offset
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>v.normal <span style="color:#f92672">=</span> F3(<span style="color:#ae81ff">0.0</span>, <span style="color:#ae81ff">1.0</span>, <span style="color:#ae81ff">0</span>,<span style="color:#ae81ff">0</span>);           <span style="color:#75715e">// Changing the normal and offset manually
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>v.offset <span style="color:#f92672">=</span> <span style="color:#f92672">-</span><span style="color:#ae81ff">1.0</span>;
+</span></span></code></pre></div><h3 id="box">Box</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-rust" data-lang="rust"><span style="display:flex;"><span><span style="color:#75715e">// Box
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">let</span> v <span style="color:#f92672">=</span> Box();                          <span style="color:#75715e">// Create a box with a size of F3(1.0, 1.0, 1.0)
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">let</span> v <span style="color:#f92672">=</span> Box(F3(<span style="color:#ae81ff">1.0</span>, <span style="color:#ae81ff">2.0</span>, <span style="color:#ae81ff">3.0</span>));         <span style="color:#75715e">// Create a box with a custom size
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>v.size.x <span style="color:#f92672">+=</span> <span style="color:#ae81ff">2.0</span>;                        <span style="color:#75715e">// Changing the size manually
+</span></span></span></code></pre></div><p>
+<a href="#image-b9e69aca4c0c5aaf1d34565e2bb50518" class="lightbox-link">
+<img src="../../box.png" alt="Plane" style="height: auto; width: auto;" loading="lazy">
+</a>
+<a href="javascript:history.back();" class="lightbox" id="image-b9e69aca4c0c5aaf1d34565e2bb50518">
+<img src="../../box.png" alt="Plane" class="lightbox-image" loading="lazy">
+</a></p>
+<h3 id="cone--cappedcone">Cone / CappedCone</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-rust" data-lang="rust"><span style="display:flex;"><span><span style="color:#75715e">// Cone or CappedCone
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// Defined by it&#39;s height and the radius of the bottom (lower_radius) and top (upper_radius).
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">let</span> v <span style="color:#f92672">=</span> Cone();                         <span style="color:#75715e">// Cone of height 1.0 and lower_radius = 1.0 and upper_radius = 0.0
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">let</span> v <span style="color:#f92672">=</span> Cone(<span style="color:#ae81ff">2.0</span>, <span style="color:#ae81ff">1.5</span>, <span style="color:#ae81ff">0.5</span>);            <span style="color:#75715e">// Cone of height 2.0 and lower_radius = 1.5 and upper_radius = 0.5
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>v.height <span style="color:#f92672">=</span> <span style="color:#ae81ff">0.5</span>;                         <span style="color:#75715e">// Changing values manually
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>v.lower_radius <span style="color:#f92672">=</span> <span style="color:#ae81ff">0.8</span>;
+</span></span><span style="display:flex;"><span>v.upper_radius <span style="color:#f92672">=</span> <span style="color:#ae81ff">0.1</span>;
+</span></span></code></pre></div><p>
+<a href="#image-b934898ebed9d29f5c7f83b1424d18a7" class="lightbox-link">
+<img src="../../cone.png" alt="Cone" style="height: auto; width: auto;" loading="lazy">
+</a>
+<a href="javascript:history.back();" class="lightbox" id="image-b934898ebed9d29f5c7f83b1424d18a7">
+<img src="../../cone.png" alt="Cone" class="lightbox-image" loading="lazy">
+</a></p>
+<h3 id="ellipsoid">Ellipsoid</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-rust" data-lang="rust"><span style="display:flex;"><span><span style="color:#75715e">// Ellipsoid
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">let</span> v <span style="color:#f92672">=</span> Ellipsoid();                    <span style="color:#75715e">// Create an ellipsoid with a size of F3(1.0, 0.5, 0.5)
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">let</span> v <span style="color:#f92672">=</span> Ellipsoid(F3(<span style="color:#ae81ff">0.5</span>, <span style="color:#ae81ff">0.2</span>, <span style="color:#ae81ff">0.2</span>));   <span style="color:#75715e">// Create an ellipsoid with a custom size
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>v.size.x <span style="color:#f92672">+=</span> <span style="color:#ae81ff">2.0</span>;                        <span style="color:#75715e">// Changing the size manually
+</span></span></span></code></pre></div><p>
+<a href="#image-d763052ec3fd2aaf63a6020511f0b0c9" class="lightbox-link">
+<img src="../../ellipsoid.png" alt="Ellipsoid" style="height: auto; width: auto;" loading="lazy">
+</a>
+<a href="javascript:history.back();" class="lightbox" id="image-d763052ec3fd2aaf63a6020511f0b0c9">
+<img src="../../ellipsoid.png" alt="Ellipsoid" class="lightbox-image" loading="lazy">
+</a></p>
+<h3 id="torus">Torus</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-rust" data-lang="rust"><span style="display:flex;"><span><span style="color:#75715e">// Torus
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// Defined by a radius and a ring_radius
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">let</span> v <span style="color:#f92672">=</span> Torus();                        <span style="color:#75715e">// radius of 0.7 and ring_radius of 0.3
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">let</span> v <span style="color:#f92672">=</span> Torus(<span style="color:#ae81ff">0.6</span>, <span style="color:#ae81ff">0.2</span>)                 <span style="color:#75715e">// radius of 0.6 and a ring_radius of 0.2
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>v.radius <span style="color:#f92672">=</span> <span style="color:#ae81ff">0.6</span>;                         <span style="color:#75715e">// Changing values manually
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>v.ring_radius <span style="color:#f92672">=</span> <span style="color:#ae81ff">0.2</span>;
+</span></span></code></pre></div><p>
+<a href="#image-d94175f38a7730bf6314381cc63af836" class="lightbox-link">
+<img src="../../torus.png" alt="Torus" style="height: auto; width: auto;" loading="lazy">
+</a>
+<a href="javascript:history.back();" class="lightbox" id="image-d94175f38a7730bf6314381cc63af836">
+<img src="../../torus.png" alt="Torus" class="lightbox-image" loading="lazy">
+</a></p>
+<h3 id="cylinder">Cylinder</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-rust" data-lang="rust"><span style="display:flex;"><span><span style="color:#75715e">// Cylinder
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// Defined by a height and a radius
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">let</span> v <span style="color:#f92672">=</span> Cylinder();                     <span style="color:#75715e">// height of 1.0 and radius of 0.5
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">let</span> v <span style="color:#f92672">=</span> Cylinder(<span style="color:#ae81ff">0.6</span>, <span style="color:#ae81ff">0.2</span>)              <span style="color:#75715e">// height of 0.6 and a radius of 0.2
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>v.height <span style="color:#f92672">=</span> <span style="color:#ae81ff">0.6</span>;                         <span style="color:#75715e">// Changing values manually
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>v.radius <span style="color:#f92672">=</span> <span style="color:#ae81ff">0.2</span>;
+</span></span></code></pre></div><p>
+<a href="#image-ab1ece2b2f8e1bd8267e7e5fa4d714ac" class="lightbox-link">
+<img src="../../cylinder.png" alt="Torus" style="height: auto; width: auto;" loading="lazy">
+</a>
+<a href="javascript:history.back();" class="lightbox" id="image-ab1ece2b2f8e1bd8267e7e5fa4d714ac">
+<img src="../../cylinder.png" alt="Torus" class="lightbox-image" loading="lazy">
+</a></p>
+
+            <footer class="footline">
+            </footer>
+          </article>
+        </div>
+      </main>
+    </div>
+    <aside id="sidebar" class="default-animation">
+      <div id="header-wrapper" class="default-animation">
+        <div id="header" class="default-animation">
+<style>
+    #header {
+        background-color: #444;
+    }
+    #header-wrapper  {
+        background-color: #444;
+    }
+</style>
+<a href="/"><img src="/images/logo.png" alt="logo"></a>
+        </div>
+        <div class="searchbox default-animation">
+          <i class="fas fa-search" title="Search (CTRL+ALT+f)"></i>
+          <label class="a11y-only" for="search-by">Search</label>
+          <input data-search-input id="search-by" name="search-by" class="search-by" type="search" placeholder="Search...">
+          <span data-search-clear=""><i class="fas fa-times"></i></span>
+        </div>
+        <script>
+          var contentLangs=['en'];
+        </script>
+        <script src="/js/auto-complete.js?1730364679" defer></script>
+        <script src="/js/lunr/lunr.min.js?1730364679" defer></script>
+        <script src="/js/lunr/lunr.stemmer.support.min.js?1730364679" defer></script>
+        <script src="/js/lunr/lunr.multi.min.js?1730364679" defer></script>
+        <script src="/js/lunr/lunr.en.min.js?1730364679" defer></script>
+        <script src="/js/search.js?1730364679" defer></script>
+      </div>
+      <div id="content-wrapper" class="highlightable">
+        <ul class="topics">
+          <li data-nav-id="/news/index.html" class="dd-item"><a href="/news/index.html">News</a></li>
+          <li data-nav-id="/language/index.html" class="dd-item parent"><a href="/language/index.html">CHIPcade Assembly</a><ul id="subsections-84e0c5289a63136422908a7e4241adc6">
+          <li data-nav-id="/language/layers/index.html" class="dd-item"><a href="/language/layers/index.html">Layers</a></li>
+          <li data-nav-id="/language/sprites/index.html" class="dd-item"><a href="/language/sprites/index.html">Sprites</a></li>
+          <li data-nav-id="/language/sdfs/index.html" class="dd-item active"><a href="/language/sdfs/index.html">3D SDFs</a></li></ul></li>
+          <li data-nav-id="/examples/index.html" class="dd-item"><a href="/examples/index.html">Examples</a><ul id="subsections-09293e995b11754c4445aab5dfe0a859">
+          <li data-nav-id="/examples/wine_glass/index.html" class="dd-item"><a href="/examples/wine_glass/index.html">Wine Glass</a></li>
+          <li data-nav-id="/examples/helmet/index.html" class="dd-item"><a href="/examples/helmet/index.html">Helmet</a></li></ul></li>
+        </ul>
+        <div id="shortcuts">
+          <div class="nav-title">More</div>
+          <ul>
+            <li><a class="padding" href="https://github.com/markusmoenig/CHIPcade"><i class='fab fa-fw fa-github'></i> GitHub repo</a></li>
+            <li><a class="padding" href="https://discord.gg/KKteWArT"><i class='fab fa-fw fa-discord'></i> Discord</a></li>
+            <li><a class="padding" href="/more/credits/index.html"><i class='fas fa-fw fa-bullhorn'></i> Credits</a></li>
+            <li><a class="padding" href="https://twitter.com/MarkusMoenig"><i class='fab fa-fw fa-twitter'></i> Twitter</a></li>
+          </ul>
+        </div>
+        <div class="footermargin footerLangSwitch footerVariantSwitch footerVisitedLinks footerFooter"></div>
+        <hr class="default-animation footerLangSwitch footerVariantSwitch footerVisitedLinks footerFooter">
+        <div id="prefooter" class="footerLangSwitch footerVariantSwitch footerVisitedLinks">
+          <ul>
+            <li id="select-language-container" class="footerLangSwitch">
+              <div class="padding select-container">
+                <i class="fas fa-language fa-fw"></i>
+                <span>&nbsp;</span>
+                <div class="select-style">
+                  <label class="a11y-only" for="select-language">Language</label>
+                  <select id="select-language" onchange="location = baseUri + this.value;">
+                    <option lang="en" id="en" value="/language/sdfs/index.html" selected></option>
+                  </select>
+                </div>
+                <div class="select-clear"></div>
+              </div>
+            </li>
+            <li id="select-variant-container" class="footerVariantSwitch">
+              <div class="padding select-container">
+                <i class="fas fa-paint-brush fa-fw"></i>
+                <span>&nbsp;</span>
+                <div class="select-style">
+                  <label class="a11y-only" for="select-variant">Theme</label>
+                  <select id="select-variant" onchange="window.variants && variants.changeVariant( this.value );">
+                    <option id="auto" value="auto" selected>Auto</option>
+                  </select>
+                </div>
+                <div class="select-clear"></div>
+              </div>
+              <script>window.variants && variants.markSelectedVariant();</script>
+            </li>
+            <li class="footerVisitedLinks"><button class="padding" onclick="clearHistory();"><i class="fas fa-history fa-fw"></i> Clear History</button></li>
+          </ul>
+        </div>
+        <div id="footer" class="footerFooter">
+        </div>
+      </div>
+    </aside>
+    <script src="/js/clipboard.min.js?1730364679" defer></script>
+    <script src="/js/perfect-scrollbar.min.js?1730364679" defer></script>
+    <script>
+      function useMathJax( config ){
+        if( !Object.assign ){
+          
+          return;
+        }
+        window.MathJax = Object.assign( window.MathJax || {}, {
+          loader: {
+            load: ['[tex]/mhchem']
+          },
+          startup: {
+            elements: [
+              '.math'
+            ]
+          },
+          tex: {
+            inlineMath: [
+              ['$', '$'], 
+              ['\\(', '\\)']
+            ]
+          },
+          options: {
+            enableMenu: false 
+          }
+        }, config );
+      }
+      useMathJax( JSON.parse("{}") );
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="/js/d3/d3-color.min.js?1730364679" defer></script>
+    <script src="/js/d3/d3-dispatch.min.js?1730364679" defer></script>
+    <script src="/js/d3/d3-drag.min.js?1730364679" defer></script>
+    <script src="/js/d3/d3-ease.min.js?1730364679" defer></script>
+    <script src="/js/d3/d3-interpolate.min.js?1730364679" defer></script>
+    <script src="/js/d3/d3-selection.min.js?1730364679" defer></script>
+    <script src="/js/d3/d3-timer.min.js?1730364679" defer></script>
+    <script src="/js/d3/d3-transition.min.js?1730364679" defer></script>
+    <script src="/js/d3/d3-zoom.min.js?1730364679" defer></script>
+    <script src="https://unpkg.com/mermaid/dist/mermaid.min.js" defer></script>
+    <script>
+      window.themeUseMermaid = JSON.parse("{ \"theme\": \"default\" }");
+    </script>
+    <script src="https://unpkg.com/rapidoc/dist/rapidoc-min.js" defer></script>
+    <script>
+      window.themeUseSwagger = JSON.parse("{ \"theme\": \"light\" }");
+    </script>
+    <script src="/js/theme.js?1730364679" defer></script>
+  </body>
+</html>

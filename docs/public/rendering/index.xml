@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Rendering on Modeling &amp; Rendering Language</title>
+    <link>http://localhost:1313/rendering/index.html</link>
+    <description>Recent content in Rendering on Modeling &amp; Rendering Language</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language><atom:link href="http://localhost:1313/rendering/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Basics</title>
+      <link>http://localhost:1313/rendering/basics/index.html</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/rendering/basics/index.html</guid>
+      <description>Forged Thoughts comes with a number of different renderers. A Phong and PBR renderer as well as a full-featured BSDF pathtracer.
+By default the PBR renderer is used.
+You can create a custom renderer and use it by assigning it to the global settings structure:
+let bsdf = BSDF(); bsdf.iterations = 300; // Pathtrace 300 iterations bsdf.depth = 2; // With a recursion depth of 2 settings.renderer = bsdf; // Use it For the Phong and PBR renderer you can use the antialiasing field of the settings structure for anti-aliasing.</description>
+    </item>
+    <item>
+      <title>Lighting</title>
+      <link>http://localhost:1313/rendering/lighting/index.html</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/rendering/lighting/index.html</guid>
+      <description>Point Lights Point lights are supported by all renderers in Forged Thoughts.
+You can create and customaize a light like this:
+let light = PointLight(); light.position = F3(2.0, 3.0, 5.0); // The position of the light light.rgb = F3(1.0, 0.1, 0.1); // Make it a red light. F3(1.0) by default. light.intensity = 1.5; // The intensity of the light. By default is 1.0. light.radius = 2.0; // The radius of the light.</description>
+    </item>
+    <item>
+      <title>Materials</title>
+      <link>http://localhost:1313/rendering/materials/index.html</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/rendering/materials/index.html</guid>
+      <description>Materials Materials in Forged Thoughts are full BSDF materials.
+let mat = Material(); mat.rgb = F3(0.5, 0.5, 0.5); mat.emission = F3(0.0, 0.0, 0.0); mat.anisotropic = 0.0; mat.metallic = 0.0; mat.roughness = 0.5; mat.subsurface = 0.0; mat.specular_tint = 0.0; mat.sheen = 0.0; mat.sheen_tint = 0.0; mat.clearcoat = 0.0; mat.clearcoat_gloss = 0.0; mat.spec_trans = 0.0; mat.ior = 1.5; The above values are the default values.
+Procedural Materials You can create procedural materials by assigning a function to the materials procedural member.</description>
+    </item>
+    <item>
+      <title>Backgrounds</title>
+      <link>http://localhost:1313/rendering/background/index.html</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/rendering/background/index.html</guid>
+      <description>You can set the background color in the global settings structure:
+settings.background = F3(0.1, 0.2, 0.3); or you can define a background function in your script to create a procedural background:
+fn background(ray) { let t = 0.5 * (ray.direction.y + 1.0); to_linear( ( (1.0 - t) * F3(1.0) + t * F3(0.5, 0.7, 1.0)) * 0.6) } The ray struct contains the origin and direction of the ray at the current pixel.</description>
+    </item>
+    <item>
+      <title>Polygonization</title>
+      <link>http://localhost:1313/rendering/polygonization/index.html</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/rendering/polygonization/index.html</guid>
+      <description>If you do not want to render the scene to an image but would rather triangulate it. Use the polygonize command for ftc.
+You have a number of settings available to customize the triangulation:
+grid_size. This defines the area of the scene which gets triangulated. A value of 1.0 (the default) will triangulate from -1.0 to 1.0 in the x, y and z axis. So the actual area which gets sampled is actually double the grid_size.</description>
+    </item>
+  </channel>
+</rss>
