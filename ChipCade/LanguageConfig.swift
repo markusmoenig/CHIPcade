@@ -8,10 +8,8 @@
 import Foundation
 import RegexBuilder
 import LanguageSupport
-//chipcadeReservedIds
-//chipcadeReservedOperators
-private let chipcadeReservedIds = ["u", "s", "f"]
-  //["..", ":", "::", "=", "\\", "|", "<-", "->", "@", "~", "=>"]
+
+private let chipcadeReservedIds = ["u", "s", "f", "R0", "R1", "R2", "R3", "R4", "R5", "R6", "R7", "R8", "R9", "R10", "R11"]
 
 // Generate ChipCade reserved identifiers from InstructionType
 private var chipcadeReservedOperators: [String] {
