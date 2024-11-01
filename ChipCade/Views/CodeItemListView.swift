@@ -197,6 +197,23 @@ struct CodeItemListView: View {
                                 codeItem: codeItem,
                                 index: index
                             )
+                        case .calltm:
+                            CodeAddressTextField(
+                                instruction: instruction,
+                                undoManager: undoManager,
+                                codeItem: codeItem,
+                                index: index
+                            )
+                            Int8RegisterMenu(
+                                selectedRegister: Binding(
+                                    get: { instruction.register1! },
+                                    set: { newRegister in
+                                        let newInstruction = instruction.clone()
+                                        newInstruction.register1 = newRegister
+                                        codeItem.aboutToChange(using: undoManager, newInstruction: newInstruction, at: index, text: "Register Changed")
+                                    }
+                                )
+                            )
                         case .ld:
                             HStack {
                                 Int8RegisterMenu(
@@ -436,6 +453,17 @@ struct CodeItemListView: View {
                                         let newInstruction = instruction.clone()
                                         newInstruction.register3 = UInt8(newRegister)
                                         codeItem.aboutToChange(using: undoManager, newInstruction: newInstruction, at: index, text: "Range Changed")
+                                    }
+                                )
+                            )
+                        case .sprstp:
+                            SpriteIndexTextField(
+                                spriteIndex: Binding(
+                                    get: { Int(instruction.register1!) },
+                                    set: { newRegister in
+                                        let newInstruction = instruction.clone()
+                                        newInstruction.register1 = UInt8(newRegister)
+                                        codeItem.aboutToChange(using: undoManager, newInstruction: newInstruction, at: index, text: "Sprite Changed")
                                     }
                                 )
                             )

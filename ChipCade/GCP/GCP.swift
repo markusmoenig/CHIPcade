@@ -28,6 +28,7 @@ public enum GCPCmd  {
     case sprcol(spriteIndex: Int, value: Int)
     case spranm(spriteIndex: Int, from: Int, to: Int)
     case sprfps(spriteIndex: Int, value: Int)
+    case sprstp(spriteIndex: Int)
 }
 
 public class GCP {
@@ -243,8 +244,11 @@ public class GCP {
                     sprite.timeSinceLastFrame = 0.0
                 }
                 
-                case .sprfps(let spriteIndex, let value) :
-                    sprites[spriteIndex].animationSpeed = Float(value)
+            case .sprfps(let spriteIndex, let value) :
+                sprites[spriteIndex].animationSpeed = Float(value)
+                
+            case .sprstp(let spriteIndex) :
+                sprites[spriteIndex].animtionStop = true
             }
         }
         
@@ -292,6 +296,10 @@ public class GCP {
                                 sprite.currentImageIndex += 1
                                 if sprite.currentImageIndex > sprite.animationRange.last! {
                                     sprite.currentImageIndex = sprite.animationRange.first!
+                                    if sprite.animtionStop {
+                                        sprite.isVisible = false
+                                        sprite.animtionStop = false
+                                    }
                                 }
                             }
                         }

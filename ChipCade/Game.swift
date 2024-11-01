@@ -50,10 +50,16 @@ public class Game : ObservableObject
     @Published var errorCodeItemIndex = 0
     @Published var errorInstructionIndex = 0
 
+    /// Time between updates
+    let deltaTimeInMs: Int = Int((1.0 / 60.0) * 1000.0)
+
+    // Game State
     var state = GameState.paused
 
+    // The selection state in the editor
     var selectionState: SelectionState = .code
 
+    // Indicates if the last CMP was unsigned. Needed for later conditional flag evaluation.
     var lastCMPWasUnsigned: Bool = false
     
     private enum CodingKeys: String, CodingKey {
@@ -96,17 +102,7 @@ public class Game : ObservableObject
         gcp.draw2D.metalView.isPaused = false
         
         // init
-        while let instruction = getInstruction(), error == .none {
-            let result = cpu.executeInstruction(instruction: instruction, gcp: gcp)
-
-            if result == .nextInstruction {
-                currInstructionIndex += 1
-            } else
-            if result == .stop
-            {
-                break;
-            }
-        }
+        execute()
         
         currCodeItemIndex = prevCodeItemIndex
         currInstructionIndex = prevInstructionIndex
@@ -143,10 +139,29 @@ public class Game : ObservableObject
         prevCodeItemIndex = currCodeItemIndex
         prevInstructionIndex = currInstructionIndex
         
+        // Check if we need to execute timed events.
+        for (index, _) in cpu.eventQueue.enumerated().reversed() {
+            cpu.eventQueue[index].countdown -= deltaTimeInMs
+            if cpu.eventQueue[index].countdown <= 0 {
+                currCodeItemIndex = cpu.eventQueue[index].codeItemIndex
+                currInstructionIndex = cpu.eventQueue[index].instructionIndex
+                execute()
+                cpu.eventQueue.remove(at: index)
+            }
+        }
+
+        // Update
         currCodeItemIndex = 1
         currInstructionIndex = 0
+        execute()
+        cpuRender.update()
         
-        // init
+        currCodeItemIndex = prevCodeItemIndex
+        currInstructionIndex = prevInstructionIndex
+    }
+    
+    // Executes the current code address
+    public func execute() {
         while let instruction = getInstruction() {
             let result = cpu.executeInstruction(instruction: instruction, gcp: gcp)
 
@@ -158,10 +173,6 @@ public class Game : ObservableObject
                 break;
             }
         }
-        cpuRender.update()
-        
-        currCodeItemIndex = prevCodeItemIndex
-        currInstructionIndex = prevInstructionIndex
     }
     
     // Execute the current instruction (single step mode)
@@ -257,6 +268,9 @@ public class Game : ObservableObject
     }
     
     public func reset() {
+        
+        cpu.eventQueue.removeAll()
+        
         DispatchQueue.main.async {
             self.stack = []
         

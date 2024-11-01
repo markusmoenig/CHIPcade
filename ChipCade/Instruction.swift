@@ -11,6 +11,7 @@ public enum InstructionType: String, Codable, CaseIterable {
     case add
     case cmp
     case call
+    case calltm
     case comnt
     case dec
     case div
@@ -50,6 +51,7 @@ public enum InstructionType: String, Codable, CaseIterable {
     case sprspd
     case sprvis
     case sprwrp
+    case sprstp
     case sprx
     case spry
     case st
@@ -101,12 +103,15 @@ public class Instruction: ObservableObject, Codable, Equatable {
         case .cmp, .add, .sub, .mul, .div, .mod:
             register1 = 0
             register2 = 0
-        case .inc, .dec:
+        case .inc, .dec, .sprstp:
             register1 = 0
         case .comnt:
             memory = ""
         case .call, .j, .je, .jne, .jl, .jg, .jc, .jo:
             memory = "Module.Tag"
+        case .calltm:
+            memory = "Module.Tag"
+            register1 = 0
         case .ld:
             register1 = 0
             memory = "Data"
@@ -184,6 +189,9 @@ public class Instruction: ObservableObject, Codable, Equatable {
          
         case .call:
             return "CALL \(memory!)"
+       
+        case .calltm:
+            return "CALLTM \(memory!) R\(register1!)"
             
         case .comnt:
             return "# \(memory!)"
@@ -258,7 +266,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
             return "RET"
             
         case .sprset:
-            return "SPRSET S\(register1!) \(memory!)"
+            return "SPRSET S\(register1!) \"\(memory!)\""
         
         case .st:
             return "ST \(memory!) + \(memoryOffset!) R\(register1!)"
@@ -302,6 +310,9 @@ public class Instruction: ObservableObject, Codable, Equatable {
         case .sprspd:
             return "SPRSPD S\(register1!) R\(register2!)"
             
+        case .sprstp:
+            return "SPRSTP S\(register1!)"
+            
         case .sprvis:
             return "SPRVIS S\(register1!) \(register2!)"
             
@@ -327,6 +338,8 @@ public class Instruction: ObservableObject, Codable, Equatable {
             return "Compare two registers."
         case .call:
             return "Call a subroutine."
+        case .calltm:
+            return "Calls a subroutine after a specified delay (in seconds)."
         case .comnt:
             return "Comment"
         case .dec:
@@ -405,6 +418,8 @@ public class Instruction: ObservableObject, Codable, Equatable {
             return "Set sprite rotation."
         case .sprspd:
             return "Set sprite speed."
+        case .sprstp:
+            return "Make sprite invisible afer animation finishes."
         case .sprvis:
             return "Set sprite visibility."
         case .sprx:
@@ -434,7 +449,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
             dest = register1!
         case .rect:
             source = [0, 1, 2, 3, 4]
-        case .st:
+        case .st, .calltm:
             source = [register1!]
         case .sprset:
             source = [register1!]

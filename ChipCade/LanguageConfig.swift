@@ -8,12 +8,13 @@
 import Foundation
 import RegexBuilder
 import LanguageSupport
-
-private let haskellReservedOperators =
-  ["..", ":", "::", "=", "\\", "|", "<-", "->", "@", "~", "=>"]
+//chipcadeReservedIds
+//chipcadeReservedOperators
+private let chipcadeReservedIds = ["u", "s", "f"]
+  //["..", ":", "::", "=", "\\", "|", "<-", "->", "@", "~", "=>"]
 
 // Generate ChipCade reserved identifiers from InstructionType
-private var chipcadeReservedIds: [String] {
+private var chipcadeReservedOperators: [String] {
     return InstructionType.allCases.map { $0.rawValue.uppercased() }
 }
 
@@ -50,7 +51,7 @@ extension LanguageConfiguration {
     return LanguageConfiguration(name: "Haskell",
                                  supportsSquareBrackets: false,
                                  supportsCurlyBrackets: false,
-                                 stringRegex: /\"(?:\\\"|[^\"])*+\"/,
+                                 stringRegex: /\"(?:\\\"|[^\"])*+\"/,///^(?:[A-Za-z_][A-Za-z0-9_]*)+:/,
                                  characterRegex: /'(?:\\'|[^']|\\[^']*+)'/,
                                  numberRegex: numberRegex,
                                  singleLineComment: "#",
@@ -58,7 +59,7 @@ extension LanguageConfiguration {
                                  identifierRegex: identifierRegex,
                                  operatorRegex: operatorRegex,
                                  reservedIdentifiers: chipcadeReservedIds,
-                                 reservedOperators: haskellReservedOperators,
+                                 reservedOperators: chipcadeReservedOperators,
                                  languageService: languageService)
   }
 }

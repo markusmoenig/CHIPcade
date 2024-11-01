@@ -5,16 +5,26 @@
 //  Created by Markus Moenig on 2/10/24.
 //
 
+/// Returned by executeInstruction()
 public enum ExecuteResult {
     case nextInstruction
     case jumped
     case stop
 }
 
+/// Functions which will be called after countdown finishes (set via CALLTM).
+public struct TimedEvent {
+    var countdown: Int
+    
+    var codeItemIndex: Int
+    var instructionIndex: Int
+}
+
 public class CPU {
         
     var game: Game!
-    
+    var eventQueue: [TimedEvent] = []
+
     init() {
     }
     
@@ -43,6 +53,17 @@ public class CPU {
                 game.currInstructionIndex = instructionIndex
                 
                 return .jumped
+            } else {
+                game.setError(.invalidCodeAddress)
+            }
+            
+        case .calltm:
+            if let (codeItemIndex, instructionIndex) = game.data.getCodeAddress(name: instruction.memory!, currentCodeIndex: game.currCodeItemIndex) {
+                
+                // countdown, convert from seconds to milli-seconds
+                let countdown = Int(game.registers[Int(instruction.register1!)].toFloat32Bit() * 1000)
+                let event = TimedEvent(countdown: countdown, codeItemIndex: codeItemIndex, instructionIndex: instructionIndex)
+                eventQueue.append(event)
             } else {
                 game.setError(.invalidCodeAddress)
             }
@@ -322,6 +343,14 @@ public class CPU {
         case .sub   :  if game.registers[Int(instruction.register1!)].sub(other: game.registers[Int(instruction.register2!)], flags: game.flags) {
             game.setError(.invalidArithmetic)
         }
+            
+        case .sprstp:
+            let spriteIndex = Int(instruction.register1!)
+            if spriteIndex >= 0 && spriteIndex <= 255 {
+                gcp.addCmd(.sprstp(spriteIndex: Int(instruction.register1!)))
+            } else {
+                game.setError(.invalidSpriteIndex)
+            }
             
         default: break
         }

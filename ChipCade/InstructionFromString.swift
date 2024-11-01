@@ -26,7 +26,7 @@ extension Instruction {
                 return nil
             }
 
-        case .inc, .dec:
+        case .inc, .dec, .sprstp:
             // INC R0
             if components.count == 2,
                let reg1 = parseRegister(components[1]) {
@@ -156,7 +156,7 @@ extension Instruction {
             if components.count == 3,
                let reg1 = parseRegister(components[1]) {
                 instruction.register1 = reg1
-                instruction.memory = components[2]
+                instruction.memory = components[2].replacingOccurrences(of: "\"", with: "")
             } else {
                 return nil
             }
@@ -185,13 +185,23 @@ extension Instruction {
                 return nil
             }
             
-        case .sprcol, .sprgrp, .sprfps:
+        case .sprcol, .sprgrp, .sprfps, .rand:
             // XXXXXX Sd Value
             if components.count == 3,
                let reg1 = parseRegister(components[1]),
                let value = ChipCadeData.fromString(components[2]) {
                 instruction.register1 = reg1
                 instruction.value = value
+            } else {
+                return nil
+            }
+            
+        case .calltm:
+            // CALLTM Tag Value
+            if components.count == 3,
+               let reg1 = parseRegister(components[2]) {
+                instruction.register1 = reg1
+                instruction.memory = components[1]
             } else {
                 return nil
             }

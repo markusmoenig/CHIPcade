@@ -47,6 +47,9 @@ class Sprite {
     var animationSpeed: Float = 10.0
     var animationRange: ClosedRange<Int> = 0...1
     var timeSinceLastFrame: Float = 0.0
+    
+    // Makes the sprite invisible after current animation finishes.
+    var animtionStop: Bool = false
 
     // Initialization
     init(index: Int) {
