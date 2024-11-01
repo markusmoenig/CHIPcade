@@ -172,7 +172,12 @@ struct ContentView: View {
 //                                .environment(\.codeEditorTheme, colorScheme == .dark ? Theme.defaultDark : Theme.defaultLight)
 //                        }
                         
+                        #if false
+                        CodeEditor(text: $codeText, position: $codePosition, messages: $codeMessages, language: LanguageConfiguration.build_chipcade())
+                                .environment(\.codeEditorTheme, colorScheme == .dark ? Theme.defaultDark : Theme.defaultLight)
+                        #else
                         WebView(colorScheme)
+                        #endif
                     } else {
                         MetalView(document.game, .Game)
                     }
@@ -226,8 +231,12 @@ struct ContentView: View {
                                     selectedInstructionIndex: $selectedInstructionIndex
                                 )
                             } else {
+                                #if false
                                 CodeEditor(text: $codeText, position: $codePosition, messages: $codeMessages, language: LanguageConfiguration.build_chipcade())
                                         .environment(\.codeEditorTheme, colorScheme == .dark ? Theme.defaultDark : Theme.defaultLight)
+                                #else
+                                WebView(colorScheme)
+                                #endif
                             }
                         } else {
                             MetalView(document.game, .Game)

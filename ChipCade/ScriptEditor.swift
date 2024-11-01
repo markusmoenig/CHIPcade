@@ -64,12 +64,14 @@ class ScriptEditor
             editor.setSession(mainSession)
             editor.session.setMode("ace/mode/chipcade");
             editor.setOption("firstLineNumber", 0)
-            
+            mainSession.setUseWrapMode(true);
+
             """, completionHandler: { (value, error ) in
                 if let cb = cb {
                     cb()
                 }
          })
+        increaseFontSize()
     }
     
     func setReadOnly(_ readOnly: Bool = false)
@@ -86,7 +88,7 @@ class ScriptEditor
         webView.evaluateJavaScript(
             """
             var size = editor.getFontSize();
-            size -= 2;
+            size -= 1;
             size = Math.max(2, size);
             editor.setFontSize(size);
             """, completionHandler: { (value, error) in
@@ -98,7 +100,7 @@ class ScriptEditor
         webView.evaluateJavaScript(
             """
             var size = editor.getFontSize();
-            size += 2;
+            size += 1;
             editor.setFontSize(size);
             """, completionHandler: { (value, error) in
          })
@@ -321,15 +323,16 @@ struct SwiftUIWebView: NSViewRepresentable {
 
     private let webView: WKWebView = WKWebView()
     public func makeNSView(context: NSViewRepresentableContext<SwiftUIWebView>) -> WKWebView {
+        webView.setValue(false, forKey: "drawsBackground")
         webView.navigationDelegate = context.coordinator
         webView.uiDelegate = context.coordinator as? WKUIDelegate
         webView.configuration.userContentController.add(context.coordinator, name: "jsHandler")
 
         if let url = Bundle.main.url(forResource: "index", withExtension: "html") {//}, subdirectory: "Files") {
+            webView.isHidden = false
             webView.loadFileURL(url, allowingReadAccessTo: url)
             let request = URLRequest(url: url)
             webView.load(request)
-            webView.setValue(false, forKey: "drawsBackground")
         }
         
         return webView
@@ -373,6 +376,7 @@ struct SwiftUIWebView: NSViewRepresentable {
                     }
                 }
             }
+            webView.isHidden = false
         }
         
         public func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) { }

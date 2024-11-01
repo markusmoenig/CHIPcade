@@ -5,13 +5,26 @@
 <meta name="viewport" content="initial-scale=1.0" />
 <style type="text/css" media="screen">
 
+    html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+    }
+    
     #editor {
+        animation: fadeIn 0.3s ease-in-out;
         position: absolute;
         top: 0;
         right: 0;
         bottom: 0;
         left: 0;
     }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    
     .ace_mobile-menu { display: none !important }
 </style>
 </head>
@@ -43,8 +56,8 @@
                 "start" : [
                     { token: "comment", regex: "#.*$" },
                     { token: "constant.numeric", regex: "\\b[0-9]+[usf]?\\b" },
-                    { token: "label", regex: "^[A-Za-z_][A-Za-z0-9_]*:" },
-                    { token: "keyword.operator", regex: /[\-+%=<>*\/&|^~]+/ },
+                    //{ token: "label", regex: "^[A-Za-z_][A-Za-z0-9_]*:" },
+                    { token: "keyword.operator", regex: /[\-+%=<>*\/&|^~]+|^[A-Za-z_][A-Za-z0-9_]*:/ }, // Includes code tags, i.e. JumpHere:
                     { token: "paren.lparen", regex: "[\\[({]" },
                     { token: "paren.rparen", regex: "[\\])}]" },
                     { token: "string", regex: '"', next: "string" },
