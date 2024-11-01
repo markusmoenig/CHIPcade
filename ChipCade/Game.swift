@@ -62,6 +62,9 @@ public class Game : ObservableObject
     // Indicates if the last CMP was unsigned. Needed for later conditional flag evaluation.
     var lastCMPWasUnsigned: Bool = false
     
+    var scriptEditor: ScriptEditor? = nil
+    var currentCodeItemText = ""
+    
     private enum CodingKeys: String, CodingKey {
         case codeItems
         case spriteItems
@@ -215,6 +218,10 @@ public class Game : ObservableObject
         }
 
         return codeItem.codes[instructionIndex]
+    }
+    
+    func getCodeItem() -> CodeItem? {
+        return data.codeItems[currCodeItemIndex]
     }
     
     // Returns the codeItem of a given name

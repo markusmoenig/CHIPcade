@@ -160,7 +160,7 @@ struct ContentView: View {
                 VStack(spacing: 0) {
                     Spacer()
                     
-                    if let codeItem = selectedCodeItem, editorIsOnLeftSide == true {
+                    if editorIsOnLeftSide == true {
 //                        if editingMode == .list {
 //                            CodeItemListView(
 //                                codeItem: codeItem,
@@ -168,9 +168,11 @@ struct ContentView: View {
 //                                selectedInstructionIndex: $selectedInstructionIndex
 //                            )
 //                        } else {
-                            CodeEditor(text: $codeText, position: $codePosition, messages: $codeMessages, language: LanguageConfiguration.build_chipcade())
-                                .environment(\.codeEditorTheme, colorScheme == .dark ? Theme.defaultDark : Theme.defaultLight)
-                        //}
+//                            CodeEditor(text: $codeText, position: $codePosition, messages: $codeMessages, language: LanguageConfiguration.build_chipcade())
+//                                .environment(\.codeEditorTheme, colorScheme == .dark ? Theme.defaultDark : Theme.defaultLight)
+//                        }
+                        
+                        WebView(colorScheme)
                     } else {
                         MetalView(document.game, .Game)
                     }
@@ -452,6 +454,10 @@ struct ContentView: View {
                 }
                 
                 codeText = selectedCodeItem.codes.map { $0.format() }.joined(separator: "\n")
+                Game.shared.currentCodeItemText = codeText
+                if let editor = Game.shared.scriptEditor {
+                    editor.setSessionValue("mainSession", codeText)
+                }
             }
             document.game.currInstructionIndex = 0
             selectedInstructionIndex = 0
@@ -480,6 +486,10 @@ struct ContentView: View {
                 isNotesSelected = false
                 isReferenceSelected = false
             }
+        }
+        
+        .onChange(of: colorScheme) {
+            Game.shared.scriptEditor?.setTheme(colorScheme)
         }
         
 //        .onChange(of: codePosition.rawValue) {
@@ -545,15 +555,16 @@ struct ContentView: View {
                     // Create the tag instruction
                     let instruction = Instruction(.tag)
                     instruction.memory = tagName
-                    print(instruction.format())
+                    //print(instruction.format())
                     instructions.append(instruction)
                     continue
                 }
                 
                 if let instruction = Instruction.fromString(String(line)) {
-                    print(instruction.format())
+                    //print(instruction.format())
                     instructions.append(instruction)
                 } else {
+                    print("Error: \(String(line))")
                     errorLine = index
                     break;
                 }

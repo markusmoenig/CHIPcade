@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>ACE in Action</title>
+<meta name="viewport" content="initial-scale=1.0" />
+<style type="text/css" media="screen">
+
+    #editor {
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+    }
+    .ace_mobile-menu { display: none !important }
+</style>
+</head>
+<body style="background-color:#272823;">
+
+<div id="editor"></div>
+    
+<script src="ace.js" type="text/javascript" charset="utf-8"></script>
+<script>
+    
+    ace.define("ace/mode/chipcade_highlight_rules", ["require", "exports", "module", "ace/lib/oop", "ace/mode/text_highlight_rules"], function(require, exports, module) {
+        var oop = require("ace/lib/oop");
+        var TextHighlightRules = require("ace/mode/text_highlight_rules").TextHighlightRules;
+
+        var ChipCadeHighlightRules = function() {
+            // Generate S0 to S255 dynamically
+            var sVariables = Array.from({length: 256}, (_, i) => `S${i}`).join(" ");
+
+            // Define keyword mapper with generated variables
+            var keywordMapper = this.createKeywordMapper({
+                "keyword": "ADD CMP CALL CALLTM DEC DIV INC J JE JNE JL JG JC JO LD LDI LDRESX LDRESY LYRRES LYRVIS MOD MUL NOP PUSH RAND RECT RET SPRACC SPRANM SPRCOL SPRFPS SPRFRI SPRGRP SPRIMG SPRLYR SPRMXS SPRPRI SPRROT SPRSET SPRSPD SPRVIS SPRWRP SPRSTP SPRX SPRY ST SUB",
+                "variable.language": `R0 R1 R2 R3 R4 R5 R6 R7 L0 L1 L2 L3 L4 L5 L6 L7 ${sVariables}`,
+                "constant.language": "TRUE FALSE NULL",
+                "support.type": "unsigned16 signed16 float16 unicodeChar",
+                "keyword.operator": "+ - * / % & | ^ ~ << >>",
+            }, "text", true, " ");
+
+            this.$rules = {
+                "start" : [
+                    { token: "comment", regex: "#.*$" },
+                    { token: "constant.numeric", regex: "\\b[0-9]+[usf]?\\b" },
+                    { token: "label", regex: "^[A-Za-z_][A-Za-z0-9_]*:" },
+                    { token: "keyword.operator", regex: /[\-+%=<>*\/&|^~]+/ },
+                    { token: "paren.lparen", regex: "[\\[({]" },
+                    { token: "paren.rparen", regex: "[\\])}]" },
+                    { token: "string", regex: '"', next: "string" },
+                    { token: keywordMapper, regex: "\\b\\w+\\b" },
+                    { caseInsensitive: true }
+                ],
+                "string": [
+                    { token: "string", regex: '"', next: "start" },
+                    { defaultToken: "string" }
+                ]
+            };
+        };
+
+        oop.inherits(ChipCadeHighlightRules, TextHighlightRules);
+        exports.ChipCadeHighlightRules = ChipCadeHighlightRules;
+    });
+
+    // Manually register mode-chipcade
+    ace.define("ace/mode/chipcade", ["require", "exports", "module", "ace/lib/oop", "ace/mode/text", "ace/tokenizer", "ace/mode/chipcade_highlight_rules"], function(require, exports, module) {
+        var oop = require("ace/lib/oop");
+        var TextMode = require("ace/mode/text").Mode;
+        var ChipCadeHighlightRules = require("ace/mode/chipcade_highlight_rules").ChipCadeHighlightRules;
+
+        var Mode = function() {
+            this.HighlightRules = ChipCadeHighlightRules;
+        };
+        oop.inherits(Mode, TextMode);
+
+        (function() {
+            this.lineCommentStart = "#";
+            this.$id = "ace/mode/chipcade";
+        }).call(Mode.prototype);
+
+        exports.Mode = Mode;
+    });
+    
+    var editor = ace.edit("editor");
+
+    editor.setTheme("ace/theme/tomorrow_night");
+    editor.session.setMode("ace/mode/chipcade");
+    
+    var reportChanges = true;
+    var delta = 0;
+    editor.on('change', function(d) {
+        if (reportChanges) {
+            delta = d;
+            window.webkit.messageHandlers.jsHandler.postMessage("update");
+        }
+    });
+</script>
+</body>
+</html>

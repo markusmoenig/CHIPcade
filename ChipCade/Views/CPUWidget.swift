@@ -31,8 +31,8 @@ public class CPUWidget    : ObservableObject
         let red = colorToFloat4(Color.red)
         let green = colorToFloat4(Color.green)
 
-        var dest : UInt8? = nil
-        var source : [UInt8] = []
+        let dest : UInt8? = nil
+        let source : [UInt8] = []
         
         draw2D.drawText(position: float2(10, 160), text: "\(game.flags.displayFlags())", size: 14, color: prim)
         
@@ -46,20 +46,20 @@ public class CPUWidget    : ObservableObject
         let formattedInputRegisters = "R8: \(paddedString(game.registers[8].toString(false), width: 3)) R9: \(game.registers[9].toString(false)) R10: \(game.registers[10].toStringFull()) R11: \(game.registers[11].toStringFull())"
         draw2D.drawText(position: float2(160, 160), text: formattedInputRegisters, size: 14, color: prim)
 
-        if game.error != .none {
-            if let instruction = game.getInstruction() {
-                draw2D.drawText(position: float2(10, 180), text: "\(instruction.toString()): \(game.error.toString)", size: 14, color: red)
-            } else {
-                draw2D.drawText(position: float2(10, 180), text: "\(game.error.toString)", size: 14, color: red)
-            }
-        } else
-        if let instruction = game.getInstruction() {
-            //draw2D.drawText(position: float2(100, 80), text: instruction.format(), size: 30)
-            draw2D.drawText(position: float2(10, 180), text: "\(instruction.toString()): \(instruction.description())", size: 14, color: prim)
-            let regs = instruction.registers()
-            dest = regs.0
-            source = regs.1
-        }
+//        if game.error != .none {
+//            if let instruction = game.getInstruction() {
+//                draw2D.drawText(position: float2(10, 180), text: "\(instruction.toString()): \(game.error.toString)", size: 14, color: red)
+//            } else {
+//                draw2D.drawText(position: float2(10, 180), text: "\(game.error.toString)", size: 14, color: red)
+//            }
+//        } else
+//        if let instruction = game.getInstruction() {
+//            //draw2D.drawText(position: float2(100, 80), text: instruction.format(), size: 30)
+//            draw2D.drawText(position: float2(10, 180), text: "\(instruction.toString()): \(instruction.description())", size: 14, color: prim)
+//            let regs = instruction.registers()
+//            dest = regs.0
+//            source = regs.1
+//        }
         
 
         if game.selectionState == .code {
