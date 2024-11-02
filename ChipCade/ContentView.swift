@@ -19,6 +19,8 @@ extension UndoManager: @unchecked @retroactive Sendable { }
 struct ContentView: View {
     @Binding var document: ChipCadeDocument
 
+    @EnvironmentObject var appState: AppState
+
     @State private var selectedCodeItem: CodeItem? = nil
     @State private var selectedImageGroupItem: ImageGroupItem? = nil
     @State private var selectedMemoryItem: MemoryItem? = nil
@@ -425,6 +427,15 @@ struct ContentView: View {
             selectedMemoryItem = nil
         }
         
+        .onChange(of: appState.showHelpReference) {
+            selectedCodeItem = nil
+            selectedImageGroupItem = nil
+            selectedMemoryItem = nil
+            isPaletteSelected = false
+            isNotesSelected = false
+            isReferenceSelected = true
+        }
+        
         .onChange(of: selectedInstructionIndex) {
             if let selectedInstructionIndex = selectedInstructionIndex {
                 if let codeItem = selectedCodeItem {
@@ -488,9 +499,23 @@ struct ContentView: View {
             Game.shared.scriptEditor?.setTheme(colorScheme)
         }
         
-        .searchable(text: $searchText) {
+        .searchable(text: $searchText, prompt: "Search tags") {
             ForEach(searchResults, id: \.self) { result in
                 Text("\(result)").searchCompletion(result)
+                .onTapGesture {
+                    // For mouse clicks
+                    if let (codeItemIndex, instructionIndex) = Game.shared.data.getCodeAddress(name: result, currentCodeIndex: Game.shared.currCodeItemIndex) {
+                        selectedCodeItem = Game.shared.data.codeItems[codeItemIndex]
+                        selectedInstructionIndex = instructionIndex
+                    }
+                }
+                .onSubmit(of: .search) {
+                    // For keyboard selection
+                    if let (codeItemIndex, instructionIndex) = Game.shared.data.getCodeAddress(name: result, currentCodeIndex: Game.shared.currCodeItemIndex) {
+                        selectedCodeItem = Game.shared.data.codeItems[codeItemIndex]
+                        selectedInstructionIndex = instructionIndex
+                    }
+                }
             }
         }
     }
@@ -502,13 +527,13 @@ struct ContentView: View {
         
         for codeItem in document.game.data.codeItems {
             for (_, instruction) in codeItem.codes.enumerated() {
-//                if instruction.meta.tag.lowercased().contains(query.lowercased()) {
-//                    results.append(instruction.meta.tag.lowercased())
-//                }
+                if instruction.type == .tag {
+                    if instruction.memory!.lowercased().contains(query.lowercased()) {
+                        results.append("\(codeItem.name).\(instruction.memory!)")
+                    }
+                }
             }
         }
-        
-        //document.model.searchResultsChanged.send(results)
         return results
     }
     
