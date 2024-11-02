@@ -30,13 +30,13 @@ public class Game : ObservableObject
     @Published var data: GameData
     
     @Published var stack: [StackValue]
-    @Published var registers: [ChipCadeData]
-
-    @Published var flags = CPUFlags()
+    
+    var registers: [ChipCadeData]
+    var flags = CPUFlags()
     
     // The instruction pointer
-    @Published var currCodeItemIndex: Int = 0
-    @Published var currInstructionIndex: Int = 0
+    var currCodeItemIndex: Int = 0
+    var currInstructionIndex: Int = 0
     
     var prevCodeItemIndex: Int = 0
     var prevInstructionIndex: Int = 0
@@ -48,9 +48,9 @@ public class Game : ObservableObject
     var gcp = GCP()
     var cpu = CPU()
 
-    @Published var error = ChipCadeError.none
-    @Published var errorCodeItemIndex = 0
-    @Published var errorInstructionIndex = 0
+    var error = ChipCadeError.none
+    var errorCodeItemIndex = 0
+    var errorInstructionIndex = 0
 
     /// Time between updates
     let deltaTimeInMs: Int = Int((1.0 / 60.0) * 1000.0)

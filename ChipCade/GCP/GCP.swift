@@ -25,7 +25,6 @@ public enum GCPCmd  {
     case sprfri(spriteIndex: Int, value: Float)
     case sprpri(spriteIndex: Int, value: Int)
     case sprgrp(spriteIndex: Int, value: Int)
-    case sprcol(spriteIndex: Int, value: Int)
     case spranm(spriteIndex: Int, from: Int, to: Int)
     case sprfps(spriteIndex: Int, value: Int)
     case sprstp(spriteIndex: Int)
@@ -184,7 +183,6 @@ public class GCP {
                     sprites[spriteIndex].size.width = CGFloat(imageGroup.images[0].width)
                     sprites[spriteIndex].size.height = CGFloat(imageGroup.images[0].height)
                 }
-
                 
             case .sprvis(let spriteIndex, let value) :
                 sprites[spriteIndex].isVisible = Bool(value != 0)
@@ -225,16 +223,6 @@ public class GCP {
             case .sprgrp(let spriteIndex, let value) :
                 sprites[spriteIndex].collisionGroupIndex = value
                 
-            case .sprcol(let spriteIndex, let value) :
-                let sprite = sprites[spriteIndex]
-                Game.shared.flags.setZeroFlag(false)
-                for toCheck in sprites {
-                    if sprite.layer == toCheck.layer && sprite.index != toCheck.index && toCheck.collisionGroupIndex == value {
-                        if sprite.checkCollision(with: toCheck) {
-                            Game.shared.flags.setZeroFlag(true)
-                        }
-                    }
-                }
             case .spranm(let spriteIndex, let from, let to) :
                 let sprite = sprites[spriteIndex]
                 sprite.animationRange = from...to

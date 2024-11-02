@@ -268,7 +268,16 @@ public class CPU {
         case .sprcol:
             let spriteIndex = Int(instruction.register1!)
             if spriteIndex >= 0 && spriteIndex <= 255 {
-                gcp.addCmd(.sprcol(spriteIndex: Int(instruction.register1!), value: instruction.value!.toInt32Bit()))
+                let value = instruction.value!.toInt32Bit()
+                let sprite = gcp.sprites[spriteIndex]
+                game.flags.setZeroFlag(false)
+                for toCheck in gcp.sprites {
+                    if sprite.layer == toCheck.layer && sprite.index != toCheck.index && toCheck.collisionGroupIndex == value {
+                        if sprite.checkCollision(with: toCheck) {
+                            game.flags.setZeroFlag(true)
+                        }
+                    }
+                }
             } else {
                 game.setError(.invalidSpriteIndex)
             }

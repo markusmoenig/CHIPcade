@@ -275,7 +275,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
             return "SUB R\(register1!) R\(register2!)"
           
         case .spracc:
-            return "SPRACC S\(register1!) L\(register2!)"
+            return "SPRACC S\(register1!) R\(register2!)"
       
         case .spranm:
             return "SPRANM S\(register1!) \(register2!) \(register3!)"
@@ -287,7 +287,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
             return "SPRFPS S\(register1!) \(value!.toString())"
             
         case .sprfri:
-            return "SPRFRI S\(register1!) L\(register2!)"
+            return "SPRFRI S\(register1!) R\(register2!)"
             
         case .sprgrp:
             return "SPRGRP S\(register1!) \(value!.toString())"
@@ -299,10 +299,10 @@ public class Instruction: ObservableObject, Codable, Equatable {
             return "SPRLYR S\(register1!) L\(register2!)"
             
         case .sprmxs:
-            return "SPRMXS S\(register1!) L\(register2!)"
+            return "SPRMXS S\(register1!) R\(register2!)"
           
         case .sprpri:
-            return "SPRPRI S\(register1!) L\(register2!)"
+            return "SPRPRI S\(register1!) R\(register2!)"
             
         case .sprrot:
             return "SPRROT S\(register1!) R\(register2!)"
