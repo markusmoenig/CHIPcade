@@ -17,9 +17,11 @@ class CodeItem : ObservableObject, Codable, Equatable, Identifiable {
             objectWillChange.send()  // Trigger update when the name is set
         }
     }
+    
+    var currLine: Int = 0
 
     private enum CodingKeys: String, CodingKey {
-        case id, codes, name, currInstr
+        case id, codes, name, currLine
     }
     
     init(name: String) {
@@ -33,6 +35,9 @@ class CodeItem : ObservableObject, Codable, Equatable, Identifiable {
         id = try container.decode(UUID.self, forKey: .id)
         codes = try container.decode([Instruction].self, forKey: .codes)
         name = try container.decode(String.self, forKey: .name)
+        if let currLine = try container.decodeIfPresent(Int.self, forKey: .currLine) {
+            self.currLine = currLine
+        }
     }
     
     public func encode(to encoder: Encoder) throws {
@@ -40,6 +45,7 @@ class CodeItem : ObservableObject, Codable, Equatable, Identifiable {
         try container.encode(id, forKey: .id)
         try container.encode(codes, forKey: .codes)
         try container.encode(name, forKey: .name)
+        try container.encode(currLine, forKey: .currLine)
     }
     
     // Rename the code item with undo/redo support

@@ -24,6 +24,8 @@ public class Game : ObservableObject
     static var shared = Game()
     
     let errorChanged = PassthroughSubject<ChipCadeError, Never>()
+    let codeTextChanged = PassthroughSubject<(), Never>()
+    let codeLineChanged = PassthroughSubject<Int, Never>()
 
     @Published var data: GameData
     

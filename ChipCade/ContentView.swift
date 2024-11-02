@@ -7,8 +7,6 @@
 
 import SwiftUI
 import MarkdownUI
-import CodeEditorView
-import LanguageSupport
 
 enum EditingMode: Int {
     case list
@@ -54,10 +52,6 @@ struct ContentView: View {
 
     @AppStorage("editingMode") private var editingMode: Int = EditingMode.list.rawValue
     @AppStorage("editingIcon") private var editingIcon: String = "list.bullet.rectangle"
-
-    @State private var codeText: String = ""
-    @State private var codePosition: CodeEditor.Position = CodeEditor.Position()
-    @State private var codeMessages: Set<TextLocated<Message>> = Set()
     
     @State private var currError: ChipCadeError = .none
     
@@ -161,23 +155,7 @@ struct ContentView: View {
                     Spacer()
                     
                     if editorIsOnLeftSide == true {
-//                        if editingMode == .list {
-//                            CodeItemListView(
-//                                codeItem: codeItem,
-//                                selectedInstruction: $selectedInstruction,
-//                                selectedInstructionIndex: $selectedInstructionIndex
-//                            )
-//                        } else {
-//                            CodeEditor(text: $codeText, position: $codePosition, messages: $codeMessages, language: LanguageConfiguration.build_chipcade())
-//                                .environment(\.codeEditorTheme, colorScheme == .dark ? Theme.defaultDark : Theme.defaultLight)
-//                        }
-                        
-                        #if false
-                        CodeEditor(text: $codeText, position: $codePosition, messages: $codeMessages, language: LanguageConfiguration.build_chipcade())
-                                .environment(\.codeEditorTheme, colorScheme == .dark ? Theme.defaultDark : Theme.defaultLight)
-                        #else
                         WebView(colorScheme)
-                        #endif
                     } else {
                         MetalView(document.game, .Game)
                     }
@@ -231,12 +209,7 @@ struct ContentView: View {
                                     selectedInstructionIndex: $selectedInstructionIndex
                                 )
                             } else {
-                                #if false
-                                CodeEditor(text: $codeText, position: $codePosition, messages: $codeMessages, language: LanguageConfiguration.build_chipcade())
-                                        .environment(\.codeEditorTheme, colorScheme == .dark ? Theme.defaultDark : Theme.defaultLight)
-                                #else
                                 WebView(colorScheme)
-                                #endif
                             }
                         } else {
                             MetalView(document.game, .Game)
@@ -418,6 +391,19 @@ struct ContentView: View {
             //document.game.play()
         }
         
+        // When the code changes in the code editor, compile it
+        .onReceive(document.game.codeTextChanged) { _ in
+            compile()
+        }
+        
+        // The cursor has changed in the codeEditor
+        .onReceive(document.game.codeLineChanged) { line in
+            document.game.currInstructionIndex = line
+            selectedInstruction = document.game.data.codeItems[document.game.currCodeItemIndex].codes[document.game.currInstructionIndex]
+            selectedInstructionIndex = document.game.currInstructionIndex
+        }
+        
+        // Error state has changed
         .onReceive(document.game.errorChanged) { error in
             currError = error
             if error != .none {
@@ -447,6 +433,7 @@ struct ContentView: View {
                         document.game.currInstructionIndex = selectedInstructionIndex
                         selectedInstruction = document.game.getInstruction()
                     }
+                    codeItem.currLine = selectedInstructionIndex + 1
                 }
             }
             document.game.cpuRender.update()
@@ -462,10 +449,10 @@ struct ContentView: View {
                     document.game.currCodeItemIndex = index
                 }
                 
-                codeText = selectedCodeItem.codes.map { $0.format() }.joined(separator: "\n")
+                let codeText = selectedCodeItem.codes.map { $0.format() }.joined(separator: "\n")
                 Game.shared.currentCodeItemText = codeText
                 if let editor = Game.shared.scriptEditor {
-                    editor.setSessionValue("mainSession", codeText)
+                    editor.setSessionValue("mainSession", codeText, selectedCodeItem.currLine)
                 }
             }
             document.game.currInstructionIndex = 0
@@ -501,14 +488,6 @@ struct ContentView: View {
             Game.shared.scriptEditor?.setTheme(colorScheme)
         }
         
-//        .onChange(of: codePosition.rawValue) {
-//            print("codePosition: \(codePosition)")
-//        }
-        
-        .onChange(of: codeText) {
-            compile()
-        }
-        
         .searchable(text: $searchText) {
             ForEach(searchResults, id: \.self) { result in
                 Text("\(result)").searchCompletion(result)
@@ -540,7 +519,7 @@ struct ContentView: View {
         if let codeItem = selectedCodeItem {
 
             var instructions = [Instruction]()
-            let lines = codeText.split(separator: "\n", omittingEmptySubsequences: false)
+            let lines = Game.shared.currentCodeItemText.split(separator: "\n", omittingEmptySubsequences: false)
             
             var errorLine : Int? = nil
             

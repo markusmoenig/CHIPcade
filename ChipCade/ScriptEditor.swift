@@ -224,14 +224,14 @@ class ScriptEditor
          })
     }
     
-    func getSessionCursor(_ cb: @escaping (Int32)->() )
+    func getSessionCursor()
     {
         webView.evaluateJavaScript(
             """
             editor.getCursorPosition().row
             """, completionHandler: { (value, error ) in
-                if let v = value as? Int32 {
-                    cb(v)
+                if let v = value as? Int {
+                    Game.shared.codeLineChanged.send(v)
                 }
          })
     }
@@ -291,20 +291,34 @@ class ScriptEditor
         })
     }
     
-    func setSessionValue(_ session: String,_ value: String)
+    func setSessionValue(_ session: String,_ value: String, _ line: Int)
     {
         let cmd = """
         \(session).setValue(`\(value)`)
         \(session).setMode("ace/mode/chipcade");
-
+        editor.moveCursorTo(\(line), 0);
+        editor.gotoLine(\(line))
         """
         webView.evaluateJavaScript(cmd, completionHandler: { (value, error ) in
         })
     }
     
+    func sessionGotoLine(_ session: String,_ line: Int)
+    {
+        let cmd = """
+        editor.moveCursorTo(\(line), 0);        
+        editor.gotoLine(\(line))
+        """
+        webView.evaluateJavaScript(cmd, completionHandler: { (value, error ) in
+        })
+    }
+    
+    /// Script has changed
     func updated()
     {
         getSessionValue("mainSession", { (value) in
+            Game.shared.currentCodeItemText = value
+            Game.shared.codeTextChanged.send()
         })
     }
 }
@@ -354,7 +368,17 @@ struct SwiftUIWebView: NSViewRepresentable {
         func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
             if message.name == "jsHandler" {
                 if let scriptEditor = Game.shared.scriptEditor {
-                    scriptEditor.updated()
+                    //scriptEditor.updated()
+                    if let action = message.body as? String {
+                        switch action {
+                        case "update":
+                            scriptEditor.updated()
+                        case "cursorChanged":
+                            scriptEditor.getSessionCursor();
+                        default:
+                            print("Unknown action received: \(action)")
+                        }
+                    }
                 }
             }
         }
@@ -372,7 +396,9 @@ struct SwiftUIWebView: NSViewRepresentable {
                     webView.allowsLinkPreview = true
                     
                     if let editor = Game.shared.scriptEditor {
-                        editor.setSessionValue("mainSession",  Game.shared.currentCodeItemText)
+                        if let codeItem = Game.shared.getCodeItem() {
+                            editor.setSessionValue("mainSession",  Game.shared.currentCodeItemText, codeItem.currLine)
+                        }
                     }
                 }
             }
