@@ -6,11 +6,11 @@ For more detailed information and tutorials please visit [CHIPcade.com](https://
 
 16bit processor with 8 registers, special user event registers, flags and a stack.
 
-### Registers
+## Registers
 
 
 
-### Values
+## Values
 
 16bit Values in CHIPcade can be one of:
 
@@ -21,7 +21,7 @@ For more detailed information and tutorials please visit [CHIPcade.com](https://
 
 Values can also reference a register, for example to set the friction of sprite #0 you could write **SPRFRI S0 0.5f** or **SPRFRI S0 R2** to set the friction to the content of register 2.
 
-### Instruction Set
+## Instruction Set
 
 - **TAG CodeTag**. Set a code tag (for Jump or Call instructions).
 - **# Text**. Set a comment.
@@ -56,7 +56,7 @@ Values can also reference a register, for example to set the friction of sprite 
 
 - **RAND Rd Value**. Generates a random number of type Value in the range of 0...Value and stores it in the destination register.
 
-### CPU Flags
+## CPU Flags
 
 - **Zero Flag (ZF)**. Set when the result of an operation is zero.
 - **Carry Flag (CF)**. Set when an arithmetic operation results in an unsigned overflow (carry out of the most significant bit) or underflow (borrow into the most significant bit).
@@ -67,36 +67,36 @@ Values can also reference a register, for example to set the friction of sprite 
 
 8 layers with 256 hardware sprites, a palette, image groups and other hardware supported features.
 
-### Layers
+## Layers
 
 Layers are drawn starting from index 0 up to 7. By default layers are in the resolution of the screen and invisible.
 
 - **LYRRES L Width Height**. Set a custom layer resolution in the form of "320 200". By default layers are in the resolution of the screen.
-- **LYRVIS Ld State**. Set layer visibility. Default is invisible.
+- **LYRVIS Ld Value**. Set layer visibility. A value of 0 means invisible, visible otherwise. Default is invisible.
 
-### Sprites
+## Sprites
 
 256 hardware sprites
 
 - **SPRLYR Sd Ls**. Assign a layer to the sprite. By default a sprite is not bound to a layer and will be drawn on top of all layers.
 
 - **SPRSET Sd ImageGroup**. Assign an image group to the sprite.
-- **SPRIMG Sd Rs**. Set the index of the image in the current image group. Stops any animation. Default is 0.
+- **SPRIMG Sd Value**. Set the index of the image in the current image group. Stops any animation. Default is 0.
 - **SPRANM Sd From To**. Set the animation range for the sprite and start animation. If the current image index is not inside the range set it to the animation start frame.
 - **SPRFPS Sd Value**. Set the fps for the sprite's animation. Default is 10.
 
-- **SPRVIS Sd State**. Set sprite visibility (Invisible/Visible). Default is invisible.
-- **SPRWRP Sd State**. Set the wrapping mode for the sprite (Off/On). Wrapped sprites wrap around the layer or screen (i.e. when they go offscreen re-appear on the other side).
+- **SPRVIS Sd Value**. Set sprite visibility to the given value. A value of 0 means invisible, visible otherwise. Default is invisible.
+- **SPRWRP Sd Value**. Set the wrapping mode for the sprite (0 for off, on otherwise). Wrapped sprites wrap around the layer or screen (i.e. when they go offscreen re-appear on the other side).
 
-- **SPRX Sd Rs**. Set the x position of the sprite.
-- **SPRY Sd Rs**. Set the y position of the sprite.
-- **SPRROT Sd Rs**. Set the rotation of the sprite.
-- **SPRPRI Sd Rs**. Set the priority of the sprite. Sprite with a lower priority are drawn last. Default is 0.
+- **SPRX Sd Value**. Set the x position of the sprite.
+- **SPRY Sd Value**. Set the y position of the sprite.
+- **SPRROT Sd Value**. Set the rotation of the sprite.
+- **SPRPRI Sd Value**. Set the priority of the sprite. Sprite with a lower priority are drawn last. Default is 0.
 
-- **SPRACC Sd Rs**. Apply an acceleration impulse to the sprite.
-- **SPRSPD Sd Rs**. Set a constant speed to the sprite.
-- **SPRMXS Sd Rs**. Set the maximum speed for the sprite (for acceleration / impulse driven games).
-- **SPRFRI Sd Rs**. Set the friction of the sprite (default is 1.0). A friction lower than 1.0 will reduce speed.
+- **SPRACC Sd Value**. Apply an acceleration impulse to the sprite.
+- **SPRSPD Sd Value**. Set a constant speed to the sprite.
+- **SPRMXS Sd Value**. Set the maximum speed for the sprite (for acceleration / impulse driven games).
+- **SPRFRI Sd Value**. Set the friction of the sprite (default is 1.0). A friction lower than 1.0 will reduce speed.
 
 - **SPRGRP Sd Value**. Set the collision group of the sprite to the given value. The value can be any numerical value.
 - **SPRCOL Sd Value**. Checks if the sprite collides with any sprite in the collision group. If no, sets the ZF to 1, if yes sets the ZF to 0.

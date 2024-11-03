@@ -325,13 +325,13 @@ struct CodeItemListView: View {
                                         }
                                     )
                                 )
-                                Int8VisibleMenu(
-                                    visible: Binding(
-                                        get: { instruction.register2! },
-                                        set: { newRegister in
+                                ChipCadeDataTextField(
+                                    chipCadeData: Binding(
+                                        get: { instruction.value! },
+                                        set: { newValue in
                                             let newInstruction = instruction.clone()
-                                            newInstruction.register2 = newRegister
-                                            codeItem.aboutToChange(using: undoManager, newInstruction: newInstruction, at: index, text: "Visible Changed")
+                                            newInstruction.value = newValue
+                                            codeItem.aboutToChange(using: undoManager, newInstruction: newInstruction, at: index, text: "Value Changed")
                                         }
                                     )
                                 )

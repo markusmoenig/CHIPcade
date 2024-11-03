@@ -132,7 +132,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
             memory = "320 200"
         case .lyrvis, .sprlyr:
             register1 = 0
-            register2 = 0
+            value = .unsigned16Bit(0)
         case .sprset:
             register1 = 0
             memory = "Image Group"
@@ -176,7 +176,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
         memoryOffset = try container.decodeIfPresent(Int.self, forKey: .memoryOffset)
         
 //        switch type{
-//        case .spracc, .sprrot, .sprspd, .sprvis, .sprx, .spry, .sprwrp, .sprimg, .sprmxs, .sprpri:
+//        case .lyrvis:
 //            value = .register(UInt16(register2!))
 //            register2 = nil
 //        default: break
@@ -246,7 +246,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
             return "LYRRES L\(register1!) \(memory!)"
             
         case .lyrvis:
-            return "LYRVIS L\(register1!) \(register2!)"
+            return "LYRVIS L\(register1!) \(value!.toString())"
             
         case .mod:
             return "MOD R\(register1!) R\(register2!)"

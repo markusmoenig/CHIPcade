@@ -99,18 +99,6 @@ extension Instruction {
                 return nil
             }
 
-        case .lyrvis:
-            // LYRVIS L0 0
-            //print("\(components) \(parseRegister(components[1])) \(parseData(components[2]))")
-            if components.count == 3,
-               let reg1 = parseRegister(components[1]),
-               let reg2 = UInt8(components[2]) {
-                instruction.register1 = reg1
-                instruction.register2 = reg2
-            } else {
-                return nil
-            }
-
         case .st:
             // Ensure we have at least 3 components: "ST Data R0"
             guard components.count >= 3 else { return nil }
@@ -163,6 +151,18 @@ extension Instruction {
             
         case .spracc, .sprrot, .sprspd, .sprx, .spry, .sprimg, .sprmxs, .sprpri, .sprvis, .sprwrp:
             // XXXXXX Sd Rs
+            if components.count == 3,
+               let reg1 = parseRegister(components[1]),
+               let value = ChipCadeData.fromString(text: components[2], unsignedDefault: true) {
+                instruction.register1 = reg1
+                instruction.value = value
+            } else {
+                return nil
+            }
+            
+        case .lyrvis:
+            // LYRVIS L0 0
+            //print("\(components) \(parseRegister(components[1])) \(parseData(components[2]))")
             if components.count == 3,
                let reg1 = parseRegister(components[1]),
                let value = ChipCadeData.fromString(text: components[2], unsignedDefault: true) {

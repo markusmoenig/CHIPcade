@@ -219,7 +219,7 @@ public class CPU {
         case .lyrvis:
             let layerIndex = Int(instruction.register1!)
             if layerIndex >= 0 && layerIndex <= 7 {
-                gcp.addCmd(.lyrvis(layerIndex: Int(instruction.register1!), value: Int(instruction.register2!)))
+                gcp.addCmd(.lyrvis(layerIndex: Int(instruction.register1!), value: instruction.value!.resolve(game).toInt32Bit()))
             } else {
                 game.setError(.invalidLayerIndex)
             }
