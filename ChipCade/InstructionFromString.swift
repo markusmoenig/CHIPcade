@@ -39,7 +39,7 @@ extension Instruction {
             // LDI R0 10
             if components.count == 3,
                let reg1 = parseRegister(components[1]),
-               let value = ChipCadeData.fromString(components[2]) {
+               let value = ChipCadeData.fromString(text: components[2], unsignedDefault: true) {
                 instruction.register1 = reg1
                 instruction.value = value
             } else {
@@ -110,17 +110,6 @@ extension Instruction {
             } else {
                 return nil
             }
-            
-        case .sprvis, .sprwrp:
-            // SPRVIS S0 0
-            if components.count == 3,
-               let reg1 = parseRegister(components[1]),
-               let reg2 = UInt8(components[2]) {
-                instruction.register1 = reg1
-                instruction.register2 = reg2
-            } else {
-                return nil
-            }
 
         case .st:
             // Ensure we have at least 3 components: "ST Data R0"
@@ -161,13 +150,24 @@ extension Instruction {
                 return nil
             }
 
-        case .spracc, .sprlyr, .sprrot, .sprspd, .sprx, .spry, .sprimg, .sprmxs, .sprfri, .sprpri:
+        case .sprlyr:
             // XXXXXX Sd Rs
             if components.count == 3,
                let reg1 = parseRegister(components[1]),
                let reg2 = parseRegister(components[2]) {
                 instruction.register1 = reg1
                 instruction.register2 = reg2
+            } else {
+                return nil
+            }
+            
+        case .spracc, .sprrot, .sprspd, .sprx, .spry, .sprimg, .sprmxs, .sprpri, .sprvis, .sprwrp:
+            // XXXXXX Sd Rs
+            if components.count == 3,
+               let reg1 = parseRegister(components[1]),
+               let value = ChipCadeData.fromString(text: components[2], unsignedDefault: true) {
+                instruction.register1 = reg1
+                instruction.value = value
             } else {
                 return nil
             }
@@ -185,11 +185,11 @@ extension Instruction {
                 return nil
             }
             
-        case .sprcol, .sprgrp, .sprfps, .rand:
+        case .sprcol, .sprgrp, .sprfps, .rand, .sprfri:
             // XXXXXX Sd Value
             if components.count == 3,
                let reg1 = parseRegister(components[1]),
-               let value = ChipCadeData.fromString(components[2]) {
+               let value = ChipCadeData.fromString(text: components[2], unsignedDefault: true) {
                 instruction.register1 = reg1
                 instruction.value = value
             } else {
@@ -209,7 +209,7 @@ extension Instruction {
         case .push:
             // PUSH 10
             if components.count == 2,
-               let value = ChipCadeData.fromString(components[1]) {
+               let value = ChipCadeData.fromString(text: components[1], unsignedDefault: true) {
                 instruction.value = value
             }
 
@@ -231,7 +231,7 @@ extension Instruction {
     }
 
     private static func parseData(_ component: String) -> ChipCadeData? {
-        if let data = ChipCadeData.fromString(component) {
+        if let data = ChipCadeData.fromString(text: component, unsignedDefault: true) {
             return data
         } else if let value = UInt16(component) {
             return .unsigned16Bit(value)

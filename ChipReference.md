@@ -4,7 +4,22 @@ For more detailed information and tutorials please visit [CHIPcade.com](https://
 
 ## CPU
 
-16bit processor with 8 registers, flags and a stack.
+16bit processor with 8 registers, special user event registers, flags and a stack.
+
+### Registers
+
+
+
+### Values
+
+16bit Values in CHIPcade can be one of:
+
+- **Unsigned**, followed by an *u*, like **10u**.
+- **Signed**, followed by an *s*, like **-2s**.
+- **Float**, followed by an *f*, like **0.02f**.
+- **Unicode**, enclosed in "" or ``, like "A".
+
+Values can also reference a register, for example to set the friction of sprite #0 you could write **SPRFRI S0 0.5f** or **SPRFRI S0 R2** to set the friction to the content of register 2.
 
 ### Instruction Set
 

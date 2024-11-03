@@ -438,7 +438,7 @@ public class GCP {
         let layerSprites = sprites.filter { $0.layer == layerIndex }
         
         // Sort the filtered sprites by priority (ascending)
-        let sortedSprites = layerSprites.sorted { $0.priority > $1.priority }
+        let sortedSprites = layerSprites.sorted { $0.priority < $1.priority }
         
         return sortedSprites
     }

@@ -34,7 +34,7 @@ struct ChipCadeDataTextField: View {
     // Parse the ChipCadeData from the text input, auto-detect negative, float, and Unicode values
     func parseChipCadeData(from text: String) -> ChipCadeData? {
         
-        if let data = ChipCadeData.fromString(text) {
+        if let data = ChipCadeData.fromString(text: text, unsignedDefault: false) {
             return data
         }
             /*
@@ -102,6 +102,8 @@ struct ChipCadeDataTextField: View {
             if let value = UInt16(text) {
                 return .unicodeChar(value)
             }
+        default:
+            break;
         }
 
         // If no valid conversion, return nil

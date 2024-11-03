@@ -185,7 +185,7 @@ public class CPU {
                 game.setError(.invalidMemoryAddress)
             }
         
-        case .ldi   : game.registers[Int(instruction.register1!)] = instruction.value!
+        case .ldi   : game.registers[Int(instruction.register1!)] = instruction.value!.resolve(game)
         
         case .ldresx:
             game.registers[Int(instruction.register1!)] = .unsigned16Bit(UInt16(gcp.draw2D.metalView.frame.size.width))
@@ -232,10 +232,10 @@ public class CPU {
             game.setError(.invalidArithmetic)
         }
             
-        case .push  : game.stack.append(.value(instruction.value!))
+        case .push  : game.stack.append(.value(instruction.value!.resolve(game)))
         
         case .rand:
-            game.registers[Int(instruction.register1!)] = ChipCadeData.random(upTo: instruction.value!)
+            game.registers[Int(instruction.register1!)] = ChipCadeData.random(upTo: instruction.value!.resolve(game))
             
         case .rect  :
             let x : Float = game.registers[0].toFloat32Bit()
@@ -263,12 +263,17 @@ public class CPU {
             }
             
         case .spracc:
-            gcp.addCmd(.spracc(spriteIndex: Int(instruction.register1!), value: getRegisterValueFloat(instruction.register2!)))
+            let spriteIndex = Int(instruction.register1!)
+            if spriteIndex >= 0 && spriteIndex <= 255 {
+                gcp.addCmd(.spracc(spriteIndex: Int(instruction.register1!), value: instruction.value!.resolve(game).toFloat32Bit()))
+            } else {
+                game.setError(.invalidSpriteIndex)
+            }
             
         case .sprcol:
             let spriteIndex = Int(instruction.register1!)
             if spriteIndex >= 0 && spriteIndex <= 255 {
-                let value = instruction.value!.toInt32Bit()
+                let value = instruction.value!.resolve(game).toInt32Bit()
                 let sprite = gcp.sprites[spriteIndex]
                 game.flags.setZeroFlag(false)
                 for toCheck in gcp.sprites {
@@ -285,7 +290,7 @@ public class CPU {
         case .sprgrp:
             let spriteIndex = Int(instruction.register1!)
             if spriteIndex >= 0 && spriteIndex <= 255 {
-                gcp.addCmd(.sprgrp(spriteIndex: Int(instruction.register1!), value: instruction.value!.toInt32Bit()))
+                gcp.addCmd(.sprgrp(spriteIndex: Int(instruction.register1!), value: instruction.value!.resolve(game).toInt32Bit()))
             } else {
                 game.setError(.invalidSpriteIndex)
             }
@@ -301,37 +306,82 @@ public class CPU {
         case .sprvis:
             let spriteIndex = Int(instruction.register1!)
             if spriteIndex >= 0 && spriteIndex <= 255 {
-                gcp.addCmd(.sprvis(spriteIndex: Int(instruction.register1!), value: Int(instruction.register2!)))
+                gcp.addCmd(.sprvis(spriteIndex: Int(instruction.register1!), value: instruction.value!.resolve(game).toInt32Bit()))
             } else {
                 game.setError(.invalidSpriteIndex)
             }
             
         case .sprrot:
-            gcp.addCmd(.sprrot(spriteIndex: Int(instruction.register1!), value: getRegisterValueFloat(instruction.register2!)))
+            let spriteIndex = Int(instruction.register1!)
+            if spriteIndex >= 0 && spriteIndex <= 255 {
+                gcp.addCmd(.sprrot(spriteIndex: Int(instruction.register1!), value: instruction.value!.resolve(game).toFloat32Bit()))
+            } else {
+                game.setError(.invalidSpriteIndex)
+            }
             
         case .sprx:
-            gcp.addCmd(.sprx(spriteIndex: Int(instruction.register1!), value: getRegisterValueInt(instruction.register2!)))
+            let spriteIndex = Int(instruction.register1!)
+            if spriteIndex >= 0 && spriteIndex <= 255 {
+                gcp.addCmd(.sprx(spriteIndex: Int(instruction.register1!), value: instruction.value!.resolve(game).toInt32Bit()))
+            } else {
+                game.setError(.invalidSpriteIndex)
+            }
 
         case .spry:
-            gcp.addCmd(.spry(spriteIndex: Int(instruction.register1!), value: getRegisterValueInt(instruction.register2!)))
+            let spriteIndex = Int(instruction.register1!)
+            if spriteIndex >= 0 && spriteIndex <= 255 {
+                gcp.addCmd(.spry(spriteIndex: Int(instruction.register1!), value: instruction.value!.resolve(game).toInt32Bit()))
+            } else {
+                game.setError(.invalidSpriteIndex)
+            }
             
         case .sprspd:
-            gcp.addCmd(.sprspd(spriteIndex: Int(instruction.register1!), value: getRegisterValueFloat(instruction.register2!)))
+            let spriteIndex = Int(instruction.register1!)
+            if spriteIndex >= 0 && spriteIndex <= 255 {
+                gcp.addCmd(.sprspd(spriteIndex: Int(instruction.register1!), value: instruction.value!.resolve(game).toFloat32Bit()))
+            } else {
+                game.setError(.invalidSpriteIndex)
+            }
             
         case .sprwrp:
-            gcp.addCmd(.sprwrp(spriteIndex: Int(instruction.register1!), value: Int(instruction.register2!)))
+            let spriteIndex = Int(instruction.register1!)
+            if spriteIndex >= 0 && spriteIndex <= 255 {
+                gcp.addCmd(.sprwrp(spriteIndex: Int(instruction.register1!), value: instruction.value!.resolve(game).toInt32Bit()))
+            } else {
+                game.setError(.invalidSpriteIndex)
+            }
             
         case .sprimg:
-            gcp.addCmd(.sprimg(spriteIndex: Int(instruction.register1!), value: getRegisterValueInt(instruction.register2!)))
+            let spriteIndex = Int(instruction.register1!)
+            if spriteIndex >= 0 && spriteIndex <= 255 {
+                gcp.addCmd(.sprimg(spriteIndex: Int(instruction.register1!), value: instruction.value!.resolve(game).toInt32Bit()))
+            } else {
+                game.setError(.invalidSpriteIndex)
+            }
             
         case .sprpri:
-            gcp.addCmd(.sprpri(spriteIndex: Int(instruction.register1!), value: getRegisterValueInt(instruction.register2!)))
+            let spriteIndex = Int(instruction.register1!)
+            if spriteIndex >= 0 && spriteIndex <= 255 {
+                gcp.addCmd(.sprpri(spriteIndex: Int(instruction.register1!), value: instruction.value!.resolve(game).toInt32Bit()))
+            } else {
+                game.setError(.invalidSpriteIndex)
+            }
             
         case .sprmxs:
-            gcp.addCmd(.sprmxs(spriteIndex: Int(instruction.register1!), value: getRegisterValueFloat(instruction.register2!)))
+            let spriteIndex = Int(instruction.register1!)
+            if spriteIndex >= 0 && spriteIndex <= 255 {
+                gcp.addCmd(.sprmxs(spriteIndex: Int(instruction.register1!), value: instruction.value!.resolve(game).toFloat32Bit()))
+            } else {
+                game.setError(.invalidSpriteIndex)
+            }
       
         case .sprfri:
-            gcp.addCmd(.sprfri(spriteIndex: Int(instruction.register1!), value: getRegisterValueFloat(instruction.register2!)))
+            let spriteIndex = Int(instruction.register1!)
+            if spriteIndex >= 0 && spriteIndex <= 255 {
+                gcp.addCmd(.sprfri(spriteIndex: Int(instruction.register1!), value: instruction.value!.resolve(game).toFloat32Bit()))
+            } else {
+                game.setError(.invalidSpriteIndex)
+            }
             
         case .spranm:
             let spriteIndex = Int(instruction.register1!)
@@ -344,7 +394,7 @@ public class CPU {
         case .sprfps:
             let spriteIndex = Int(instruction.register1!)
             if spriteIndex >= 0 && spriteIndex <= 255 {
-                gcp.addCmd(.sprfps(spriteIndex: Int(instruction.register1!), value: instruction.value!.toInt32Bit()))
+                gcp.addCmd(.sprfps(spriteIndex: Int(instruction.register1!), value: instruction.value!.resolve(game).toInt32Bit()))
             } else {
                 game.setError(.invalidSpriteIndex)
             }

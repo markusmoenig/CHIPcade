@@ -258,7 +258,7 @@ struct CodeItemListView: View {
                                     )
                                 )
                             }
-                        case .sprgrp, .sprcol, .sprfps:
+                        case .sprgrp, .sprcol, .sprfps, .sprfri, .sprrot, .sprx, .spry, .sprspd, .spracc, .sprimg, .sprmxs, .sprpri, .sprvis, .sprwrp:
                             HStack {
                                 SpriteIndexTextField(
                                     spriteIndex: Binding(
@@ -379,52 +379,6 @@ struct CodeItemListView: View {
                                     index: index
                                 )
                             }
-                        case .sprvis:
-                            HStack {
-                                SpriteIndexTextField(
-                                    spriteIndex: Binding(
-                                        get: { Int(instruction.register1!) },
-                                        set: { newRegister in
-                                            let newInstruction = instruction.clone()
-                                            newInstruction.register1 = UInt8(newRegister)
-                                            codeItem.aboutToChange(using: undoManager, newInstruction: newInstruction, at: index, text: "Sprite Changed")
-                                        }
-                                    )
-                                )
-                                Int8VisibleMenu(
-                                    visible: Binding(
-                                        get: { instruction.register2! },
-                                        set: { newRegister in
-                                            let newInstruction = instruction.clone()
-                                            newInstruction.register2 = newRegister
-                                            codeItem.aboutToChange(using: undoManager, newInstruction: newInstruction, at: index, text: "Visible Changed")
-                                        }
-                                    )
-                                )
-                            }
-                        case .sprwrp:
-                            HStack {
-                                SpriteIndexTextField(
-                                    spriteIndex: Binding(
-                                        get: { Int(instruction.register1!) },
-                                        set: { newRegister in
-                                            let newInstruction = instruction.clone()
-                                            newInstruction.register1 = UInt8(newRegister)
-                                            codeItem.aboutToChange(using: undoManager, newInstruction: newInstruction, at: index, text: "Sprite Changed")
-                                        }
-                                    )
-                                )
-                                Int8OnOffMenu(
-                                    on: Binding(
-                                        get: { instruction.register2! },
-                                        set: { newRegister in
-                                            let newInstruction = instruction.clone()
-                                            newInstruction.register2 = newRegister
-                                            codeItem.aboutToChange(using: undoManager, newInstruction: newInstruction, at: index, text: "State Changed")
-                                        }
-                                    )
-                                )
-                            }
                         case .spranm:
                             SpriteIndexTextField(
                                 spriteIndex: Binding(
@@ -467,29 +421,6 @@ struct CodeItemListView: View {
                                     }
                                 )
                             )
-                        case .sprrot, .sprx, .spry, .sprspd, .spracc, .sprimg, .sprmxs, .sprfri, .sprpri:
-                            HStack {
-                                SpriteIndexTextField(
-                                    spriteIndex: Binding(
-                                        get: { Int(instruction.register1!) },
-                                        set: { newRegister in
-                                            let newInstruction = instruction.clone()
-                                            newInstruction.register1 = UInt8(newRegister)
-                                            codeItem.aboutToChange(using: undoManager, newInstruction: newInstruction, at: index, text: "Sprite Changed")
-                                        }
-                                    )
-                                )
-                                Int8RegisterMenu(
-                                    selectedRegister: Binding(
-                                        get: { instruction.register2! },
-                                        set: { newRegister in
-                                            let newInstruction = instruction.clone()
-                                            newInstruction.register2 = newRegister
-                                            codeItem.aboutToChange(using: undoManager, newInstruction: newInstruction, at: index, text: "Register Changed")
-                                        }
-                                    )
-                                )
-                            }
                         case .st:
                             HStack {
                                 MemoryAddressTextField(

@@ -10,10 +10,11 @@ enum ChipCadeData: Codable {
     case signed16Bit(Int16)      // 16-bit signed integer
     case float16Bit(UInt16)      // 16-bit float stored as UInt16 bits
     case unicodeChar(UInt16)     // 16-bit Unicode character
+    case register(UInt16)        // Register Reference, currently 0-11
 
     // MARK: - CodingKeys
     enum CodingKeys: String, CodingKey {
-        case unsigned16Bit, signed16Bit, float16Bit, unicodeChar
+        case unsigned16Bit, signed16Bit, float16Bit, unicodeChar, register
     }
 
     // MARK: - Encoding
@@ -29,6 +30,8 @@ enum ChipCadeData: Codable {
             try container.encode(value, forKey: .float16Bit)
         case .unicodeChar(let value):
             try container.encode(value, forKey: .unicodeChar)
+        case .register(let value):
+            try container.encode(value, forKey: .register)
         }
     }
 
@@ -44,6 +47,8 @@ enum ChipCadeData: Codable {
             self = .float16Bit(floatValue)
         } else if let unicodeValue = try? container.decode(UInt16.self, forKey: .unicodeChar) {
             self = .unicodeChar(unicodeValue)
+        } else if let registerValue = try? container.decode(UInt16.self, forKey: .register) {
+            self = .register(registerValue)
         } else {
             throw DecodingError.dataCorrupted(
                 DecodingError.Context(
@@ -61,16 +66,15 @@ enum ChipCadeData: Codable {
         switch self {
         case .unsigned16Bit(let unsignedVal):
             return .unsigned16Bit(unsignedVal)
-
         case .signed16Bit(let signedVal):
             return .unsigned16Bit(UInt16(clamping: signedVal))
-
         case .float16Bit(let float16):
             let float32 = float16ToFloat32(float16)
             return .unsigned16Bit(UInt16(clamping: Int(float32)))
-
         case .unicodeChar(let unicodeVal):
             return .unsigned16Bit(unicodeVal)
+        case .register(let register):
+            return .unsigned16Bit(register)
         }
     }
 
@@ -79,16 +83,15 @@ enum ChipCadeData: Codable {
         switch self {
         case .unsigned16Bit(let unsignedVal):
             return .signed16Bit(Int16(clamping: unsignedVal))
-
         case .signed16Bit(let signedVal):
             return .signed16Bit(signedVal)
-
         case .float16Bit(let float16):
             let float32 = float16ToFloat32(float16)
             return .signed16Bit(Int16(clamping: Int(float32)))
-
         case .unicodeChar(let unicodeVal):
             return .signed16Bit(Int16(bitPattern: unicodeVal))
+        case .register(let register):
+            return .signed16Bit(Int16(register))
         }
     }
 
@@ -99,19 +102,18 @@ enum ChipCadeData: Codable {
             let float32 = Float(unsignedVal)
             let float16 = ChipCadeData.float32ToFloat16(float32)
             return .float16Bit(float16)
-
         case .signed16Bit(let signedVal):
             let float32 = Float(signedVal)
             let float16 = ChipCadeData.float32ToFloat16(float32)
             return .float16Bit(float16)
-
         case .float16Bit(let float16):
             return .float16Bit(float16)
-
         case .unicodeChar(let unicodeVal):
             let float32 = Float(unicodeVal)
             let float16 = ChipCadeData.float32ToFloat16(float32)
             return .float16Bit(float16)
+        case .register(let register):
+            return .float16Bit(ChipCadeData.float32ToFloat16(Float(register)))
         }
     }
 
@@ -120,16 +122,15 @@ enum ChipCadeData: Codable {
         switch self {
         case .unsigned16Bit(let unsignedVal):
             return .unicodeChar(unsignedVal)
-
         case .signed16Bit(let signedVal):
             return .unicodeChar(UInt16(bitPattern: signedVal))
-
         case .float16Bit(let float16):
             let float32 = float16ToFloat32(float16)
             return .unicodeChar(UInt16(clamping: Int(float32)))
-
         case .unicodeChar(let unicodeVal):
             return .unicodeChar(unicodeVal)
+        case .register(let register):
+            return .unicodeChar(UInt16(register))
         }
     }
 
@@ -138,15 +139,14 @@ enum ChipCadeData: Codable {
         switch self {
         case .unsigned16Bit(let unsignedVal):
             return Float(unsignedVal)
-
         case .signed16Bit(let signedVal):
             return Float(signedVal)
-
         case .float16Bit(let float16):
             return float16ToFloat32(float16)
-
         case .unicodeChar(let unicodeVal):
             return Float(unicodeVal)
+        case .register(let register):
+            return Float(register)
         }
     }
 
@@ -155,15 +155,14 @@ enum ChipCadeData: Codable {
         switch self {
         case .unsigned16Bit(let unsignedVal):
             return Int(unsignedVal)
-
         case .signed16Bit(let signedVal):
             return Int(signedVal)
-
         case .float16Bit(let float16):
             return Int(float16ToFloat32(float16))
-
         case .unicodeChar(let unicodeVal):
             return Int(unicodeVal)
+        case .register(let register):
+            return Int(register)
         }
     }
 
@@ -178,6 +177,8 @@ enum ChipCadeData: Codable {
             return value
         case .unicodeChar(let value):
             return value
+        case .register(let register):
+            return register
         }
     }
 
@@ -269,6 +270,8 @@ enum ChipCadeData: Codable {
             return .float16Bit(float16)
         case .unicodeChar(let unicodeVal):
             return .unicodeChar(unicodeVal)
+        case .register(let register):
+            return .register(register)
         }
     }
 
@@ -283,6 +286,8 @@ enum ChipCadeData: Codable {
             return String(format: "Float16: 0x%04X", float16)
         case .unicodeChar(let unicodeVal):
             return "Unicode Char: \(String(UnicodeScalar(unicodeVal) ?? "?"))"
+        case .register(let register):
+            return String(format: "Register: R\(register)")
         }
     }
     
@@ -291,18 +296,17 @@ enum ChipCadeData: Codable {
         switch self {
         case .unsigned16Bit(let unsignedVal):
             return identifier ? "\(unsignedVal)u" : "\(unsignedVal)"
-            
         case .signed16Bit(let signedVal):
             return identifier ? "\(signedVal)s" : "\(signedVal)"
-            
         case .float16Bit(let float16):
             let float32 = float16ToFloat32(float16)
             return identifier ? String(format: "%.3ff", float32) : String(format: "%.3f", float32)
-
         case .unicodeChar(let unicodeVal):
             let char = String(UnicodeScalar(unicodeVal) ?? "?")
 //            return identifier ? "\(unicodeVal)uC (\(char))" : "\(char)"
             return "`\(char)`"
+        case .register(let register):
+            return "R\(register)"
         }
     }
     
@@ -315,14 +319,12 @@ enum ChipCadeData: Codable {
             } else {
                 return String(format: "%05d", unsignedVal) // No identifier, just padded
             }
-
         case .signed16Bit(let signedVal):
             if identifier {
                 return String(format: "%05ds", signedVal) // Always 5 digits, padded with 0s
             } else {
                 return String(format: "%05d", signedVal) // No identifier, just padded
             }
-
         case .float16Bit(let float16):
             let float32 = float16ToFloat32(float16)
             if identifier {
@@ -330,7 +332,6 @@ enum ChipCadeData: Codable {
             } else {
                 return String(format: "%.3f", float32) // No identifier, but always 3 decimals
             }
-
         case .unicodeChar(let unicodeVal):
             let char = String(UnicodeScalar(unicodeVal) ?? "?")
             if identifier {
@@ -338,6 +339,8 @@ enum ChipCadeData: Codable {
             } else {
                 return String(format: "%05d (\(char))", unicodeVal) // Just padded
             }
+        case .register(let register):
+            return "R\(register)s"
         }
     }
     
@@ -352,6 +355,8 @@ enum ChipCadeData: Codable {
             return String(format: "0x%04X", value)
         case .unicodeChar(let value):
             return String(format: "0x%04X", value)
+        case .register(let register):
+            return String(format: "0x%04X", register)
         }
     }
 
@@ -366,6 +371,8 @@ enum ChipCadeData: Codable {
             return String(value, radix: 2)
         case .unicodeChar(let value):
             return String(value, radix: 2)
+        case .register(let register):
+            return String(register, radix: 2)
         }
     }
     
@@ -375,18 +382,27 @@ enum ChipCadeData: Codable {
         case .unsigned16Bit(let max):
             let randomValue = UInt16.random(in: 0...max)
             return .unsigned16Bit(randomValue)
-            
         case .signed16Bit(let max):
             let randomValue = Int16.random(in: 0...max)
             return .signed16Bit(randomValue)
-            
         case .float16Bit(_):
             let randomValue = Float.random(in: 0.0...maxValue.toFloat32Bit())
             return .float16Bit(float32ToFloat16(randomValue))
-            
         case .unicodeChar(let max):
             let randomValue = UInt16.random(in: 0...max)
             return .unicodeChar(randomValue)
+        case .register(let max):
+            let randomValue = UInt16.random(in: 0...max)
+            return .unsigned16Bit(randomValue)
+        }
+    }
+    
+    /// Resolves register based values.
+    func resolve(_ game: Game) -> ChipCadeData {
+        switch self {
+        case .register(let register):
+            return game.registers[Int(register)]
+        default: return self
         }
     }
 }
@@ -675,7 +691,14 @@ extension ChipCadeData {
 // From String
 extension ChipCadeData {
  
-    static func fromString(_ text: String) -> ChipCadeData? {
+    static func fromString(text: String, unsignedDefault: Bool) -> ChipCadeData? {
+        
+        // Handle registers
+        if text.lowercased().hasPrefix("r") {
+            if let value = UInt16(text.dropFirst(1)) {
+                return .register(value)
+            }
+        }
         
         // Handle single-character input in quotes or backticks
         if (text.first == "\"" && text.last == "\"") || (text.first == "`" && text.last == "`") {

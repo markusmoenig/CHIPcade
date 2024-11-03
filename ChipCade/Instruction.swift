@@ -116,7 +116,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
             register1 = 0
             memory = "Data"
             memoryOffset = 0
-        case .ldi, .sprcol, .sprgrp:
+        case .ldi, .sprcol, .sprgrp, .sprfri, .spracc, .sprrot, .sprspd, .sprvis, .sprx, .spry, .sprwrp, .sprimg, .sprmxs, .sprpri:
             register1 = 0
             value = .unsigned16Bit(0)
         case .rand:
@@ -130,7 +130,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
         case .lyrres:
             register1 = 0
             memory = "320 200"
-        case .lyrvis:
+        case .lyrvis, .sprlyr:
             register1 = 0
             register2 = 0
         case .sprset:
@@ -140,9 +140,6 @@ public class Instruction: ObservableObject, Codable, Equatable {
             register1 = 0
             memory = "Data"
             memoryOffset = 0
-        case .spracc, .sprlyr, .sprrot, .sprspd, .sprvis, .sprx, .spry, .sprwrp, .sprimg, .sprmxs, .sprfri, .sprpri:
-            register1 = 0
-            register2 = 0
         case .spranm:
             register1 = 0
             register2 = 0
@@ -177,6 +174,13 @@ public class Instruction: ObservableObject, Codable, Equatable {
         value = try container.decodeIfPresent(ChipCadeData.self, forKey: .value)
         memory = try container.decodeIfPresent(String.self, forKey: .memory)
         memoryOffset = try container.decodeIfPresent(Int.self, forKey: .memoryOffset)
+        
+//        switch type{
+//        case .spracc, .sprrot, .sprspd, .sprvis, .sprx, .spry, .sprwrp, .sprimg, .sprmxs, .sprpri:
+//            value = .register(UInt16(register2!))
+//            register2 = nil
+//        default: break
+//        }
     }
     
     func format() -> String {
@@ -275,7 +279,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
             return "SUB R\(register1!) R\(register2!)"
           
         case .spracc:
-            return "SPRACC S\(register1!) R\(register2!)"
+            return "SPRACC S\(register1!) \(value!.toString())"
       
         case .spranm:
             return "SPRANM S\(register1!) \(register2!) \(register3!)"
@@ -287,43 +291,43 @@ public class Instruction: ObservableObject, Codable, Equatable {
             return "SPRFPS S\(register1!) \(value!.toString())"
             
         case .sprfri:
-            return "SPRFRI S\(register1!) R\(register2!)"
+            return "SPRFRI S\(register1!) \(value!.toString())"
             
         case .sprgrp:
             return "SPRGRP S\(register1!) \(value!.toString())"
             
         case .sprimg:
-            return "SPRIMG S\(register1!) R\(register2!)"
+            return "SPRIMG S\(register1!) \(value!.toString())"
             
         case .sprlyr:
             return "SPRLYR S\(register1!) L\(register2!)"
             
         case .sprmxs:
-            return "SPRMXS S\(register1!) R\(register2!)"
+            return "SPRMXS S\(register1!) \(value!.toString())"
           
         case .sprpri:
-            return "SPRPRI S\(register1!) R\(register2!)"
+            return "SPRPRI S\(register1!) \(value!.toString())"
             
         case .sprrot:
-            return "SPRROT S\(register1!) R\(register2!)"
+            return "SPRROT S\(register1!) \(value!.toString())"
             
         case .sprspd:
-            return "SPRSPD S\(register1!) R\(register2!)"
+            return "SPRSPD S\(register1!) \(value!.toString())"
             
         case .sprstp:
             return "SPRSTP S\(register1!)"
             
         case .sprvis:
-            return "SPRVIS S\(register1!) \(register2!)"
+            return "SPRVIS S\(register1!) \(value!.toString())"
             
         case .sprx:
-            return "SPRX S\(register1!) R\(register2!)"
+            return "SPRX S\(register1!) \(value!.toString())"
             
         case .spry:
-            return "SPRY S\(register1!) R\(register2!)"
+            return "SPRY S\(register1!) \(value!.toString())"
             
         case .sprwrp:
-            return "SPRWRP S\(register1!) \(register2!)"
+            return "SPRWRP S\(register1!) \(value!.toString())"
             
         case .tag:
             return "\(memory!):"
@@ -465,7 +469,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
         switch type {
         case .tag: return .blue
         case .comnt: return .secondary
-        case .rect, .sprset,.sprvis, .sprx, .spry, .lyrres, .lyrvis, .sprrot, .sprwrp, .sprimg, .spracc, .sprmxs, .sprfri, .sprpri, .sprlyr, .sprcol, .sprgrp, .spranm, .sprfps:
+        case .rect, .sprset,.sprvis, .sprx, .spry, .lyrres, .lyrvis, .sprrot, .sprwrp, .sprimg, .spracc, .sprmxs, .sprfri, .sprpri, .sprlyr, .sprcol, .sprgrp, .spranm, .sprfps, .sprstp:
             return .yellow
         default:
             return .primary
