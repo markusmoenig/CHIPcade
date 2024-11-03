@@ -32,11 +32,11 @@ public class CPU {
         
         switch instruction.type {
         
-        case .add   :  if game.registers[Int(instruction.register1!)].add(other: game.registers[Int(instruction.register2!)], flags: game.flags) {
+        case .add   :  if game.registers[Int(instruction.register1!)].add(other: instruction.value!.resolve(game), flags: game.flags) {
             game.setError(.invalidArithmetic)
         }
         
-        case .cmp   :  if game.registers[Int(instruction.register1!)].cmp(other: game.registers[Int(instruction.register2!)], flags: game.flags) {
+        case .cmp   :  if game.registers[Int(instruction.register1!)].cmp(other: instruction.value!.resolve(game), flags: game.flags) {
             game.setError(.invalidComparison)
         } else {
             game.lastCMPWasUnsigned = game.registers[Int(instruction.register1!)].isUnsigned()
@@ -59,9 +59,8 @@ public class CPU {
             
         case .calltm:
             if let (codeItemIndex, instructionIndex) = game.data.getCodeAddress(name: instruction.memory!, currentCodeIndex: game.currCodeItemIndex) {
-                
                 // countdown, convert from seconds to milli-seconds
-                let countdown = Int(game.registers[Int(instruction.register1!)].toFloat32Bit() * 1000)
+                let countdown = Int(instruction.value!.resolve(game).toFloat32Bit() * 1000)
                 let event = TimedEvent(countdown: countdown, codeItemIndex: codeItemIndex, instructionIndex: instructionIndex)
                 eventQueue.append(event)
             } else {
@@ -91,7 +90,7 @@ public class CPU {
         
         case .inc   :  game.registers[Int(instruction.register1!)].inc(flags: game.flags)
         
-        case .div   :  if game.registers[Int(instruction.register1!)].div(other: game.registers[Int(instruction.register2!)], flags: game.flags) {
+        case .div   :  if game.registers[Int(instruction.register1!)].div(other: instruction.value!.resolve(game), flags: game.flags) {
             game.setError(.invalidArithmetic)
         }
             
@@ -224,11 +223,11 @@ public class CPU {
                 game.setError(.invalidLayerIndex)
             }
             
-        case .mod   :  if game.registers[Int(instruction.register1!)].mod(other: game.registers[Int(instruction.register2!)], flags: game.flags) {
+        case .mod   :  if game.registers[Int(instruction.register1!)].mod(other: instruction.value!.resolve(game), flags: game.flags) {
             game.setError(.invalidArithmetic)
         }
         
-        case .mul   :  if game.registers[Int(instruction.register1!)].mul(other: game.registers[Int(instruction.register2!)], flags: game.flags) {
+        case .mul   :  if game.registers[Int(instruction.register1!)].mul(other: instruction.value!.resolve(game), flags: game.flags) {
             game.setError(.invalidArithmetic)
         }
             
@@ -399,7 +398,7 @@ public class CPU {
                 game.setError(.invalidSpriteIndex)
             }
             
-        case .sub   :  if game.registers[Int(instruction.register1!)].sub(other: game.registers[Int(instruction.register2!)], flags: game.flags) {
+        case .sub   :  if game.registers[Int(instruction.register1!)].sub(other: instruction.value!.resolve(game), flags: game.flags) {
             game.setError(.invalidArithmetic)
         }
             

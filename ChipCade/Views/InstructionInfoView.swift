@@ -20,13 +20,20 @@ struct InstructionInfoView: View {
                     .padding(4)
                     .foregroundStyle(.red)
                 Text("Module: \(Game.shared.data.codeItems[Game.shared.errorCodeItemIndex].name)")
-                    .font(.system(.title3))
+                    .font(.system(.headline))
+                    .padding(2)
                     .foregroundStyle(.red)
-                    .padding(4)
+                if let type = Game.shared.errorInstructionType {
+                    Text("\(Instruction(type).syntax())")
+                        .font(.system(.headline))
+                        .foregroundStyle(.secondary)
+                        .padding(2)
+                }
+                Spacer()
             } else
             if let instruction = selectedInstruction {
                 Spacer()
-                Text("\(instruction.format())")
+                Text("\(instruction.syntax())")
                     .font(.system(.title))
                     .padding(4)
                 Text("\(instruction.description())")

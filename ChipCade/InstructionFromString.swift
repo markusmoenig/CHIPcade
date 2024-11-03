@@ -12,22 +12,13 @@ extension Instruction {
         guard let firstComponent = components.first else { return nil }
         guard let type = InstructionType.fromString(firstComponent) else { return nil }
         
+        Game.shared.errorInstructionType = type
+        
         let instruction = Instruction(type)
         
         switch type {
-        case .add, .cmp, .sub, .mul, .div, .mod:
-            // XXX Rd Rs
-            if components.count == 3,
-               let reg1 = parseRegister(components[1]),
-               let reg2 = parseRegister(components[2]) {
-                instruction.register1 = reg1
-                instruction.register2 = reg2
-            } else {
-                return nil
-            }
-
         case .inc, .dec, .sprstp:
-            // INC R0
+            // XXXXXX Rd
             if components.count == 2,
                let reg1 = parseRegister(components[1]) {
                 instruction.register1 = reg1
@@ -35,8 +26,8 @@ extension Instruction {
                 return nil
             }
 
-        case .ldi:
-            // LDI R0 10
+        case .ldi, .cmp, .add, .sub, .mul, .div, .mod:
+            // XXXXXX Rd Value
             if components.count == 3,
                let reg1 = parseRegister(components[1]),
                let value = ChipCadeData.fromString(text: components[2], unsignedDefault: true) {
@@ -174,13 +165,14 @@ extension Instruction {
 
         case .spranm:
             // XXXXXX Sd From To
+            print("\(components)")
             if components.count == 4,
                let reg1 = parseRegister(components[1]),
-               let reg2 = UInt8(components[2]),
-               let reg3 = UInt8(components[3]) {
+               let reg2 = ChipCadeData.fromString(text: components[2], unsignedDefault: true),
+               let reg3 = ChipCadeData.fromString(text: components[3], unsignedDefault: true) {
                 instruction.register1 = reg1
-                instruction.register2 = reg2
-                instruction.register3 = reg3
+                instruction.register2 = UInt8(reg2.toInt32Bit())
+                instruction.register3 = UInt8(reg3.toInt32Bit())
             } else {
                 return nil
             }
@@ -226,6 +218,8 @@ extension Instruction {
         default:
             return nil
         }
+        
+        Game.shared.errorInstructionType = nil
         
         return instruction
     }

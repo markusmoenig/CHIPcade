@@ -100,9 +100,12 @@ public class Instruction: ObservableObject, Codable, Equatable {
         
         switch type {
         
-        case .cmp, .add, .sub, .mul, .div, .mod:
+        case .cmp:
+            value = .unsigned16Bit(0)
+        case .add, .sub, .mul, .div, .mod:
             register1 = 0
             register2 = 0
+            value = .unsigned16Bit(0)
         case .inc, .dec, .sprstp:
             register1 = 0
         case .comnt:
@@ -111,7 +114,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
             memory = "Module.Tag"
         case .calltm:
             memory = "Module.Tag"
-            register1 = 0
+            value = .unsigned16Bit(0)
         case .ld:
             register1 = 0
             memory = "Data"
@@ -176,8 +179,8 @@ public class Instruction: ObservableObject, Codable, Equatable {
         memoryOffset = try container.decodeIfPresent(Int.self, forKey: .memoryOffset)
         
 //        switch type{
-//        case .lyrvis:
-//            value = .register(UInt16(register2!))
+//        case .cmp, .add, .sub, .mul, .div, .mod:
+////            value = .unsigned16Bit(0)
 //            register2 = nil
 //        default: break
 //        }
@@ -186,10 +189,10 @@ public class Instruction: ObservableObject, Codable, Equatable {
     func format() -> String {
         switch type {
         case .add:
-            return "ADD R\(register1!) R\(register2!)"
+            return "ADD R\(register1!) \(value!.toString())"
             
         case .cmp:
-            return "CMP R\(register1!) R\(register2!)"
+            return "CMP R\(register1!) \(value!.toString())"
          
         case .call:
             return "CALL \(memory!)"
@@ -204,7 +207,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
             return "DEC R\(register1!)"
             
         case .div:
-            return "DIV R\(register1!) R\(register2!)"
+            return "DIV R\(register1!) \(value!.toString())"
             
         case .inc:
             return "INC R\(register1!)"
@@ -249,10 +252,10 @@ public class Instruction: ObservableObject, Codable, Equatable {
             return "LYRVIS L\(register1!) \(value!.toString())"
             
         case .mod:
-            return "MOD R\(register1!) R\(register2!)"
+            return "MOD R\(register1!) \(value!.toString())"
             
         case .mul:
-            return "MUL R\(register1!) R\(register2!)"
+            return "MUL R\(register1!) \(value!.toString())"
             
         case .nop:
             return "NOP"
@@ -276,7 +279,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
             return "ST \(memory!) + \(memoryOffset!) R\(register1!)"
             
         case .sub:
-            return "SUB R\(register1!) R\(register2!)"
+            return "SUB R\(register1!) \(value!.toString())"
           
         case .spracc:
             return "SPRACC S\(register1!) \(value!.toString())"
@@ -334,10 +337,161 @@ public class Instruction: ObservableObject, Codable, Equatable {
         }
     }
     
+    func syntax() -> String {
+        switch type {
+        case .add:
+            return "ADD <Rd> (<Value>|<Rs>)"
+            
+        case .cmp:
+            return "CMP <Rd> (<Value>|<Rs>)"
+         
+        case .call:
+            return "CALL [<Module>.]<Tag>"
+       
+        case .calltm:
+            return "CALLTM [<Module>.]<Tag> (<Value>|<Rs>)"
+            
+        case .comnt:
+            return "# <Text>"
+            
+        case .dec:
+            return "DEC <Rd>"
+            
+        case .div:
+            return "DIV <Rd> (<Value>|<Rs>)"
+            
+        case .inc:
+            return "INC <Rd>"
+        
+        case .j:
+            return "J [<Module>.]<Tag>"
+            
+        case .je:
+            return "JE [<Module>.]<Tag>"
+
+        case .jne:
+            return "JNE [<Module>.]<Tag>"
+            
+        case .jl:
+            return "JL [<Module>.]<Tag>"
+            
+        case .jg:
+            return "JG [<Module>.]<Tag>"
+            
+        case .jc:
+            return "JC [<Module>.]<Tag>"
+            
+        case .jo:
+            return "JO [<Module>.]<Tag>"
+            
+        case .ld:
+            return "LD <Rd> <Memory> + <(Offset|Rs)>"
+            
+        case .ldi:
+            return "LDI <Rd> (<Value>|<Rs>)"
+
+        case .ldresx:
+            return "LDRESX <Rd>"
+            
+        case .ldresy:
+            return "LDRESY <Rd>"
+            
+        case .lyrres:
+            return "LYRRES <Ld> <Width> <Height>"
+            
+        case .lyrvis:
+            return "LYRVIS <Ld> (<Value>|<Rs>)"
+            
+        case .mod:
+            return "MOD <Rd> (<Value>|<Rs>)"
+            
+        case .mul:
+            return "MUL <Rd> (<Value>|<Rs>)"
+            
+        case .nop:
+            return "NOP"
+            
+        case .push:
+            return "PUSH (<Value>|<Rs>)"
+            
+        case .rand:
+            return "RAND <Rd> (<Value>|<Rs>)"
+            
+        case .rect:
+            return "RECT"
+            
+        case .ret:
+            return "RET"
+            
+        case .sprset:
+            return "SPRSET <Sd> <ImageGroup>"
+        
+        case .st:
+            return "ST <Memory> + <(Offset|Rs)> (<Value>|<Rs>)"
+            
+        case .sub:
+            return "SUB <Rd> (<Value>|<Rs>)"
+          
+        case .spracc:
+            return "SPRACC <Sd> (<Value>|<Rs>)"
+      
+        case .spranm:
+            return "SPRANM <Sd> (<Value>|<Rs>) (<Value>|<Rs>)"
+            
+        case .sprcol:
+            return "SPRCOL <Sd> (<Value>|<Rs>)"
+            
+        case .sprfps:
+            return "SPRFPS <Sd> (<Value>|<Rs>)"
+            
+        case .sprfri:
+            return "SPRFRI <Sd> (<Value>|<Rs>)"
+            
+        case .sprgrp:
+            return "SPRGRP <Sd> (<Value>|<Rs>)"
+            
+        case .sprimg:
+            return "SPRIMG <Sd> (<Value>|<Rs>)"
+            
+        case .sprlyr:
+            return "SPRLYR <Sd> <Ls>"
+            
+        case .sprmxs:
+            return "SPRMXS <Sd> (<Value>|<Rs>)"
+          
+        case .sprpri:
+            return "SPRPRI <Sd> (<Value>|<Rs>)"
+            
+        case .sprrot:
+            return "SPRROT <Sd> (<Value>|<Rs>)"
+            
+        case .sprspd:
+            return "SPRSPD <Sd> (<Value>|<Rs>)"
+            
+        case .sprstp:
+            return "SPRSTP <Sd>"
+            
+        case .sprvis:
+            return "SPRVIS <Sd> (<Value>|<Rs>)"
+            
+        case .sprx:
+            return "SPRX <Sd> (<Value>|<Rs>)"
+            
+        case .spry:
+            return "SPRY <Sd> (<Value>|<Rs>)"
+            
+        case .sprwrp:
+            return "SPRWRP <Sd> (<Value>|<Rs>)"
+            
+        case .tag:
+            return "<Tag>:"
+        }
+    }
+    
     func description() -> String {
         switch type {
         case .add:
-            return "Add source to destination register."
+            return "Add value to destination register."
         case .cmp:
             return "Compare two registers."
         case .call:
@@ -375,7 +529,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
         case .ldresy:
             return "Load resolution y value into register."
         case .lyrres:
-            return "Set the layer resolution (Width Height)."
+            return "Set the layer resolution."
         case .lyrvis:
             return "Set the layer visibility."
         case .mod:

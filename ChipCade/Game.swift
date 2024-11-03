@@ -51,6 +51,7 @@ public class Game : ObservableObject
     var error = ChipCadeError.none
     var errorCodeItemIndex = 0
     var errorInstructionIndex = 0
+    var errorInstructionType: InstructionType? = nil
 
     /// Time between updates
     let deltaTimeInMs: Int = Int((1.0 / 60.0) * 1000.0)

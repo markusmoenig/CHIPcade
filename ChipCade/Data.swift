@@ -759,6 +759,12 @@ extension ChipCadeData {
                 return .float16Bit(float16)
             }
         }
+        
+        if unsignedDefault {
+            if let value = UInt16(text) {
+                return .unsigned16Bit(value)
+            }
+        }
      
         return nil
     }
