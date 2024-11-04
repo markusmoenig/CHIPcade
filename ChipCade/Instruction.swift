@@ -259,7 +259,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
             return "MUL R\(register1!) \(value!.toString())"
             
         case .nop:
-            return "NOP"
+            return "" //"NOP"
             
         case .push:
             return "PUSH \(value!.toString())"
