@@ -17,7 +17,7 @@ extension Instruction {
         let instruction = Instruction(type)
         
         switch type {
-        case .inc, .dec, .sprstp:
+        case .inc, .dec, .sprstp, .sprhlt:
             // XXXXXX Rd
             if components.count == 2,
                let reg1 = parseRegister(components[1]) {
@@ -140,7 +140,7 @@ extension Instruction {
                 return nil
             }
             
-        case .spracc, .sprrot, .sprspd, .sprx, .spry, .sprimg, .sprmxs, .sprpri, .sprvis, .sprwrp:
+        case .spracc, .sprrot, .sprspd, .sprx, .spry, .sprimg, .sprmxs, .sprpri, .sprvis, .sprwrp, .spralp, .sprscl:
             // XXXXXX Sd Rs
             if components.count == 3,
                let reg1 = parseRegister(components[1]),

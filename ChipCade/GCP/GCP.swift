@@ -28,6 +28,9 @@ public enum GCPCmd  {
     case spranm(spriteIndex: Int, from: Int, to: Int)
     case sprfps(spriteIndex: Int, value: Int)
     case sprstp(spriteIndex: Int)
+    case spralp(spriteIndex: Int, value: Float)
+    case sprhlt(spriteIndex: Int)
+    case sprscl(spriteIndex: Int, value: Float)
 }
 
 public class GCP {
@@ -238,6 +241,15 @@ public class GCP {
             case .sprstp(let spriteIndex) :
                 sprites[spriteIndex].animationStop = true
                 sprites[spriteIndex].currentImageIndex = 0
+                
+            case .sprhlt(let spriteIndex) :
+                sprites[spriteIndex].velocity = .zero
+                
+            case .spralp(let spriteIndex, let value) :
+                sprites[spriteIndex].alpha = CGFloat(value)
+                
+            case .sprscl(let spriteIndex, let value) :
+                sprites[spriteIndex].scale = CGFloat(value)
             }
         }
         
@@ -275,8 +287,8 @@ public class GCP {
                         let spriteX = Float(sprite.position.x) / scaleX
                         let spriteY = Float(sprite.position.y) / scaleY
                         
-                        let spriteWidth = Float(imageGroup.images[index].width) / scaleX
-                        let spriteHeight = Float(imageGroup.images[index].height) / scaleY
+                        let spriteWidth = Float(imageGroup.images[index].width) / scaleX * Float(sprite.scale)
+                        let spriteHeight = Float(imageGroup.images[index].height) / scaleY * Float(sprite.scale)
                         
                         // Calculate aspect ratio correction factors
                         let aspectX = scaleX
@@ -299,7 +311,7 @@ public class GCP {
                         }
                         
                         draw2D.startShape(type: .triangle)
-                        draw2D.drawRect(spriteX, spriteY, spriteWidth, spriteHeight, float4(0, 0, 0, 1), Float(sprite.rotation), aspectX, aspectY)
+                        draw2D.drawRect(spriteX, spriteY, spriteWidth, spriteHeight, float4(0, 0, 0, Float(sprite.alpha)), Float(sprite.rotation), aspectX, aspectY)
                         draw2D.endShape(externalTexture: imageGroup.images[index])
                         
                         if sprite.isWrapped {
@@ -421,7 +433,7 @@ public class GCP {
                     }
                 }
                 draw2D.startShape(type: .triangle)
-                draw2D.drawRect(Float(sprite.position.x), Float(sprite.position.y), Float(imageGroup.images[index].width), Float(imageGroup.images[index].height), float4(0, 0, 0, 1), Float(-sprite.rotation))
+                draw2D.drawRect(Float(sprite.position.x), Float(sprite.position.y), Float(imageGroup.images[index].width) * Float(sprite.scale), Float(imageGroup.images[index].height) * Float(sprite.scale), float4(0, 0, 0, Float(sprite.alpha)), Float(-sprite.rotation))
                 draw2D.endShape(externalTexture: imageGroup.images[index])
             }
         }

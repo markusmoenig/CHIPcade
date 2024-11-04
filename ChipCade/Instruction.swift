@@ -37,8 +37,10 @@ public enum InstructionType: String, Codable, CaseIterable {
     case rect
     case ret
     case spracc
+    case spralp
     case spranm
     case sprcol
+    case sprhlt
     case sprfps
     case sprfri
     case sprgrp
@@ -47,6 +49,7 @@ public enum InstructionType: String, Codable, CaseIterable {
     case sprmxs
     case sprpri
     case sprrot
+    case sprscl
     case sprset
     case sprspd
     case sprvis
@@ -106,7 +109,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
             register1 = 0
             register2 = 0
             value = .unsigned16Bit(0)
-        case .inc, .dec, .sprstp:
+        case .inc, .dec, .sprstp, .sprhlt:
             register1 = 0
         case .comnt:
             memory = ""
@@ -119,7 +122,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
             register1 = 0
             memory = "Data"
             memoryOffset = 0
-        case .ldi, .sprcol, .sprgrp, .sprfri, .spracc, .sprrot, .sprspd, .sprvis, .sprx, .spry, .sprwrp, .sprimg, .sprmxs, .sprpri:
+        case .ldi, .sprcol, .sprgrp, .sprfri, .spracc, .sprrot, .sprspd, .sprvis, .sprx, .spry, .sprwrp, .sprimg, .sprmxs, .sprpri, .spralp, .sprscl:
             register1 = 0
             value = .unsigned16Bit(0)
         case .rand:
@@ -273,9 +276,6 @@ public class Instruction: ObservableObject, Codable, Equatable {
             
         case .ret:
             return "RET"
-            
-        case .sprset:
-            return "SPRSET S\(register1!) \"\(memory!)\""
         
         case .st:
             return "ST \(memory!) + \(memoryOffset!) \(value!.toString())"
@@ -286,6 +286,9 @@ public class Instruction: ObservableObject, Codable, Equatable {
         case .spracc:
             return "SPRACC S\(register1!) \(value!.toString())"
       
+        case .spralp:
+            return "SPRALP S\(register1!) \(value!.toString())"
+            
         case .spranm:
             return "SPRANM S\(register1!) \(register2!) \(register3!)"
             
@@ -297,6 +300,9 @@ public class Instruction: ObservableObject, Codable, Equatable {
             
         case .sprfri:
             return "SPRFRI S\(register1!) \(value!.toString())"
+           
+        case .sprhlt:
+            return "SPRHLT S\(register1!)"
             
         case .sprgrp:
             return "SPRGRP S\(register1!) \(value!.toString())"
@@ -315,6 +321,12 @@ public class Instruction: ObservableObject, Codable, Equatable {
             
         case .sprrot:
             return "SPRROT S\(register1!) \(value!.toString())"
+            
+        case .sprset:
+            return "SPRSET S\(register1!) \"\(memory!)\""
+            
+        case .sprscl:
+            return "SPRSCL S\(register1!) \(value!.toString())"
             
         case .sprspd:
             return "SPRSPD S\(register1!) \(value!.toString())"
@@ -387,7 +399,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
             return "JO [Module.]Tag"
             
         case .ld:
-            return "LD Rd Memory + <(Offset|Rs)>"
+            return "LD Rd Memory + (Value|Rs)"
             
         case .ldi:
             return "LDI Rd (Value|Rs)"
@@ -424,12 +436,9 @@ public class Instruction: ObservableObject, Codable, Equatable {
             
         case .ret:
             return "RET"
-            
-        case .sprset:
-            return "SPRSET Sd ImageGroup"
         
         case .st:
-            return "ST Memory + <(Offset|Rs)> (Value|Rs)"
+            return "ST Memory + (Value|Rs) (Value|Rs)"
             
         case .sub:
             return "SUB Rd (Value|Rs)"
@@ -437,6 +446,9 @@ public class Instruction: ObservableObject, Codable, Equatable {
         case .spracc:
             return "SPRACC Sd (Value|Rs)"
       
+        case .spralp:
+            return "SPRALP Sd (Value|Rs)"
+            
         case .spranm:
             return "SPRANM Sd (Value|Rs) (Value|Rs)"
             
@@ -448,6 +460,9 @@ public class Instruction: ObservableObject, Codable, Equatable {
             
         case .sprfri:
             return "SPRFRI Sd (Value|Rs)"
+            
+        case .sprhlt:
+            return "SPRHLT Sd"
             
         case .sprgrp:
             return "SPRGRP Sd (Value|Rs)"
@@ -466,6 +481,12 @@ public class Instruction: ObservableObject, Codable, Equatable {
             
         case .sprrot:
             return "SPRROT Sd (Value|Rs)"
+            
+        case .sprset:
+            return "SPRSET Sd ImageGroup"
+            
+        case .sprscl:
+            return "SPRSCL Sd (Value|Rs)"
             
         case .sprspd:
             return "SPRSPD Sd (Value|Rs)"
@@ -495,7 +516,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
         case .add:
             return "Add value to destination register."
         case .cmp:
-            return "Compare two registers."
+            return "Compare two values."
         case .call:
             return "Call a subroutine."
         case .calltm:
@@ -548,14 +569,14 @@ public class Instruction: ObservableObject, Codable, Equatable {
             return "Create a random value between 0 and max value."
         case .rect:
             return "Draw rectangle: R0=X, R1=Y, R2=Width, R3=Height, R4=Palette."
-        case .sprset:
-            return "Set image group for sprite."
         case .st:
             return "Store register to memory."
         case .sub:
             return "Subtract source from destination register."
         case .spracc:
             return "Applies an acceleration impulse."
+        case .spralp:
+            return "Set the alpha value for the sprite."
         case .spranm:
             return "Set the animation range for the sprite."
         case .sprcol:
@@ -564,6 +585,8 @@ public class Instruction: ObservableObject, Codable, Equatable {
             return "Set the frames per second for the sprite's animation."
         case .sprfri:
             return "Set sprite friction."
+        case .sprhlt:
+            return "Set sprite velocity to zero. Halt!"
         case .sprgrp:
             return "Assigns the sprite to the given collision group."
         case .sprimg:
@@ -576,6 +599,10 @@ public class Instruction: ObservableObject, Codable, Equatable {
             return "Set sprite priority."
         case .sprrot:
             return "Set sprite rotation."
+        case .sprset:
+            return "Set image group for sprite."
+        case .sprscl:
+            return "Set sprite alpha value."
         case .sprspd:
             return "Set sprite speed."
         case .sprstp:
@@ -625,7 +652,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
         switch type {
         case .tag: return .blue
         case .comnt: return .secondary
-        case .rect, .sprset,.sprvis, .sprx, .spry, .lyrres, .lyrvis, .sprrot, .sprwrp, .sprimg, .spracc, .sprmxs, .sprfri, .sprpri, .sprlyr, .sprcol, .sprgrp, .spranm, .sprfps, .sprstp:
+        case .rect, .sprset,.sprvis, .sprx, .spry, .lyrres, .lyrvis, .sprrot, .sprwrp, .sprimg, .spracc, .sprmxs, .sprfri, .sprpri, .sprlyr, .sprcol, .sprgrp, .spranm, .sprfps, .sprstp, .sprhlt, .spralp, .sprscl:
             return .yellow
         default:
             return .primary

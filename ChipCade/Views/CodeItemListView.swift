@@ -232,7 +232,7 @@ struct CodeItemListView: View {
                                     )
                                 )
                             }
-                        case .sprgrp, .sprcol, .sprfps, .sprfri, .sprrot, .sprx, .spry, .sprspd, .spracc, .sprimg, .sprmxs, .sprpri, .sprvis, .sprwrp:
+                        case .sprgrp, .sprcol, .sprfps, .sprfri, .sprrot, .sprx, .spry, .sprspd, .spracc, .sprimg, .sprmxs, .sprpri, .sprvis, .sprwrp, .spralp, .sprscl:
                             HStack {
                                 SpriteIndexTextField(
                                     spriteIndex: Binding(
@@ -384,7 +384,7 @@ struct CodeItemListView: View {
                                     }
                                 )
                             )
-                        case .sprstp:
+                        case .sprstp, .sprhlt:
                             SpriteIndexTextField(
                                 spriteIndex: Binding(
                                     get: { Int(instruction.register1!) },

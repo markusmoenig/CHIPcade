@@ -27,17 +27,17 @@ Values can also reference a register, for example to set the friction of sprite 
 - **# Text**. Set a comment.
 - **NOP**. No operation. Does nothing.
 
-- **LD Rd Memory + Offset**. Load memory to the destination register.
-- **LDI Rd Value**. Load an immediate value to the destination register.
+- **LD Rd Memory + (Value|Rs)**. Load memory to the destination register.
+- **LDI Rd (Value|Rs)**. Load an immediate value to the destination register.
 - **LDRESX Rd**. Load the x value of the screen resolution to the destination register.
 - **LDRESY Rd**. Load the y value of the screen resolution to the destination register.
-- **ST Memory + Offset Rs**. Store the source register at the destination memory address.
+- **ST Memory + (Value|Rs) (Value|Rs)**. Store the value at the destination memory address.
 
-- **ADD Rd Rs**. Add the source to the destination register.
-- **SUB Rd Rs**. Subtract the source from the destination register.
-- **MUL Rd Rs**. Multiply the source with the destination register.
-- **DIV Rd Rs**. Divide the destination by the source register.
-- **MOD Rd Rs**. Modulus of the destination by the source register.
+- **ADD Rd (Value|Rs)**. Add the source value to the destination register.
+- **SUB Rd (Value|Rs)**. Subtract the source value from the destination register.
+- **MUL Rd (Value|Rs)**. Multiply the source value with the destination register.
+- **DIV Rd (Value|Rs)**. Divide the destination by the source value.
+- **MOD Rd (Value|Rs)**. Modulus of the destination by the source value.
 
 - **INC Rd**. Increase the destination register by 1.
 - **DEC Rd**. Decrease the destination register by 1.
@@ -45,16 +45,16 @@ Values can also reference a register, for example to set the friction of sprite 
 - **CALL CodeTag**. Saves the current code address on the stack and invokes the subroutine.
 - **RET**. Returns from a subroutine invoked by CALL. Pops the code address from the stack and continues execution after the original CALL statement. If there is no address on the stack, stops execution.
 
-- **CMP Rd Rs**. Compare two registers.
-- **J CodeTag**. Unconditional jump.
-- **JE CodeTag**. Jump if the zero flag is set (equality check).
-- **JNE CodeTag**. Jump if the zero flag is not set (inequality check).
-- **JL CodeTag**. Jump if the negative flag is set (less than).
-- **JG CodeTag**. Jump if the zero flag is clear and the negative flag is clear (greater than).
-- **JC CodeTag**. Jump if the carry flag is set (used for unsigned comparisons).
-- **JO CodeTag**. Jump if the overflow flag is set (used for signed overflows).
+- **CMP Rd (Value|Rs)**. Compare two the content of the destination register with the source value.
+- **J [Module.]Tag**. Unconditional jump.
+- **JE [Module.]Tag**. Jump if the zero flag is set (equality check).
+- **JNE [Module.]Tag**. Jump if the zero flag is not set (inequality check).
+- **JL [Module.]Tag**. Jump if the negative flag is set (less than).
+- **JG [Module.]Tag**. Jump if the zero flag is clear and the negative flag is clear (greater than).
+- **JC [Module.]Tag**. Jump if the carry flag is set (used for unsigned comparisons).
+- **JO [Module.]Tag**. Jump if the overflow flag is set (used for signed overflows).
 
-- **RAND Rd Value**. Generates a random number of type Value in the range of 0...Value and stores it in the destination register.
+- **RAND Rd (Value|Rs)**. Generates a random number of type Value in the range of 0...Value and stores it in the destination register.
 
 ## CPU Flags
 
@@ -72,7 +72,7 @@ Values can also reference a register, for example to set the friction of sprite 
 Layers are drawn starting from index 0 up to 7. By default layers are in the resolution of the screen and invisible.
 
 - **LYRRES L Width Height**. Set a custom layer resolution in the form of "320 200". By default layers are in the resolution of the screen.
-- **LYRVIS Ld Value**. Set layer visibility. A value of 0 means invisible, visible otherwise. Default is invisible.
+- **LYRVIS Ld (Value|Rs)**. Set layer visibility. A value of 0 means invisible, visible otherwise. Default is invisible.
 
 ## Sprites
 
@@ -81,22 +81,25 @@ Layers are drawn starting from index 0 up to 7. By default layers are in the res
 - **SPRLYR Sd Ls**. Assign a layer to the sprite. By default a sprite is not bound to a layer and will be drawn on top of all layers.
 
 - **SPRSET Sd ImageGroup**. Assign an image group to the sprite.
-- **SPRIMG Sd Value**. Set the index of the image in the current image group. Stops any animation. Default is 0.
+- **SPRIMG Sd (Value|Rs)**. Set the index of the image in the current image group. Stops any animation. Default is 0.
 - **SPRANM Sd From To**. Set the animation range for the sprite and start animation. If the current image index is not inside the range set it to the animation start frame.
-- **SPRFPS Sd Value**. Set the fps for the sprite's animation. Default is 10.
+- **SPRFPS Sd (Value|Rs)**. Set the fps for the sprite's animation. Default is 10.
 
-- **SPRVIS Sd Value**. Set sprite visibility to the given value. A value of 0 means invisible, visible otherwise. Default is invisible.
-- **SPRWRP Sd Value**. Set the wrapping mode for the sprite (0 for off, on otherwise). Wrapped sprites wrap around the layer or screen (i.e. when they go offscreen re-appear on the other side).
+- **SPRVIS Sd (Value|Rs)**. Set sprite visibility to the given value. A value of 0 means invisible, visible otherwise. Default is invisible.
+- **SPRWRP Sd (Value|Rs)**. Set the wrapping mode for the sprite (0 for off, on otherwise). Wrapped sprites wrap around the layer or screen (i.e. when they go offscreen re-appear on the other side).
 
-- **SPRX Sd Value**. Set the x position of the sprite.
-- **SPRY Sd Value**. Set the y position of the sprite.
-- **SPRROT Sd Value**. Set the rotation of the sprite.
-- **SPRPRI Sd Value**. Set the priority of the sprite. Sprite with a lower priority are drawn last. Default is 0.
+- **SPRX Sd (Value|Rs)**. Set the x position of the sprite.
+- **SPRY Sd (Value|Rs)**. Set the y position of the sprite.
+- **SPRROT Sd (Value|Rs)**. Set the rotation of the sprite.
+- **SPRPRI Sd (Value|Rs)**. Set the priority of the sprite. Sprite with a higher priority are drawn on top of sprites with a lower priority. Default is 0.
+- **SPRALP Sd (Value|Rs)**. Set the alpha value of the sprite. Default is 1.0 (fully opaque).
+- **SPRSCL Sd (Value|Rs)**. Set the scale of the sprite. Default is 1.0.
 
-- **SPRACC Sd Value**. Apply an acceleration impulse to the sprite.
-- **SPRSPD Sd Value**. Set a constant speed to the sprite.
-- **SPRMXS Sd Value**. Set the maximum speed for the sprite (for acceleration / impulse driven games).
-- **SPRFRI Sd Value**. Set the friction of the sprite (default is 1.0). A friction lower than 1.0 will reduce speed.
+- **SPRACC Sd (Value|Rs)**. Apply an acceleration impulse to the sprite.
+- **SPRSPD Sd (Value|Rs)**. Set a constant speed to the sprite.
+- **SPRMXS Sd (Value|Rs)**. Set the maximum speed for the sprite (for acceleration / impulse driven games).
+- **SPRFRI Sd (Value|Rs)**. Set the friction of the sprite (default is 1.0). A friction lower than 1.0 will reduce speed.
+- **SPRHLT Sd**. Set the velocity of the sprite to zero. Halt!
 
-- **SPRGRP Sd Value**. Set the collision group of the sprite to the given value. The value can be any numerical value.
-- **SPRCOL Sd Value**. Checks if the sprite collides with any sprite in the collision group. If no, sets the ZF to 1, if yes sets the ZF to 0.
+- **SPRGRP Sd (Value|Rs)**. Set the collision group of the sprite to the given value. The value can be any numerical value.
+- **SPRCOL Sd (Value|Rs)**. Checks if the sprite collides with any sprite in the collision group. If no, sets the ZF to 1, if yes sets the ZF to 0.

@@ -157,7 +157,19 @@ struct ContentView: View {
                     Spacer()
                     
                     if editorIsOnLeftSide == true {
-                        WebView(colorScheme)
+                        if let codeItem = selectedCodeItem {
+                            if editorIsOnLeftSide {
+                                if editingMode == EditingMode.list.rawValue {
+                                    CodeItemListView(
+                                        codeItem: codeItem,
+                                        selectedInstruction: $selectedInstruction,
+                                        selectedInstructionIndex: $selectedInstructionIndex
+                                    )
+                                } else {
+                                    WebView(colorScheme)
+                                }
+                            }
+                        }
                     } else {
                         MetalView(document.game, .Game)
                     }

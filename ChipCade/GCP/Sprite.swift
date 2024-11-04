@@ -19,7 +19,8 @@ class Sprite {
     var size: CGSize = CGSize(width: 32, height: 32)
     var rotation: CGFloat = 0.0
     var scale: CGFloat = 1.0
-    
+    var alpha: CGFloat = 1.0
+
     var isVisible: Bool = false
     var isWrapped: Bool = false
     

@@ -405,6 +405,22 @@ public class CPU {
                 game.setError(.invalidSpriteIndex)
             }
             
+        case .spralp:
+            let spriteIndex = Int(instruction.register1!)
+            if spriteIndex >= 0 && spriteIndex <= 255 {
+                gcp.addCmd(.spralp(spriteIndex: Int(instruction.register1!), value: instruction.value!.resolve(game).toFloat32Bit()))
+            } else {
+                game.setError(.invalidSpriteIndex)
+            }
+            
+        case .sprscl:
+            let spriteIndex = Int(instruction.register1!)
+            if spriteIndex >= 0 && spriteIndex <= 255 {
+                gcp.addCmd(.sprscl(spriteIndex: Int(instruction.register1!), value: instruction.value!.resolve(game).toFloat32Bit()))
+            } else {
+                game.setError(.invalidSpriteIndex)
+            }
+            
         case .sub   :  if game.registers[Int(instruction.register1!)].sub(other: instruction.value!.resolve(game), flags: game.flags) {
             game.setError(.invalidArithmetic)
         }
@@ -416,6 +432,15 @@ public class CPU {
             } else {
                 game.setError(.invalidSpriteIndex)
             }
+            
+        case .sprhlt:
+            let spriteIndex = Int(instruction.register1!)
+            if spriteIndex >= 0 && spriteIndex <= 255 {
+                gcp.addCmd(.sprhlt(spriteIndex: Int(instruction.register1!)))
+            } else {
+                game.setError(.invalidSpriteIndex)
+            }
+            
             
         default: break
         }

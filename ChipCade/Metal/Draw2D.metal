@@ -57,6 +57,7 @@ fragment float4 poly2DFragment(VertexOut in [[stage_in]],
         float2 uv = in.textureCoordinate;
         uv.y = 1 - uv.y;
         color = float4(inTexture.sample(textureSampler, uv));
+        color.w *= in.color.w;
     }
     
     return color;
