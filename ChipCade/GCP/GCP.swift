@@ -236,7 +236,8 @@ public class GCP {
                 sprites[spriteIndex].animationSpeed = Float(value)
                 
             case .sprstp(let spriteIndex) :
-                sprites[spriteIndex].animtionStop = true
+                sprites[spriteIndex].animationStop = true
+                sprites[spriteIndex].currentImageIndex = 0
             }
         }
         
@@ -265,6 +266,11 @@ public class GCP {
                     if let imageGroup = sprite.imageGroup, sprite.isVisible, sprite.layer == layerIndex{
                         let index = sprite.currentImageIndex
                         
+                        // Sanity check for image index
+                        if index >= imageGroup.images.count {
+                            continue
+                        }
+                        
                         // Calculate the sprite's scaled position
                         let spriteX = Float(sprite.position.x) / scaleX
                         let spriteY = Float(sprite.position.y) / scaleY
@@ -284,9 +290,9 @@ public class GCP {
                                 sprite.currentImageIndex += 1
                                 if sprite.currentImageIndex > sprite.animationRange.last! {
                                     sprite.currentImageIndex = sprite.animationRange.first!
-                                    if sprite.animtionStop {
+                                    if sprite.animationStop {
                                         sprite.isVisible = false
-                                        sprite.animtionStop = false
+                                        sprite.animationStop = false
                                     }
                                 }
                             }

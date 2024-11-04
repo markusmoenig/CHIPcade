@@ -404,13 +404,13 @@ struct CodeItemListView: View {
                                     index: index
                                 )
                                 
-                                Int8RegisterMenu(
-                                    selectedRegister: Binding(
-                                        get: { instruction.register1! },
-                                        set: { newRegister in
+                                ChipCadeDataTextField(
+                                    chipCadeData: Binding(
+                                        get: { instruction.value! },
+                                        set: { newValue in
                                             let newInstruction = instruction.clone()
-                                            newInstruction.register1 = newRegister
-                                            codeItem.aboutToChange(using: undoManager, newInstruction: newInstruction, at: index, text: "Register Changed")
+                                            newInstruction.value = newValue
+                                            codeItem.aboutToChange(using: undoManager, newInstruction: newInstruction, at: index, text: "Value Changed")
                                         }
                                     )
                                 )

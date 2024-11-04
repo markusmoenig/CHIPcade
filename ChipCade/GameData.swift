@@ -80,7 +80,15 @@ class GameData: ObservableObject, Codable {
                 }
             }
         } else if components.count == 1 {
-            // Case: "Marker" in the same module
+            
+            // Check if the single component is the name of a module
+            for (index, codeItem) in codeItems.enumerated() {
+                if codeItem.name == String(components[0]) {
+                    return (index, 0)
+                }
+            }
+            
+            // Check if it is a tag in the same module
             let markerName = String(components[0])
             
             // Get the current CodeItem by index

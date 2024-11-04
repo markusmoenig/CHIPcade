@@ -14,10 +14,10 @@ For more detailed information and tutorials please visit [CHIPcade.com](https://
 
 16bit Values in CHIPcade can be one of:
 
-- **Unsigned**, followed by an *u*, like **10u**.
-- **Signed**, followed by an *s*, like **-2s**.
-- **Float**, followed by an *f*, like **0.02f**.
-- **Unicode**, enclosed in "" or ``, like "A".
+- **Unsigned**: Positive integer, ends with *u* (**10u**).
+- **Signed**: Integer, positive or negative, ends with *s* (**-2s**).
+- **Float**:, Decimal, ends with *f* (**0.02f**).
+- **Unicode**: Single character, in " " or `, e.g., "A".
 
 Values can also reference a register, for example to set the friction of sprite #0 you could write **SPRFRI S0 0.5f** or **SPRFRI S0 R2** to set the friction to the content of register 2.
 

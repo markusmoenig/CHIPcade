@@ -49,7 +49,7 @@ class Sprite {
     var timeSinceLastFrame: Float = 0.0
     
     // Makes the sprite invisible after current animation finishes.
-    var animtionStop: Bool = false
+    var animationStop: Bool = false
 
     // Initialization
     init(index: Int) {

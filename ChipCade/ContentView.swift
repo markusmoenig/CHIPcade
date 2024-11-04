@@ -400,9 +400,11 @@ struct ContentView: View {
         
         // The cursor has changed in the codeEditor
         .onReceive(document.game.codeLineChanged) { line in
-            document.game.currInstructionIndex = line
-            selectedInstruction = document.game.data.codeItems[document.game.currCodeItemIndex].codes[document.game.currInstructionIndex]
-            selectedInstructionIndex = document.game.currInstructionIndex
+            if line < document.game.data.codeItems[document.game.currCodeItemIndex].codes.count {
+                document.game.currInstructionIndex = line
+                selectedInstruction = document.game.data.codeItems[document.game.currCodeItemIndex].codes[document.game.currInstructionIndex]
+                selectedInstructionIndex = document.game.currInstructionIndex
+            }
         }
         
         // Error state has changed

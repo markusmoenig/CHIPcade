@@ -143,6 +143,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
             register1 = 0
             memory = "Data"
             memoryOffset = 0
+            value = .unsigned16Bit(0)
         case .spranm:
             register1 = 0
             register2 = 0
@@ -179,8 +180,8 @@ public class Instruction: ObservableObject, Codable, Equatable {
         memoryOffset = try container.decodeIfPresent(Int.self, forKey: .memoryOffset)
         
 //        switch type{
-//        case .cmp, .add, .sub, .mul, .div, .mod:
-////            value = .unsigned16Bit(0)
+//        case .st:
+//            value = .register(UInt16(register1!))
 //            register2 = nil
 //        default: break
 //        }
@@ -198,7 +199,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
             return "CALL \(memory!)"
        
         case .calltm:
-            return "CALLTM \(memory!) R\(register1!)"
+            return "CALLTM \(memory!) \(value!.toString())"
             
         case .comnt:
             return "# \(memory!)"
@@ -276,7 +277,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
             return "SPRSET S\(register1!) \"\(memory!)\""
         
         case .st:
-            return "ST \(memory!) + \(memoryOffset!) R\(register1!)"
+            return "ST \(memory!) + \(memoryOffset!) \(value!.toString())"
             
         case .sub:
             return "SUB R\(register1!) \(value!.toString())"
@@ -340,82 +341,82 @@ public class Instruction: ObservableObject, Codable, Equatable {
     func syntax() -> String {
         switch type {
         case .add:
-            return "ADD <Rd> (<Value>|<Rs>)"
+            return "ADD Rd (Value|Rs)"
             
         case .cmp:
-            return "CMP <Rd> (<Value>|<Rs>)"
+            return "CMP Rd (Value|Rs)"
          
         case .call:
-            return "CALL [<Module>.]<Tag>"
+            return "CALL [Module.]Tag"
        
         case .calltm:
-            return "CALLTM [<Module>.]<Tag> (<Value>|<Rs>)"
+            return "CALLTM [Module.]Tag (Value|Rs)"
             
         case .comnt:
-            return "# <Text>"
+            return "# Text"
             
         case .dec:
-            return "DEC <Rd>"
+            return "DEC Rd"
             
         case .div:
-            return "DIV <Rd> (<Value>|<Rs>)"
+            return "DIV Rd (Value|Rs)"
             
         case .inc:
-            return "INC <Rd>"
+            return "INC Rd"
         
         case .j:
-            return "J [<Module>.]<Tag>"
+            return "J [Module.]Tag"
             
         case .je:
-            return "JE [<Module>.]<Tag>"
+            return "JE [Module.]Tag"
 
         case .jne:
-            return "JNE [<Module>.]<Tag>"
+            return "JNE [Module.]Tag"
             
         case .jl:
-            return "JL [<Module>.]<Tag>"
+            return "JL [Module.]Tag"
             
         case .jg:
-            return "JG [<Module>.]<Tag>"
+            return "JG [Module.]Tag"
             
         case .jc:
-            return "JC [<Module>.]<Tag>"
+            return "JC [Module.]Tag"
             
         case .jo:
-            return "JO [<Module>.]<Tag>"
+            return "JO [Module.]Tag"
             
         case .ld:
-            return "LD <Rd> <Memory> + <(Offset|Rs)>"
+            return "LD Rd Memory + <(Offset|Rs)>"
             
         case .ldi:
-            return "LDI <Rd> (<Value>|<Rs>)"
+            return "LDI Rd (Value|Rs)"
 
         case .ldresx:
-            return "LDRESX <Rd>"
+            return "LDRESX Rd"
             
         case .ldresy:
-            return "LDRESY <Rd>"
+            return "LDRESY Rd"
             
         case .lyrres:
             return "LYRRES <Ld> <Width> <Height>"
             
         case .lyrvis:
-            return "LYRVIS <Ld> (<Value>|<Rs>)"
+            return "LYRVIS <Ld> (Value|Rs)"
             
         case .mod:
-            return "MOD <Rd> (<Value>|<Rs>)"
+            return "MOD Rd (Value|Rs)"
             
         case .mul:
-            return "MUL <Rd> (<Value>|<Rs>)"
+            return "MUL Rd (Value|Rs)"
             
         case .nop:
             return "NOP"
             
         case .push:
-            return "PUSH (<Value>|<Rs>)"
+            return "PUSH (Value|Rs)"
             
         case .rand:
-            return "RAND <Rd> (<Value>|<Rs>)"
+            return "RAND Rd (Value|Rs)"
             
         case .rect:
             return "RECT"
@@ -424,67 +425,67 @@ public class Instruction: ObservableObject, Codable, Equatable {
             return "RET"
             
         case .sprset:
-            return "SPRSET <Sd> <ImageGroup>"
+            return "SPRSET Sd ImageGroup"
         
         case .st:
-            return "ST <Memory> + <(Offset|Rs)> (<Value>|<Rs>)"
+            return "ST Memory + <(Offset|Rs)> (Value|Rs)"
             
         case .sub:
-            return "SUB <Rd> (<Value>|<Rs>)"
+            return "SUB Rd (Value|Rs)"
           
         case .spracc:
-            return "SPRACC <Sd> (<Value>|<Rs>)"
+            return "SPRACC Sd (Value|Rs)"
       
         case .spranm:
-            return "SPRANM <Sd> (<Value>|<Rs>) (<Value>|<Rs>)"
+            return "SPRANM Sd (Value|Rs) (Value|Rs)"
             
         case .sprcol:
-            return "SPRCOL <Sd> (<Value>|<Rs>)"
+            return "SPRCOL Sd (Value|Rs)"
             
         case .sprfps:
-            return "SPRFPS <Sd> (<Value>|<Rs>)"
+            return "SPRFPS Sd (Value|Rs)"
             
         case .sprfri:
-            return "SPRFRI <Sd> (<Value>|<Rs>)"
+            return "SPRFRI Sd (Value|Rs)"
             
         case .sprgrp:
-            return "SPRGRP <Sd> (<Value>|<Rs>)"
+            return "SPRGRP Sd (Value|Rs)"
             
         case .sprimg:
-            return "SPRIMG <Sd> (<Value>|<Rs>)"
+            return "SPRIMG Sd (Value|Rs)"
             
         case .sprlyr:
-            return "SPRLYR <Sd> <Ls>"
+            return "SPRLYR Sd Ls"
             
         case .sprmxs:
-            return "SPRMXS <Sd> (<Value>|<Rs>)"
+            return "SPRMXS Sd (Value|Rs)"
           
         case .sprpri:
-            return "SPRPRI <Sd> (<Value>|<Rs>)"
+            return "SPRPRI Sd (Value|Rs)"
             
         case .sprrot:
-            return "SPRROT <Sd> (<Value>|<Rs>)"
+            return "SPRROT Sd (Value|Rs)"
             
         case .sprspd:
-            return "SPRSPD <Sd> (<Value>|<Rs>)"
+            return "SPRSPD Sd (Value|Rs)"
             
         case .sprstp:
-            return "SPRSTP <Sd>"
+            return "SPRSTP Sd"
             
         case .sprvis:
-            return "SPRVIS <Sd> (<Value>|<Rs>)"
+            return "SPRVIS Sd (Value|Rs)"
             
         case .sprx:
-            return "SPRX <Sd> (<Value>|<Rs>)"
+            return "SPRX Sd (Value|Rs)"
             
         case .spry:
-            return "SPRY <Sd> (<Value>|<Rs>)"
+            return "SPRY Sd (Value|Rs)"
             
         case .sprwrp:
-            return "SPRWRP <Sd> (<Value>|<Rs>)"
+            return "SPRWRP Sd (Value|Rs)"
             
         case .tag:
-            return "<Tag>:"
+            return "Tag:"
         }
     }
     

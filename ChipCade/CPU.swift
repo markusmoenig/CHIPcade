@@ -5,6 +5,8 @@
 //  Created by Markus Moenig on 2/10/24.
 //
 
+import MetalKit
+
 /// Returned by executeInstruction()
 public enum ExecuteResult {
     case nextInstruction
@@ -256,8 +258,8 @@ public class CPU {
                 game.setError(.invalidImageGroup)
             }
             
-        case .st    :
-            if game.setMemoryValue(memoryItemName: instruction.memory!, offset: instruction.memoryOffset!, value: game.registers[Int(instruction.register1!)]) {
+        case .st:
+            if game.setMemoryValue(memoryItemName: instruction.memory!, offset: instruction.memoryOffset!, value: instruction.value!.resolve(game)) {
                 game.setError(.invalidMemoryAddress)
             }
             
@@ -321,7 +323,10 @@ public class CPU {
         case .sprx:
             let spriteIndex = Int(instruction.register1!)
             if spriteIndex >= 0 && spriteIndex <= 255 {
-                gcp.addCmd(.sprx(spriteIndex: Int(instruction.register1!), value: instruction.value!.resolve(game).toInt32Bit()))
+                //gcp.addCmd(.sprx(spriteIndex: Int(instruction.register1!), value: instruction.value!.resolve(game).toInt32Bit()))
+                
+                // We have to update it here to make sure collisions have up to date data
+                game.gcp.sprites[spriteIndex].position.x = CGFloat(instruction.value!.resolve(game).toFloat32Bit())
             } else {
                 game.setError(.invalidSpriteIndex)
             }
@@ -329,7 +334,9 @@ public class CPU {
         case .spry:
             let spriteIndex = Int(instruction.register1!)
             if spriteIndex >= 0 && spriteIndex <= 255 {
-                gcp.addCmd(.spry(spriteIndex: Int(instruction.register1!), value: instruction.value!.resolve(game).toInt32Bit()))
+                //gcp.addCmd(.spry(spriteIndex: Int(instruction.register1!), value: instruction.value!.resolve(game).toInt32Bit()))
+                
+                game.gcp.sprites[spriteIndex].position.y = CGFloat(instruction.value!.resolve(game).toFloat32Bit())
             } else {
                 game.setError(.invalidSpriteIndex)
             }

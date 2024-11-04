@@ -34,7 +34,7 @@ struct InstructionInfoView: View {
             if let instruction = selectedInstruction {
                 Spacer()
                 Text("\(instruction.syntax())")
-                    .font(.system(.title))
+                    .font(.system(.title2))
                     .padding(4)
                 Text("\(instruction.description())")
                     .font(.system(.headline))

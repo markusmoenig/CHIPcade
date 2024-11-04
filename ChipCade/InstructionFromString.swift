@@ -109,13 +109,13 @@ extension Instruction {
                     return nil // Invalid offset format
                 }
             }
-
+            
             // Parse the register (last component)
-            guard let reg1 = parseRegister(components.last!) else {
+                guard let value = ChipCadeData.fromString(text: components.last!, unsignedDefault: true) else {
                 return nil // Invalid register
             }
 
-            instruction.register1 = reg1
+            instruction.value = value
             instruction.memory = memory
             instruction.memoryOffset = offset
 
@@ -153,7 +153,6 @@ extension Instruction {
             
         case .lyrvis:
             // LYRVIS L0 0
-            //print("\(components) \(parseRegister(components[1])) \(parseData(components[2]))")
             if components.count == 3,
                let reg1 = parseRegister(components[1]),
                let value = ChipCadeData.fromString(text: components[2], unsignedDefault: true) {
@@ -165,7 +164,6 @@ extension Instruction {
 
         case .spranm:
             // XXXXXX Sd From To
-            print("\(components)")
             if components.count == 4,
                let reg1 = parseRegister(components[1]),
                let reg2 = ChipCadeData.fromString(text: components[2], unsignedDefault: true),
@@ -191,9 +189,9 @@ extension Instruction {
         case .calltm:
             // CALLTM Tag Value
             if components.count == 3,
-               let reg1 = parseRegister(components[2]) {
-                instruction.register1 = reg1
+               let value = ChipCadeData.fromString(text: components[2], unsignedDefault: true) {
                 instruction.memory = components[1]
+                instruction.value = value
             } else {
                 return nil
             }
