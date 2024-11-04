@@ -258,6 +258,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
         case .mul:
             return "MUL R\(register1!) \(value!.toString())"
             
+        // In code editor, NOPs are empty lines
         case .nop:
             return "" //"NOP"
             
