@@ -49,6 +49,7 @@ class MetalDraw2D
     var polyState       : MTLRenderPipelineState? = nil
     var textState       : MTLRenderPipelineState? = nil
     var copyState       : MTLRenderPipelineState? = nil
+    var boxState        : MTLRenderPipelineState? = nil
 
     var scaleFactor     : Float
     var viewSize        = float2(0,0)
@@ -148,6 +149,9 @@ class MetalDraw2D
             
             function = defaultLibrary.makeFunction( name: "m4mCopyTextureDrawable" )
             copyState = createNewPipelineState(function)
+            
+            function = defaultLibrary.makeFunction( name: "m4mBoxDrawable" )
+            boxState = createNewPipelineState(function)
         }
         
         // Create linear and nearest samplers
@@ -511,6 +515,45 @@ class MetalDraw2D
                 */
             }
         }
+    }
+    
+    /// Draws a box
+    func drawBox(position: float2, size: float2, rounding: Float = 0, borderSize: Float = 0, onion: Float = 0, rotation: Float = 0, fillColor: float4 = float4(1,1,1,1), borderColor: float4 = float4(0,0,0,0), texture: MTLTexture? = nil)
+    {
+        var data = BoxUniform()
+        data.borderSize = borderSize
+        data.size = size
+        data.fillColor = fillColor
+        data.borderColor = borderColor
+        data.onion = onion
+        data.rotation = rotation.degreesToRadians
+        data.hasTexture = texture != nil ? 1 : 0
+        data.round = rounding
+
+        let rect = MMRect(position.x - data.borderSize / 2, position.y - data.borderSize / 2, size.x + data.borderSize * 2, size.y + data.borderSize * 2, scale: 1)
+
+        let c = fillColor
+        
+        vertexData = [
+            xToMetal(rect.x + rect.width), yToMetal(rect.y + rect.height), 1.0, 0.0, c.x, c.y, c.z, c.w,
+            xToMetal(rect.x), yToMetal(rect.y + rect.height), 0.0, 0.0, c.x, c.y, c.z, c.w,
+            xToMetal(rect.x), yToMetal(rect.y), 0.0, 1.0, c.x, c.y, c.z, c.w,
+             
+            xToMetal(rect.x + rect.width), yToMetal(rect.y + rect.height), 1.0, 0.0, c.x, c.y, c.z, c.w,
+            xToMetal(rect.x), yToMetal(rect.y), 0.0, 1.0, c.x, c.y, c.z, c.w,
+            xToMetal(rect.x + rect.width), yToMetal(rect.y), 1.0, 1.0, c.x, c.y, c.z, c.w,
+        ]
+        vertexCount = 6
+        
+        renderEncoder.setVertexBytes(vertexData, length: vertexData.count * MemoryLayout<Float>.stride, index: 0)
+        renderEncoder.setVertexBytes(&viewportSize, length: MemoryLayout<vector_uint2>.stride, index: 1)
+        
+        renderEncoder.setFragmentBytes(&data, length: MemoryLayout<BoxUniform>.stride, index: 0)
+        if let texture = texture {
+            renderEncoder.setFragmentTexture(texture, index: 1)
+        }
+        renderEncoder.setRenderPipelineState(boxState!)
+        renderEncoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 6)
     }
     
     /// Draws the given text

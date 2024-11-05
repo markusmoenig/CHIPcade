@@ -27,6 +27,7 @@ struct ContentView: View {
 
     @State private var isPaletteSelected: Bool = false
     @State private var isNotesSelected: Bool = false
+    @State private var isSkinSelected: Bool = false
     @State private var isReferenceSelected: Bool = false
 
     @State private var notes: String = ""
@@ -85,6 +86,7 @@ struct ContentView: View {
                     isPaletteSelected = true
                     isNotesSelected = false
                     isReferenceSelected = false
+                    isSkinSelected = false
                 }) {
                     HStack {
                         Text("Palette")
@@ -107,6 +109,7 @@ struct ContentView: View {
                     isPaletteSelected = false
                     isNotesSelected = true
                     isReferenceSelected = false
+                    isSkinSelected = false
                 }) {
                     HStack {
                         Text("Notes")
@@ -122,6 +125,31 @@ struct ContentView: View {
                 }
                 .buttonStyle(PlainButtonStyle())
                 
+                Button(action: {
+                    selectedCodeItem = nil
+                    selectedImageGroupItem = nil
+                    selectedMemoryItem = nil
+                    isPaletteSelected = false
+                    isNotesSelected = false
+                    isReferenceSelected = false
+                    isSkinSelected = true
+                    Game.shared.skinMode = true
+                    Game.shared.scriptEditor?.setSessionValue("mainSession", Game.shared.data.skin, 0)
+                }) {
+                    HStack {
+                        Text("Skin")
+                            .foregroundColor(.primary)
+                            .padding(.leading, 10)
+                        Spacer()
+                    }
+                    .padding(.vertical, 6)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill((isSkinSelected) ? Color.accentColor.opacity(0.2) : Color.clear)
+                    )
+                }
+                .buttonStyle(PlainButtonStyle())
+                
                 #if !os(iOS)
                 Divider()
                 #endif
@@ -133,6 +161,7 @@ struct ContentView: View {
                     isPaletteSelected = false
                     isNotesSelected = false
                     isReferenceSelected = true
+                    isSkinSelected = false
                 }) {
                     HStack {
                         Text("Chip Reference")
@@ -169,6 +198,8 @@ struct ContentView: View {
                                     WebView(colorScheme)
                                 }
                             }
+                        } else if isSkinSelected {
+                            WebView(colorScheme)
                         }
                     } else {
                         MetalView(document.game, .Game)
@@ -228,6 +259,8 @@ struct ContentView: View {
                         } else {
                             MetalView(document.game, .Game)
                         }
+                    } else if isSkinSelected {
+                        WebView(colorScheme)
                     } else
                     if let imageGroupItem = selectedImageGroupItem {
                         ImageGroupItemListView(imageGroupItem: imageGroupItem, selectedImageIndex: $selectedImageIndex)
@@ -403,11 +436,17 @@ struct ContentView: View {
                 referenceText = "Reference document not found."
             }
             //document.game.play()
+            document.game.skin.compile(text: document.game.data.skin)
         }
         
         // When the code changes in the code editor, compile it
         .onReceive(document.game.codeTextChanged) { _ in
-            compile()
+            if !isSkinSelected {
+                compile()
+            } else {
+                Game.shared.skin.compile(text: Game.shared.data.skin)
+                Game.shared.cpuRender.update()
+            }
         }
         
         // The cursor has changed in the codeEditor
@@ -447,6 +486,7 @@ struct ContentView: View {
             selectedMemoryItem = nil
             isPaletteSelected = false
             isNotesSelected = false
+            isSkinSelected = false
             isReferenceSelected = true
         }
         
@@ -489,7 +529,9 @@ struct ContentView: View {
             if selectedCodeItem != nil {
                 isPaletteSelected = false
                 isNotesSelected = false
+                isSkinSelected = false
                 isReferenceSelected = false
+                Game.shared.skinMode = false
             }
         }
         
@@ -497,6 +539,7 @@ struct ContentView: View {
             if selectedMemoryItem != nil {
                 isPaletteSelected = false
                 isNotesSelected = false
+                isSkinSelected = false
                 isReferenceSelected = false
             }
         }
@@ -505,6 +548,7 @@ struct ContentView: View {
             if selectedImageGroupItem != nil {
                 isPaletteSelected = false
                 isNotesSelected = false
+                isSkinSelected = false
                 isReferenceSelected = false
             }
         }

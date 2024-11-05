@@ -274,7 +274,7 @@ class ScriptEditor
     {
         webView.evaluateJavaScript(
             """
-            \(session).getValue()
+            editor.getValue()
             """, completionHandler: { (value, error) in
                 if let value = value as? String {
                     cb(value)
@@ -284,6 +284,7 @@ class ScriptEditor
     
     func setSession(_ session: String)
     {
+        print("set session \(session)")
         let cmd = """
         editor.setSession(\(session))
         """
@@ -316,10 +317,17 @@ class ScriptEditor
     /// Script has changed
     func updated()
     {
-        getSessionValue("mainSession", { (value) in
-            Game.shared.currentCodeItemText = value
-            Game.shared.codeTextChanged.send()
-        })
+        if !Game.shared.skinMode {
+            getSessionValue("mainSession", { (value) in
+                Game.shared.currentCodeItemText = value
+                Game.shared.codeTextChanged.send()
+            })
+        } else {
+            getSessionValue("mainSession", { (value) in
+                Game.shared.data.skin = value
+                Game.shared.codeTextChanged.send()
+            })
+        }
     }
 }
 
@@ -396,8 +404,12 @@ struct SwiftUIWebView: NSViewRepresentable {
                     webView.allowsLinkPreview = true
                     
                     if let editor = Game.shared.scriptEditor {
-                        if let codeItem = Game.shared.getCodeItem() {
-                            editor.setSessionValue("mainSession",  Game.shared.currentCodeItemText, codeItem.currLine)
+                        if Game.shared.skinMode == false {
+                            if let codeItem = Game.shared.getCodeItem() {
+                                editor.setSessionValue("mainSession",  Game.shared.currentCodeItemText, codeItem.currLine)
+                            }
+                        } else {
+                            editor.setSessionValue("mainSession",  Game.shared.data.skin, 0)
                         }
                     }
                 }

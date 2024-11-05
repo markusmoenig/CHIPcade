@@ -38,6 +38,7 @@ struct CodeSectionView: View {
                     } else {
                         Button(action: {
                             selectedCodeItem = codeItems[index]
+                            Game.shared.scriptEditor?.setSession("mainSession")
                             selectedMemoryItem = nil
                             selectedImageGroupItem = nil
                         }) {

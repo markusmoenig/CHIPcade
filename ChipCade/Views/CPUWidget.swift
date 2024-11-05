@@ -21,6 +21,9 @@ public class CPUWidget    : ObservableObject
     {
         draw2D.encodeStart(.clear)
         
+        game.skin.draw(draw2D: draw2D, game: game)
+        
+        /*
         let width = Float(draw2D.metalView.frame.width)
         //let height = Float(draw2D.metalView.frame.height)
 
@@ -33,6 +36,8 @@ public class CPUWidget    : ObservableObject
 
         let dest : UInt8? = nil
         let source : [UInt8] = []
+        
+        draw2D.drawBox(position: float2(10, 10), size: float2(200, 100), rounding: 10.0, borderSize: 4, onion: 0.0, fillColor: float4(1, 0.5, 0.2, 1), borderColor: float4(0.5, 1, 0.2, 1))
         
         draw2D.drawText(position: float2(10, 160), text: "\(game.flags.displayFlags())", size: 14, color: prim)
         
@@ -82,7 +87,7 @@ public class CPUWidget    : ObservableObject
                 draw2D.drawText(position: float2(reg_x + Float(i) * reg_width + 20, reg_y), text: "\(game.registers[i].toStringFull())", size: 15, color: sec)
             }
         }
-        
+        */
         draw2D.encodeEnd()
     }
     

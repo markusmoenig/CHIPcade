@@ -26,6 +26,7 @@ public class Game : ObservableObject
     let errorChanged = PassthroughSubject<ChipCadeError, Never>()
     let codeTextChanged = PassthroughSubject<(), Never>()
     let codeLineChanged = PassthroughSubject<Int, Never>()
+    let skinTextChanged = PassthroughSubject<(), Never>()
 
     @Published var data: GameData
     
@@ -67,6 +68,12 @@ public class Game : ObservableObject
     
     var scriptEditor: ScriptEditor? = nil
     var currentCodeItemText = ""
+    
+    // The skin compiler & drawer
+    var skin = Skin()
+    
+    // We are currently editing a skin
+    var skinMode = false
     
     private enum CodingKeys: String, CodingKey {
         case codeItems
