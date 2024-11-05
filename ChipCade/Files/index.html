@@ -74,6 +74,46 @@
         oop.inherits(ChipCadeHighlightRules, TextHighlightRules);
         exports.ChipCadeHighlightRules = ChipCadeHighlightRules;
     });
+    
+    ace.define("ace/mode/chipcade_skin_highlight_rules", ["require", "exports", "module", "ace/lib/oop", "ace/mode/text_highlight_rules"], function(require, exports, module) {
+        var oop = require("ace/lib/oop");
+        var TextHighlightRules = require("ace/mode/text_highlight_rules").TextHighlightRules;
+
+        var ChipCadeHighlightRules = function() {
+            // Generate S0 to S255 dynamically for operators
+            var sVariables = Array.from({length: 256}, (_, i) => `S${i}`).join(" ");
+            
+            // Define keyword mapper with generated variables
+            var keywordMapper = this.createKeywordMapper({
+                "keyword": "RECT TEXT REGISTER",
+                "variable.language": "color string pos position size fontsize width height color bordercolor bordersize rounding alpha index",
+                "constant.language": "TRUE FALSE NULL",
+                "support.type": "unsigned16 signed16 float16 unicodeChar",
+                // Include S0-S255 and L0-L7 as operators
+                "keyword.operator": `+ - * / % & | ^ ~ << >> ${sVariables} L0 L1 L2 L3 L4 L5 L6 L7`
+            }, "text", true, " ");
+
+            this.$rules = {
+                "start" : [
+                    { token: "comment", regex: "#.*$" },
+                    { token: "constant.numeric", regex: "\\b[0-9]+[usf]?\\b" },
+                    { token: "keyword.operator", regex: /[\-+%=<>*\/&|^~]+|^[A-Za-z_][A-Za-z0-9_]*:/ }, // Includes labels like JumpHere:
+                    { token: "paren.lparen", regex: "[\\[({]" },
+                    { token: "paren.rparen", regex: "[\\])}]" },
+                    { token: "string", regex: '"', next: "string" },
+                    { token: keywordMapper, regex: "\\b\\w+\\b" },
+                    { caseInsensitive: true }
+                ],
+                "string": [
+                    { token: "string", regex: '"', next: "start" },
+                    { defaultToken: "string" }
+                ]
+            };
+        };
+
+        oop.inherits(ChipCadeHighlightRules, TextHighlightRules);
+        exports.ChipCadeHighlightRules = ChipCadeHighlightRules;
+    });
 
     // Manually register mode-chipcade
     ace.define("ace/mode/chipcade", ["require", "exports", "module", "ace/lib/oop", "ace/mode/text", "ace/tokenizer", "ace/mode/chipcade_highlight_rules"], function(require, exports, module) {
@@ -89,6 +129,25 @@
         (function() {
             this.lineCommentStart = "#";
             this.$id = "ace/mode/chipcade";
+        }).call(Mode.prototype);
+
+        exports.Mode = Mode;
+    });
+    
+    // Manually register mode-chipcade
+    ace.define("ace/mode/chipcade_skin", ["require", "exports", "module", "ace/lib/oop", "ace/mode/text", "ace/tokenizer", "ace/mode/chipcade_skin_highlight_rules"], function(require, exports, module) {
+        var oop = require("ace/lib/oop");
+        var TextMode = require("ace/mode/text").Mode;
+        var ChipCadeHighlightRules = require("ace/mode/chipcade_skin_highlight_rules").ChipCadeHighlightRules;
+
+        var Mode = function() {
+            this.HighlightRules = ChipCadeHighlightRules;
+        };
+        oop.inherits(Mode, TextMode);
+
+        (function() {
+            this.lineCommentStart = "#";
+            this.$id = "ace/mode/chipcade_skin";
         }).call(Mode.prototype);
 
         exports.Mode = Mode;

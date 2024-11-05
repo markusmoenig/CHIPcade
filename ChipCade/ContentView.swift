@@ -137,7 +137,7 @@ struct ContentView: View {
                     Game.shared.scriptEditor?.setSessionValue("mainSession", Game.shared.data.skin, 0)
                 }) {
                     HStack {
-                        Text("Skin")
+                        Text("Skin Editor")
                             .foregroundColor(.primary)
                             .padding(.leading, 10)
                         Spacer()

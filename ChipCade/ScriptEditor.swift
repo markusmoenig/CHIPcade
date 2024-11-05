@@ -294,12 +294,24 @@ class ScriptEditor
     
     func setSessionValue(_ session: String,_ value: String, _ line: Int)
     {
-        let cmd = """
-        \(session).setValue(`\(value)`)
-        \(session).setMode("ace/mode/chipcade");
-        editor.moveCursorTo(\(line), 0);
-        editor.gotoLine(\(line))
-        """
+        let cmd : String
+        
+        if !Game.shared.skinMode {
+            cmd = """
+            \(session).setValue(`\(value)`)
+            \(session).setMode("ace/mode/chipcade");
+            editor.moveCursorTo(\(line), 0);
+            editor.gotoLine(\(line))
+            """
+        } else {
+            cmd = """
+            \(session).setValue(`\(value)`)
+            \(session).setMode("ace/mode/chipcade_skin");
+            editor.moveCursorTo(\(line), 0);
+            editor.gotoLine(\(line))
+            """
+        }
+
         webView.evaluateJavaScript(cmd, completionHandler: { (value, error ) in
         })
     }

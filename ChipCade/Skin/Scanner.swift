@@ -63,7 +63,7 @@ struct Scanner {
                 line += 1
                 advance()
                 
-            case "/" where peekNext == "/":
+            case "#":// where peekNext == "/":
                 while peek != "\n" && !isAtEnd { advance() }
                 
             case "/" where peekNext == "*":
