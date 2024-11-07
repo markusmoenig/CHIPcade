@@ -151,6 +151,29 @@ struct CodeItemListView: View {
                                 codeItem: codeItem,
                                 index: index
                             )
+                        case .fntset:
+                            HStack {
+                                FontMenu(
+                                    currentFont: Binding(
+                                        get: { instruction.memory! },
+                                        set: { newFont in
+                                            let newInstruction = instruction.clone()
+                                            newInstruction.memory = newFont
+                                            codeItem.aboutToChange(using: undoManager, newInstruction: newInstruction, at: index, text: "Font Changed")
+                                        }
+                                    )
+                                )
+                                ChipCadeDataTextField(
+                                    chipCadeData: Binding(
+                                        get: { instruction.value! },
+                                        set: { newValue in
+                                            let newInstruction = instruction.clone()
+                                            newInstruction.value = newValue
+                                            codeItem.aboutToChange(using: undoManager, newInstruction: newInstruction, at: index, text: "Font Size Changed")
+                                        }
+                                    )
+                                )
+                            }
                         case .inc, .dec:
                             HStack {
                                 Int8RegisterMenu(
@@ -232,7 +255,36 @@ struct CodeItemListView: View {
                                     )
                                 )
                             }
-                        case .sprgrp, .sprcol, .sprfps, .sprfri, .sprrot, .sprx, .spry, .sprspd, .spracc, .sprimg, .sprmxs, .sprpri, .sprvis, .sprwrp, .spralp, .sprscl:
+                        case .ldspr:
+                            HStack {
+                                Int8RegisterMenu(
+                                    selectedRegister: Binding(
+                                        get: { instruction.register1! },
+                                        set: { newRegister in
+                                            let newInstruction = instruction.clone()
+                                            newInstruction.register1 = newRegister
+                                            codeItem.aboutToChange(using: undoManager, newInstruction: newInstruction, at: index, text: "Register Changed")
+                                        }
+                                    )
+                                )
+                                SpriteIndexTextField(
+                                    spriteIndex: Binding(
+                                        get: { Int(instruction.register2!) },
+                                        set: { newRegister in
+                                            let newInstruction = instruction.clone()
+                                            newInstruction.register2 = UInt8(newRegister)
+                                            codeItem.aboutToChange(using: undoManager, newInstruction: newInstruction, at: index, text: "Sprite Changed")
+                                        }
+                                    )
+                                )
+                                SpriteAttrTextField(
+                                    instruction: instruction,
+                                    undoManager: undoManager,
+                                    codeItem: codeItem,
+                                    index: index
+                                )                                
+                            }                            
+                        case .sprgrp, .sprcol, .sprfps, .sprfri, .sprrot, .sprx, .spry, .sprspd, .spracc, .sprimg, .sprmxs, .sprpri, .spract, .sprwrp, .spralp, .sprscl:
                             HStack {
                                 SpriteIndexTextField(
                                     spriteIndex: Binding(
@@ -268,6 +320,17 @@ struct CodeItemListView: View {
                                     )
                                 )
                             }
+                        case .lyrcur:
+                            Int8LayerMenu(
+                                selectedLayer: Binding(
+                                    get: { instruction.register1! },
+                                    set: { newLayer in
+                                        let newInstruction = instruction.clone()
+                                        newInstruction.register1 = newLayer
+                                        codeItem.aboutToChange(using: undoManager, newInstruction: newInstruction, at: index, text: "Layer Changed")
+                                    }
+                                )
+                            )
                         case .lyrres:
                             HStack {
                                 Int8LayerMenu(
@@ -415,6 +478,25 @@ struct CodeItemListView: View {
                                     )
                                 )
                             }
+                        case .txtmem:
+                            MemoryAddressTextField(
+                                instruction: instruction,
+                                undoManager: undoManager,
+                                codeItem: codeItem,
+                                index: index
+                            )
+                            
+                        case .txtval:
+                            ChipCadeDataTextField(
+                                chipCadeData: Binding(
+                                    get: { instruction.value! },
+                                    set: { newValue in
+                                        let newInstruction = instruction.clone()
+                                        newInstruction.value = newValue
+                                        codeItem.aboutToChange(using: undoManager, newInstruction: newInstruction, at: index, text: "Value Changed")
+                                    }
+                                )
+                            )
                         case .tag:
                             TagTextField(
                                 instruction: instruction,

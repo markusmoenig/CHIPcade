@@ -25,7 +25,29 @@ extension Instruction {
             } else {
                 return nil
             }
-
+            
+        case .fntset:
+            // FNTSET FontName FontSize
+            if components.count == 3,
+               let value = ChipCadeData.fromString(text: components[2], unsignedDefault: true) {
+                instruction.memory = components[1].replacingOccurrences(of: "\"", with: "")
+                instruction.value = value
+            } else {
+                return nil
+            }
+            
+        case .ldspr:
+            // LDSPR Rd Ss Attribute
+            if components.count == 4,
+               let reg1 = parseRegister(components[1]),
+               let reg2 = parseRegister(components[2]) {
+                instruction.register1 = reg1
+                instruction.register2 = reg2
+                instruction.memory = components[3].replacingOccurrences(of: "\"", with: "")
+            } else {
+                return nil
+            }
+            
         case .ldi, .cmp, .add, .sub, .mul, .div, .mod:
             // XXXXXX Rd Value
             if components.count == 3,
@@ -77,9 +99,17 @@ extension Instruction {
             }
 
         case .rect:
-            // RECT (No additional components expected)
+            // RECT
             break
 
+        case .lyrcur:
+            if components.count == 2,
+               let reg1 = parseRegister(components[1]) {
+                instruction.register1 = reg1
+            } else {
+                return nil
+            }
+            
         case .lyrres:
             // LYRRES L0 320 200
             if components.count == 4,
@@ -118,6 +148,28 @@ extension Instruction {
             instruction.value = value
             instruction.memory = memory
             instruction.memoryOffset = offset
+        
+        case .txtval:
+            // XXXXXX Value
+            if components.count == 2,
+               let value = ChipCadeData.fromString(text: components[1], unsignedDefault: true) {
+                instruction.value = value
+            } else {
+                return nil
+            }
+
+            
+        case .txtmem:
+            print(components)
+            if components.count == 4,
+               components[2] == "+",
+               let offset = Int(components[3]) {
+                instruction.memory = components[1]
+                instruction.memoryOffset = offset
+            } else {
+                return nil
+            }
+
 
         case .sprset:
             // SPRSET S0 ImageGroup
@@ -140,7 +192,7 @@ extension Instruction {
                 return nil
             }
             
-        case .spracc, .sprrot, .sprspd, .sprx, .spry, .sprimg, .sprmxs, .sprpri, .sprvis, .sprwrp, .spralp, .sprscl:
+        case .spracc, .sprrot, .sprspd, .sprx, .spry, .sprimg, .sprmxs, .sprpri, .spract, .sprwrp, .spralp, .sprscl:
             // XXXXXX Sd Rs
             if components.count == 3,
                let reg1 = parseRegister(components[1]),

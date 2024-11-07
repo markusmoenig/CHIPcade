@@ -16,6 +16,7 @@ enum ChipCadeError: Error {
     case invalidLayerIndex
     case invalidSpriteIndex
     case invalidResolution
+    case unknownFont
 
     var toString: String {
         switch self {
@@ -39,6 +40,8 @@ enum ChipCadeError: Error {
             return "Invalid Layer Index"
         case .invalidResolution:
             return "Invalid Resolution"
+        case .unknownFont:
+            return "Unknown Font"
         }
     }
 }

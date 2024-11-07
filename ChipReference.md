@@ -31,6 +31,7 @@ Values can also reference a register, for example to set the friction of sprite 
 - **LDI Rd (Value|Rs)**. Load an immediate value to the destination register.
 - **LDRESX Rd**. Load the x value of the screen resolution to the destination register.
 - **LDRESY Rd**. Load the y value of the screen resolution to the destination register.
+- **LDSPR Rd Ss Attr**. Load an attribute of the sprite into the destination register. Attributes: "x", "y".
 - **ST Memory + (Value|Rs) (Value|Rs)**. Store the value at the destination memory address.
 
 - **ADD Rd (Value|Rs)**. Add the source value to the destination register.
@@ -73,6 +74,7 @@ Layers are drawn starting from index 0 up to 7. By default layers are in the res
 
 - **LYRRES L Width Height**. Set a custom layer resolution in the form of "320 200". By default layers are in the resolution of the screen.
 - **LYRVIS Ld (Value|Rs)**. Set layer visibility. A value of 0 means invisible, visible otherwise. Default is invisible.
+- **LYRCUR Ld**. Set the current layer. The current layer is used for drawing all non-sprites content like text or shapes. By default set to 0.
 
 ## Sprites
 
@@ -85,7 +87,7 @@ Layers are drawn starting from index 0 up to 7. By default layers are in the res
 - **SPRANM Sd From To**. Set the animation range for the sprite and start animation. If the current image index is not inside the range set it to the animation start frame.
 - **SPRFPS Sd (Value|Rs)**. Set the fps for the sprite's animation. Default is 10.
 
-- **SPRVIS Sd (Value|Rs)**. Set sprite visibility to the given value. A value of 0 means invisible, visible otherwise. Default is invisible.
+- **SPRACT Sd (Value|Rs)**. Activate / deactivate the sprite. A value of 0 deactivates the sprite, any other value will activate it. Every sprite is deactivated by default.
 - **SPRWRP Sd (Value|Rs)**. Set the wrapping mode for the sprite (0 for off, on otherwise). Wrapped sprites wrap around the layer or screen (i.e. when they go offscreen re-appear on the other side).
 
 - **SPRX Sd (Value|Rs)**. Set the x position of the sprite.
@@ -99,7 +101,16 @@ Layers are drawn starting from index 0 up to 7. By default layers are in the res
 - **SPRSPD Sd (Value|Rs)**. Set a constant speed to the sprite.
 - **SPRMXS Sd (Value|Rs)**. Set the maximum speed for the sprite (for acceleration / impulse driven games).
 - **SPRFRI Sd (Value|Rs)**. Set the friction of the sprite (default is 1.0). A friction lower than 1.0 will reduce speed.
+- **SPRSTP Sd**. Deactivates the sprite after the current animation finishes. Useful for example for explosions.
 - **SPRHLT Sd**. Set the velocity of the sprite to zero. Halt!
 
 - **SPRGRP Sd (Value|Rs)**. Set the collision group of the sprite to the given value. The value can be any numerical value.
 - **SPRCOL Sd (Value|Rs)**. Checks if the sprite collides with any sprite in the collision group. If no, sets the ZF to 1, if yes sets the ZF to 0.
+
+## Text
+
+Text is always drawn into the current layer.
+
+- **FNTSET Font (Value|Rs)**. Sets the current font and font-size. Currently font can be one of: "OpenSans", "Square", "SquadaOne". 
+- **TXTVAL (Value|Rs)**. Draws the value into the current layer. X, y positions are taken from R0 and R1 and the palette color index from R2.
+- **TXTMEM Memory + (Value|Rs)**. Draws the value at the memory address into the current layer. If the value is a unicode character it draws the character and all following characters as a string. The first non-unicode character terminates the string. X, y positions are taken from R0 and R1 and the palette color index from R2.

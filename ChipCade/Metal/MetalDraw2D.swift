@@ -174,10 +174,13 @@ class MetalDraw2D
         var font = Font(name: "OpenSans", draw: self)
         fonts["opensans"] = font
         
-        self.font = font
-
         font = Font(name: "Square", draw: self)
-        fonts["square"] = font        
+        fonts["square"] = font
+        
+        font = Font(name: "SquadaOne", draw: self)
+        fonts["squadaone"] = font
+        
+        self.font = font
     }
     
 //    public func draw()

@@ -11,7 +11,7 @@ public enum GCPCmd  {
     case rect(x: Float, y: Float, width: Float, height: Float, color: GCPFloat4, rot: Float)
     case sprset(spriteIndex: Int, imageGroupName: String)
     case sprlyr(spriteIndex: Int, value: Int)
-    case sprvis(spriteIndex: Int, value: Int)
+    case spract(spriteIndex: Int, value: Int)
     case sprx(spriteIndex: Int, value: Int)
     case spry(spriteIndex: Int, value: Int)
     case sprrot(spriteIndex: Int, value: Float)
@@ -31,6 +31,8 @@ public enum GCPCmd  {
     case spralp(spriteIndex: Int, value: Float)
     case sprhlt(spriteIndex: Int)
     case sprscl(spriteIndex: Int, value: Float)
+    case fntset(fontName: String, fontSize: Float)
+    case text(text: String, x: Float, y: Float, colorIndex: Int)
 }
 
 public class GCP {
@@ -44,6 +46,10 @@ public class GCP {
     
     var elapsedTime : Float = 0
     let deltaTime: Float = 1.0 / 60.0
+    
+    var fontSize: Float = 20.0
+
+    var currLayer: Int = 0
     
     init() {
     }
@@ -96,6 +102,8 @@ public class GCP {
     
     func draw() {
         
+        var layerCmds : [[GCPCmd]] = [[], [], [], [], [], [], [], []]
+
         let width = Int(draw2D.metalView.frame.width)
         let height = Int(draw2D.metalView.frame.height)
         
@@ -103,7 +111,7 @@ public class GCP {
 
         // Update the sprite positions
         for sprite in sprites {
-            if sprite.isVisible {
+            if sprite.isActive {
                 sprite.updatePosition()
                 
                 
@@ -187,8 +195,8 @@ public class GCP {
                     sprites[spriteIndex].size.height = CGFloat(imageGroup.images[0].height)
                 }
                 
-            case .sprvis(let spriteIndex, let value) :
-                sprites[spriteIndex].isVisible = Bool(value != 0)
+            case .spract(let spriteIndex, let value) :
+                sprites[spriteIndex].isActive = Bool(value != 0)
                 
             case .sprrot(let spriteIndex, let value) :
                 sprites[spriteIndex].setRotation(value)
@@ -250,12 +258,19 @@ public class GCP {
                 
             case .sprscl(let spriteIndex, let value) :
                 sprites[spriteIndex].scale = CGFloat(value)
+                
+            case .fntset(let fontName, let size) :
+                draw2D.font = draw2D.fonts[fontName]!
+                fontSize = size
+                
+            case .text(let text, let x, let y, let colorIndex):
+                layerCmds[currLayer].append(cmd)
             }
         }
         
         draw2D.encodeEnd()
 
-        // Draw all sprites bound to a layer
+        // Draw all sprites bound to a layer and all draw cmds
         
         for layerIndex in 0..<8 {
             let layer = layers[layerIndex]
@@ -265,6 +280,8 @@ public class GCP {
                 draw2D.encodeStart(.clear, float4(0.0, 0.0, 0.0, 1.0))
                 //draw2D.clear(color: float4(0.0, 0.0, 0.0, 1.0))
 
+                // Draw sprites
+                
                 var scaleX : Float = 1.0
                 var scaleY : Float = 1.0
                 
@@ -275,7 +292,7 @@ public class GCP {
                 
                 let sortedSprites = sortedSprites(in: layerIndex, from: sprites)
                 for sprite in sortedSprites {
-                    if let imageGroup = sprite.imageGroup, sprite.isVisible, sprite.layer == layerIndex{
+                    if let imageGroup = sprite.imageGroup, sprite.isActive, sprite.layer == layerIndex{
                         let index = sprite.currentImageIndex
                         
                         // Sanity check for image index
@@ -303,7 +320,7 @@ public class GCP {
                                 if sprite.currentImageIndex > sprite.animationRange.last! {
                                     sprite.currentImageIndex = sprite.animationRange.first!
                                     if sprite.animationStop {
-                                        sprite.isVisible = false
+                                        sprite.isActive = false
                                         sprite.animationStop = false
                                     }
                                 }
@@ -359,6 +376,16 @@ public class GCP {
                                 }
                             }
                         }
+                    }
+                }
+                
+                // Draw cmds
+                for cmd in layerCmds[layerIndex] {
+                    switch cmd {
+                    case .text(let text, let x, let y, let colorIndex):
+                        draw2D.drawText(position: float2(x, y), text: text, size: fontSize, color: Game.shared.data.palette[colorIndex])
+                    default:
+                        break;
                     }
                 }
                 
@@ -418,7 +445,7 @@ public class GCP {
         draw2D.encodeStart()
 
         for sprite in sprites {
-            if let imageGroup = sprite.imageGroup, sprite.isVisible, sprite.layer == nil {
+            if let imageGroup = sprite.imageGroup, sprite.isActive, sprite.layer == nil {
                 let index = sprite.currentImageIndex
                 
                 if sprite.isAnimating {

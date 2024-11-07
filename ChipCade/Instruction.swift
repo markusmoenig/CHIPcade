@@ -15,6 +15,7 @@ public enum InstructionType: String, Codable, CaseIterable {
     case comnt
     case dec
     case div
+    case fntset
     case inc
     case j
     case je
@@ -27,6 +28,8 @@ public enum InstructionType: String, Codable, CaseIterable {
     case ldi
     case ldresx
     case ldresy
+    case ldspr
+    case lyrcur
     case lyrres
     case lyrvis
     case mod
@@ -52,7 +55,7 @@ public enum InstructionType: String, Codable, CaseIterable {
     case sprscl
     case sprset
     case sprspd
-    case sprvis
+    case spract
     case sprwrp
     case sprstp
     case sprx
@@ -60,6 +63,8 @@ public enum InstructionType: String, Codable, CaseIterable {
     case st
     case sub
     case tag
+    case txtmem
+    case txtval
     
     static func fromString(_ string: String) -> InstructionType? {
         if string.starts(with: "#") {
@@ -118,11 +123,14 @@ public class Instruction: ObservableObject, Codable, Equatable {
         case .calltm:
             memory = "Module.Tag"
             value = .unsigned16Bit(0)
+        case .fntset:
+            memory = "Square"
+            value = .unsigned16Bit(14)
         case .ld:
             register1 = 0
             memory = "Data"
             memoryOffset = 0
-        case .ldi, .sprcol, .sprgrp, .sprfri, .spracc, .sprrot, .sprspd, .sprvis, .sprx, .spry, .sprwrp, .sprimg, .sprmxs, .sprpri, .spralp, .sprscl:
+        case .ldi, .sprcol, .sprgrp, .sprfri, .spracc, .sprrot, .sprspd, .spract, .sprx, .spry, .sprwrp, .sprimg, .sprmxs, .sprpri, .spralp, .sprscl:
             register1 = 0
             value = .unsigned16Bit(0)
         case .rand:
@@ -133,12 +141,18 @@ public class Instruction: ObservableObject, Codable, Equatable {
             value = .unsigned16Bit(10)
         case .ldresx, .ldresy:
             register1 = 0
+        case .lyrcur:
+            register1 = 0
         case .lyrres:
             register1 = 0
             memory = "320 200"
         case .lyrvis, .sprlyr:
             register1 = 0
             value = .unsigned16Bit(0)
+        case .ldspr:
+            register1 = 0
+            register2 = 0
+            memory = "x"
         case .sprset:
             register1 = 0
             memory = "Image Group"
@@ -153,6 +167,11 @@ public class Instruction: ObservableObject, Codable, Equatable {
             register3 = 0
         case .tag:
             memory = "Tag"
+        case .txtmem:
+            memory = "Data"
+            memoryOffset = 0
+        case .txtval:
+            value = .unsigned16Bit(0)
         default: break
         }
     }
@@ -183,9 +202,8 @@ public class Instruction: ObservableObject, Codable, Equatable {
         memoryOffset = try container.decodeIfPresent(Int.self, forKey: .memoryOffset)
         
 //        switch type{
-//        case .st:
-//            value = .register(UInt16(register1!))
-//            register2 = nil
+//        case .ldspr:
+//            print("load \(memory)")
 //        default: break
 //        }
     }
@@ -212,6 +230,9 @@ public class Instruction: ObservableObject, Codable, Equatable {
             
         case .div:
             return "DIV R\(register1!) \(value!.toString())"
+          
+        case .fntset:
+            return "FNTSET \"\(memory!)\" \(value!.toString())"
             
         case .inc:
             return "INC R\(register1!)"
@@ -245,9 +266,15 @@ public class Instruction: ObservableObject, Codable, Equatable {
 
         case .ldresx:
             return "LDRESX R\(register1!)"
+       
+        case .ldspr:
+            return "LDSPR R\(register1!) S\(register2!) \"\(memory!)\""
             
         case .ldresy:
             return "LDRESY R\(register1!)"
+            
+        case .lyrcur:
+            return "LYRCUR L\(register1!)"
             
         case .lyrres:
             return "LYRRES L\(register1!) \(memory!)"
@@ -334,8 +361,8 @@ public class Instruction: ObservableObject, Codable, Equatable {
         case .sprstp:
             return "SPRSTP S\(register1!)"
             
-        case .sprvis:
-            return "SPRVIS S\(register1!) \(value!.toString())"
+        case .spract:
+            return "SPRACT S\(register1!) \(value!.toString())"
             
         case .sprx:
             return "SPRX S\(register1!) \(value!.toString())"
@@ -348,6 +375,12 @@ public class Instruction: ObservableObject, Codable, Equatable {
             
         case .tag:
             return "\(memory!):"
+            
+        case .txtmem:
+            return "TXTMEM \(memory!) + \(memoryOffset!)"
+        
+        case .txtval:
+            return "TXTVAL \(value!.toString())"
         }
     }
     
@@ -373,6 +406,9 @@ public class Instruction: ObservableObject, Codable, Equatable {
             
         case .div:
             return "DIV Rd (Value|Rs)"
+            
+        case .fntset:
+            return "FNTSET Font (Value|Rs)"
             
         case .inc:
             return "INC Rd"
@@ -410,11 +446,17 @@ public class Instruction: ObservableObject, Codable, Equatable {
         case .ldresy:
             return "LDRESY Rd"
             
+        case .ldspr:
+            return "LDSPR Rd Ss Attribute"
+          
+        case .lyrcur:
+            return "LYRCUR Ld"
+            
         case .lyrres:
-            return "LYRRES <Ld> <Width> <Height>"
+            return "LYRRES Ld Width Height"
             
         case .lyrvis:
-            return "LYRVIS <Ld> (Value|Rs)"
+            return "LYRVIS Ld (Value|Rs)"
             
         case .mod:
             return "MOD Rd (Value|Rs)"
@@ -494,8 +536,8 @@ public class Instruction: ObservableObject, Codable, Equatable {
         case .sprstp:
             return "SPRSTP Sd"
             
-        case .sprvis:
-            return "SPRVIS Sd (Value|Rs)"
+        case .spract:
+            return "SPRACT Sd (Value|Rs)"
             
         case .sprx:
             return "SPRX Sd (Value|Rs)"
@@ -508,6 +550,12 @@ public class Instruction: ObservableObject, Codable, Equatable {
             
         case .tag:
             return "Tag:"
+            
+        case .txtmem:
+            return "TXTMEM Memory + (Value|Rs)"
+
+        case .txtval:
+            return "TXTVAL (Value|Rs)"
         }
     }
     
@@ -527,6 +575,8 @@ public class Instruction: ObservableObject, Codable, Equatable {
             return "Decrement register by 1."
         case .div:
             return "Divide destination by source register."
+        case .fntset:
+            return "Set the current font and size."
         case .inc:
             return "Increment register by 1."
         case .j:
@@ -551,6 +601,10 @@ public class Instruction: ObservableObject, Codable, Equatable {
             return "Load resolution x value into register."
         case .ldresy:
             return "Load resolution y value into register."
+        case .ldspr:
+            return "Load a sprite attribute into register."
+        case .lyrcur:
+            return "Set the current layer for draw commands."
         case .lyrres:
             return "Set the layer resolution."
         case .lyrvis:
@@ -607,8 +661,8 @@ public class Instruction: ObservableObject, Codable, Equatable {
             return "Set sprite speed."
         case .sprstp:
             return "Make sprite invisible afer animation finishes."
-        case .sprvis:
-            return "Set sprite visibility."
+        case .spract:
+            return "Activate / deactivate the sprite."
         case .sprx:
             return "Set sprite x position."
         case .spry:
@@ -617,6 +671,10 @@ public class Instruction: ObservableObject, Codable, Equatable {
             return "Set sprite wrapping mode."
         case .tag:
             return "Set a code tag for conditional execution."
+        case .txtmem:
+            return "Draw the text or value at the memory address. R0 = X, R1 = Y, R2 = ColorIndex."
+        case .txtval:
+            return "Draw the value as text. R0 = X, R1 = Y, R2 = ColorIndex."
         }
     }
     
@@ -652,7 +710,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
         switch type {
         case .tag: return .blue
         case .comnt: return .secondary
-        case .rect, .sprset,.sprvis, .sprx, .spry, .lyrres, .lyrvis, .sprrot, .sprwrp, .sprimg, .spracc, .sprmxs, .sprfri, .sprpri, .sprlyr, .sprcol, .sprgrp, .spranm, .sprfps, .sprstp, .sprhlt, .spralp, .sprscl:
+        case .rect, .sprset, .spract, .sprx, .spry, .lyrres, .lyrvis, .sprrot, .sprwrp, .sprimg, .spracc, .sprmxs, .sprfri, .sprpri, .sprlyr, .sprcol, .sprgrp, .spranm, .sprfps, .sprstp, .sprhlt, .spralp, .sprscl, .lyrcur:
             return .yellow
         default:
             return .primary

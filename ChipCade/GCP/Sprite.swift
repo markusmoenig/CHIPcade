@@ -21,7 +21,7 @@ class Sprite {
     var scale: CGFloat = 1.0
     var alpha: CGFloat = 1.0
 
-    var isVisible: Bool = false
+    var isActive: Bool = false
     var isWrapped: Bool = false
     
     var priority: Int = 0
@@ -66,8 +66,8 @@ class Sprite {
     }
 
     // setVisible
-    func setVisibility(visible: Bool) {
-        isVisible = visible
+    func setActive(visible: Bool) {
+        isActive = visible
     }
     
     // Method to check for collision (placeholder for collision logic)

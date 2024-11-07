@@ -460,7 +460,7 @@ struct SwiftUIWebView: UIViewRepresentable {
     public func updateUIView(_ uiView: WKWebView, context: UIViewRepresentableContext<SwiftUIWebView>) { }
 
     public func makeCoordinator() -> Coordinator {
-        return Coordinator(core, colorScheme)
+        return Coordinator(colorScheme)
     }
     
     class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
@@ -483,9 +483,25 @@ struct SwiftUIWebView: UIViewRepresentable {
         public func webView(_: WKWebView, didFailProvisionalNavigation: WKNavigation!, withError: Error) { }
 
         //After the webpage is loaded, assign the data in WebViewModel class
-        public func webView(_ web: WKWebView, didFinish: WKNavigation!) {
-            core.scriptEditor = ScriptEditor(web, core, colorScheme)
-        }
+        public func webView(_ webView: WKWebView, didFinish: WKNavigation!) {
+            Game.shared.scriptEditor = ScriptEditor(webView, colorScheme)
+            if let editor = Game.shared.scriptEditor {
+                if editor.sessions == 0 {
+                    editor.createSession()
+                    webView.allowsLinkPreview = true
+                    
+                    if let editor = Game.shared.scriptEditor {
+                        if Game.shared.skinMode == false {
+                            if let codeItem = Game.shared.getCodeItem() {
+                                editor.setSessionValue("mainSession",  Game.shared.currentCodeItemText, codeItem.currLine)
+                            }
+                        } else {
+                            editor.setSessionValue("mainSession",  Game.shared.data.skin, 0)
+                        }
+                    }
+                }
+            }
+            webView.isHidden = false        }
 
         public func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) { }
 

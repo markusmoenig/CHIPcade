@@ -49,7 +49,7 @@ class Skin {
         
         let offX = (width - 640) / 2
 
-        draw2D.font = draw2D.fonts["square"]
+        draw2D.font = draw2D.fonts["squadaone"]
 
         for item in items {
             if item.type == .rect {

@@ -194,6 +194,28 @@ public class CPU {
         case .ldresy:
             game.registers[Int(instruction.register1!)] = .unsigned16Bit(UInt16(gcp.draw2D.metalView.frame.size.height))
         
+        case .ldspr   :
+            let spriteIndex = Int(instruction.register2!)
+            if spriteIndex >= 0 && spriteIndex <= 255 {
+                let register = Int(instruction.register1!)
+                switch instruction.memory?.lowercased() {
+                 
+                case "x":
+                    game.registers[register] = .signed16Bit(Int16(gcp.sprites[spriteIndex].position.x))
+                    
+                case "y":
+                    game.registers[register] = .signed16Bit(Int16(gcp.sprites[spriteIndex].position.y))
+
+                case "speed":
+                    game.registers[register] = .float16Bit(ChipCadeData.float32ToFloat16(Float(gcp.sprites[spriteIndex].speed)))
+                    
+                default:
+                    break
+                }
+                
+            } else {
+                game.setError(.invalidSpriteIndex)
+            }
         case .lyrres:
             let layerIndex = Int(instruction.register1!)
             if layerIndex >= 0 && layerIndex <= 7 {
@@ -304,10 +326,10 @@ public class CPU {
                 game.setError(.invalidSpriteIndex)
             }
             
-        case .sprvis:
+        case .spract:
             let spriteIndex = Int(instruction.register1!)
             if spriteIndex >= 0 && spriteIndex <= 255 {
-                gcp.addCmd(.sprvis(spriteIndex: Int(instruction.register1!), value: instruction.value!.resolve(game).toInt32Bit()))
+                gcp.addCmd(.spract(spriteIndex: Int(instruction.register1!), value: instruction.value!.resolve(game).toInt32Bit()))
             } else {
                 game.setError(.invalidSpriteIndex)
             }
@@ -441,6 +463,34 @@ public class CPU {
                 game.setError(.invalidSpriteIndex)
             }
             
+        case .fntset:
+            let fontName = instruction.memory!.lowercased()
+            let fontSize = instruction.value!.resolve(game)
+
+            for f in fonts {
+                if f.lowercased() == fontName{
+                    gcp.addCmd(.fntset(fontName: fontName, fontSize: fontSize.toFloat32Bit()))
+                    return .nextInstruction
+                }
+            }
+            
+            game.setError(.unknownFont)
+           
+        case .txtmem:
+            let x = game.registers[0].toFloat32Bit()
+            let y = game.registers[1].toFloat32Bit()
+            let colorIndex = game.registers[2].toInt32Bit()
+            if let value = game.getMemoryValue(memoryItemName: instruction.memory!, offset: instruction.memoryOffset!) {
+                gcp.addCmd(.text(text: value.toString(false), x: x, y: y, colorIndex: colorIndex))
+            } else {
+                game.setError(.invalidMemoryAddress)
+            }
+                  
+        case .txtval:
+            let x = game.registers[0].toFloat32Bit()
+            let y = game.registers[1].toFloat32Bit()
+            let colorIndex = game.registers[2].toInt32Bit()
+            gcp.addCmd(.text(text: instruction.value!.resolve(game).toString(false), x: x, y: y, colorIndex: colorIndex))
             
         default: break
         }
