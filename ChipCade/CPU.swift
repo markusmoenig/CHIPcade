@@ -481,6 +481,7 @@ public class CPU {
             let y = game.registers[1].toFloat32Bit()
             let colorIndex = game.registers[2].toInt32Bit()
             if let value = game.getMemoryValue(memoryItemName: instruction.memory!, offset: instruction.memoryOffset!) {
+                let text: String = value.toString(false)
                 gcp.addCmd(.text(text: value.toString(false), x: x, y: y, colorIndex: colorIndex))
             } else {
                 game.setError(.invalidMemoryAddress)
