@@ -56,6 +56,9 @@ struct ContentView: View {
     @AppStorage("editingMode") private var editingMode: Int = EditingMode.list.rawValue
     @AppStorage("editingIcon") private var editingIcon: String = "list.bullet.rectangle"
     
+    @AppStorage("skinMode") private var skinMode: Bool = true
+    @AppStorage("skinIcon") private var skinIcon: String = "cpu.fill"
+    
     @State private var currError: ChipCadeError = .none
     
     //@StateObject private var controllerManager = GameControllerManager()
@@ -183,7 +186,9 @@ struct ContentView: View {
             HStack(spacing: 0) {
                 
                 VStack(spacing: 0) {
-                    Spacer()
+                    //Spacer()
+                    
+                    // Middle Panel
                     
                     if editorIsOnLeftSide == true {
                         if let codeItem = selectedCodeItem {
@@ -200,53 +205,46 @@ struct ContentView: View {
                             }
                         } else if isSkinSelected {
                             WebView(colorScheme)
+                        } else
+                        if let imageGroupItem = selectedImageGroupItem {
+                            ImageGroupItemListView(imageGroupItem: imageGroupItem, selectedImageIndex: $selectedImageIndex)
+                        } else
+                        if let memoryItem = selectedMemoryItem {
+                            MemoryGridView(memoryItem: memoryItem)
+                        } else if isPaletteSelected {
+                            PaletteView(game: document.game)
+                                .padding(0)
+                        } else if isNotesSelected {
+                            TextEditor(text: $notes)
+                                .padding(4)
+                        } else if isReferenceSelected {
+                            ScrollView {
+                                Markdown(referenceText)
+                                    .padding(4)
+                            }
                         }
                     } else {
                         MetalView(document.game, .Game)
                     }
                     
-                    Spacer()
+                    //Spacer()
                     
-                    /*
-                    // Toolbar for selecting layer and sprite
-                    HStack {
-                        // Menu for Layer Selection
-                        Menu {
-                            ForEach(0..<8, id: \.self) { layer in
-                                Button(action: {
-                                    selectedLayer = layer
-                                }) {
-                                    Text("Layer \(layer)")
-                                }
-                            }
-                        } label: {
-                            Label("Select Layer: \(selectedLayer)", systemImage: "square.stack.3d.up.fill")
-                        }
-                        .frame(maxWidth: 200)
-                        //.buttonStyle(PlainButtonStyle)
-
-                        // TextField for Sprite Selection
-                        TextField("Sprite ID", value: $selectedSprite, formatter: NumberFormatter())
-                            .frame(maxWidth: 100)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                            //.keyboardType(.numberPad)  // You can set number pad for easier input
+                    if skinMode {
+                        Divider()
                         
-                        Spacer()
+                        MetalView(document.game, .CPU)
+                            .frame(maxHeight: 250)
                     }
-                    //.padding()
-                    */
-                    
-                    Divider()
-
-                    MetalView(document.game, .CPU)
-                        .frame(maxHeight: 250)
                 }
                 
                 Divider()
                 
                 VStack(spacing: 0) {
-                    if let codeItem = selectedCodeItem {
-                        if !editorIsOnLeftSide {
+                    
+                    // Right Panel
+                    
+                    if !editorIsOnLeftSide {
+                        if let codeItem = selectedCodeItem {
                             if editingMode == EditingMode.list.rawValue {
                                 CodeItemListView(
                                     codeItem: codeItem,
@@ -256,28 +254,28 @@ struct ContentView: View {
                             } else {
                                 WebView(colorScheme)
                             }
-                        } else {
-                            MetalView(document.game, .Game)
-                        }
-                    } else if isSkinSelected {
-                        WebView(colorScheme)
-                    } else
-                    if let imageGroupItem = selectedImageGroupItem {
-                        ImageGroupItemListView(imageGroupItem: imageGroupItem, selectedImageIndex: $selectedImageIndex)
-                    } else
-                    if let memoryItem = selectedMemoryItem {
-                        MemoryGridView(memoryItem: memoryItem)
-                    } else if isPaletteSelected {
-                        PaletteView(game: document.game)
-                            .padding(0)
-                    } else if isNotesSelected {
-                        TextEditor(text: $notes)
-                            .padding(4)
-                    } else if isReferenceSelected {
-                        ScrollView {
-                            Markdown(referenceText)
+                        } else if isSkinSelected {
+                            WebView(colorScheme)
+                        } else
+                        if let imageGroupItem = selectedImageGroupItem {
+                            ImageGroupItemListView(imageGroupItem: imageGroupItem, selectedImageIndex: $selectedImageIndex)
+                        } else
+                        if let memoryItem = selectedMemoryItem {
+                            MemoryGridView(memoryItem: memoryItem)
+                        } else if isPaletteSelected {
+                            PaletteView(game: document.game)
+                                .padding(0)
+                        } else if isNotesSelected {
+                            TextEditor(text: $notes)
                                 .padding(4)
+                        } else if isReferenceSelected {
+                            ScrollView {
+                                Markdown(referenceText)
+                                    .padding(4)
+                            }
                         }
+                    } else {
+                        MetalView(document.game, .Game)
                     }
                     
                     Spacer()
@@ -406,6 +404,19 @@ struct ContentView: View {
                     Label("Editing Mode", systemImage: editingIcon)
                 }
                 
+                Button(action: {
+                    if skinMode {
+                        skinMode = false
+                        skinIcon = "cpu"
+                    } else {
+                        skinMode = true
+                        skinIcon = "cpu.fill"
+
+                    }
+                }) {
+                    Label("CPU Skin", systemImage: skinIcon)
+                }
+                
                 Spacer()
 
                 // Toolbar button for adding a new MemoryItem
@@ -437,6 +448,7 @@ struct ContentView: View {
             }
             //document.game.play()
             document.game.skin.compile(text: document.game.data.skin)
+            Game.shared.scriptEditor?.setTheme(colorScheme)
         }
         
         // When the code changes in the code editor, compile it
@@ -555,6 +567,8 @@ struct ContentView: View {
         
         .onChange(of: colorScheme) {
             Game.shared.scriptEditor?.setTheme(colorScheme)
+            Game.shared.skin.compile(text: Game.shared.data.skin)
+            Game.shared.cpuRender.update()
         }
         
         .searchable(text: $searchText, prompt: "Search tags") {

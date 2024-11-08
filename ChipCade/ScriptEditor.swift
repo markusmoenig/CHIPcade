@@ -416,6 +416,7 @@ struct SwiftUIWebView: NSViewRepresentable {
                     webView.allowsLinkPreview = true
                     
                     if let editor = Game.shared.scriptEditor {
+                        editor.setTheme(colorScheme)
                         if Game.shared.skinMode == false {
                             if let codeItem = Game.shared.getCodeItem() {
                                 editor.setSessionValue("mainSession",  Game.shared.currentCodeItemText, codeItem.currLine)

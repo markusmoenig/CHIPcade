@@ -254,8 +254,8 @@ class Skin {
         var value: float4 = .one // Default color
 
         if match(.equal) {
-            if check(.identifier) {
-                let id = parser.current.lexeme.lowercased()
+            if check(.identifier) || check(.string) {
+                let id = parser.current.lexeme.lowercased().replacingOccurrences(of: "\"", with: "")
                 advance()
                 
                 // Convert named colors to float4
@@ -299,16 +299,22 @@ class Skin {
                 case "secondary":
                     value = colorToFloat4(.secondary)
                 default:
-                    print("Unknown color identifier: \(id)")
+                    if let hexValue = Int(id, radix: 16) {
+                        value = hexToFloat4(hexValue)
+                        print(value)
+                    }
                 }
                 
-            } else if check(.number) {
-                // Assume the number is a hexadecimal color code
-                if let hexValue = Int(parser.current.lexeme, radix: 16) {
-                    value = hexToFloat4(hexValue)
-                }
-                advance()
             }
+//            else if check(.string) {
+//                // Assume the number is a hexadecimal color code
+//                print(parser.current.lexeme)
+//                if let hexValue = Int(parser.current.lexeme, radix: 16) {
+//                    value = hexToFloat4(hexValue)
+//                    print(value)
+//                }
+//                advance()
+//            }
         }
         return value
     }

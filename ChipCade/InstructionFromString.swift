@@ -160,7 +160,6 @@ extension Instruction {
 
             
         case .txtmem:
-            print(components)
             if components.count == 4,
                components[2] == "+",
                let offset = Int(components[3]) {

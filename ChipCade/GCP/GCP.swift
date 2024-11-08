@@ -263,7 +263,7 @@ public class GCP {
                 draw2D.font = draw2D.fonts[fontName]!
                 fontSize = size
                 
-            case .text(let text, let x, let y, let colorIndex):
+            case .text(_, _, _, _):
                 layerCmds[currLayer].append(cmd)
             }
         }
