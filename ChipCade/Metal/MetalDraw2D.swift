@@ -560,7 +560,7 @@ class MetalDraw2D
     }
     
     /// Draws the given text
-    func drawText(position: float2, text: String, size: Float, color: float4 = float4(1,1,1,1))
+    func drawText(position: float2, text: String, size: Float, color: float4 = float4(1,1,1,1), rotated: Int = 0)
     {
         func drawChar(char: BMChar, x: Float, y: Float, adjScale: Float)
         {
@@ -572,8 +572,9 @@ class MetalDraw2D
             data.fontPos.y = char.y
             data.fontSize.x = char.width
             data.fontSize.y = char.height
+            data.rotated = Int32(rotated)
 
-            let rect = MRRect(x, y, char.width * adjScale, char.height * adjScale, scale: 1)
+            let rect = MRRect(x, y, char.width * adjScale * (rotated == 0 ? 1 : 2), char.height * adjScale, scale: 1)
             
             let c = color
             
@@ -607,13 +608,17 @@ class MetalDraw2D
             let adjScale : Float = scale// / 2
             
             var posX = position.x// / game.scaleFactor
-            let posY = position.y// / game.scaleFactor
+            var posY = position.y// / game.scaleFactor
 
             for c in text {
                 let bmChar = font.getItemForChar( c )
                 if bmChar != nil {
                     drawChar(char: bmChar!, x: posX + bmChar!.xoffset * adjScale, y: posY + bmChar!.yoffset * adjScale, adjScale: adjScale)
-                    posX += bmChar!.xadvance * adjScale;
+                    if rotated == 0 {
+                        posX += bmChar!.xadvance * adjScale
+                    } else {
+                        posY -= bmChar!.xadvance * adjScale + size / 5
+                    }
                 }
             }
         }

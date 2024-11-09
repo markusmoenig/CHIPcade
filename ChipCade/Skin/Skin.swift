@@ -292,8 +292,6 @@ class Skin {
                         draw2D.drawText(position: pos  + float2(offX + 15, 20), text: "Layer \(currLayer): \(game.gcp.layers[currLayer].isVisible ? "Visible" : "Invisible")", size: 15, color: textColor)
                         
                         //if game.gcp.layers[currLayer].isVisible {
-                            //var pos = float2(offX + 15, 20)
-                        
                             if let size = game.gcp.layers[currLayer].size {
                                 draw2D.drawText(position: pos + float2(offX + 15, 36), text: "Custom (\(String(Int(size.width))) x \(String(Int(size.width))))", size: 15, color: textColor)
                             } else {
@@ -302,30 +300,6 @@ class Skin {
                                 
                                 draw2D.drawText(position: pos + float2(offX + 15, 36), text: "Screen (\(String(width)) x \(String(height))", size: 15, color: textColor)
                             }
-                            
-                            /*
-                            draw2D.drawText(position: pos  + float2(offX + 120, 20), text: "X: \(String(Int(game.gcp.sprites[currSprite].position.x))), Y: \(String(Int(game.gcp.sprites[currSprite].position.y)))", size: 15, color: textColor)
-                            
-                            draw2D.drawText(
-                                position: pos + float2(offX + 260, 20),
-                                text: "Velocity: \(String(format: "%.3f", Float(game.gcp.sprites[currSprite].velocity.dx))), \(String(format: "%.3f", Float(game.gcp.sprites[currSprite].velocity.dy)))",
-                                size: 15,
-                                color: textColor
-                            )
-                            
-                            draw2D.drawText(
-                                position: pos + float2(offX + 120, 36),
-                                text: "Size: \(String(format: "%.1f", Float(game.gcp.sprites[currSprite].size.width) * Float(game.gcp.sprites[currSprite].scale))) x \(String(format: "%.1f", Float(game.gcp.sprites[currSprite].size.height) * Float(game.gcp.sprites[currSprite].scale)))",
-                                size: 15,
-                                color: textColor
-                            )
-                            
-                            draw2D.drawText(
-                                position: pos + float2(offX + 120, 52),
-                                text: "Rotation: \(String(format: "%.3f", Float(game.gcp.sprites[currSprite].rotation)))",
-                                size: 15,
-                                color: textColor
-                            )*/
                         //}
                     }
                 }
@@ -414,9 +388,13 @@ class Skin {
                     var fillColor : float4 = .one
                     var text : String = ""
                     var alpha : Float = 1.0
+                    var rotated: Int = 0
 
                     if let fontsize = item.props["fontsize"] as? Float {
                         size = fontsize
+                    }
+                    if let rot = item.props["rotated"] as? Float {
+                        rotated = Int(rot)
                     }
                     if let a = item.props["alpha"] as? Float {
                         alpha = a
@@ -428,7 +406,7 @@ class Skin {
                     if let string = item.props["string"] as? String {
                          text = string
                     }
-                    draw2D.drawText(position: pos  + float2(offX, 0), text: text, size: size, color: fillColor)
+                    draw2D.drawText(position: pos  + float2(offX, 0), text: text, size: size, color: fillColor, rotated: rotated)
                 }
             } else
             if item.type == .register {
@@ -530,7 +508,7 @@ class Skin {
                         advance()
                         item.props["size"] = readFloat2()
                     } else
-                        if lexeme == "width" || lexeme == "height" || lexeme == "rounding" || lexeme == "bordersize" || lexeme == "fontsize" || lexeme == "index" || lexeme == "alpha" {
+                        if lexeme == "width" || lexeme == "height" || lexeme == "rounding" || lexeme == "bordersize" || lexeme == "fontsize" || lexeme == "index" || lexeme == "alpha" || lexeme == "rotated" {
                         advance()
                         item.props[lexeme] = readFloat()
                     } else

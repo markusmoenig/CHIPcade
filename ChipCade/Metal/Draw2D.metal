@@ -443,7 +443,13 @@ fragment float4 m4mTextDrawable(VertexOut in [[stage_in]],
                                       min_filter::linear);
     
     float2 uv = in.textureCoordinate;
-    uv.y = 1 - uv.y;
+    if (data->rotated) {
+        float t = uv.x;
+        uv.x = uv.y;
+        uv.y = t;
+    } else {
+        uv.y = 1 - uv.y;
+    }
 
     uv /= data->atlasSize / data->fontSize;
     uv += data->fontPos / data->atlasSize;

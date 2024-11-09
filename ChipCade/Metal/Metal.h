@@ -83,6 +83,8 @@ typedef struct
     vector_float2   fontPos;
     vector_float2   fontSize;
     vector_float4   color;
+    int             rotated;
+
 } TextUniform;
 
 typedef struct
