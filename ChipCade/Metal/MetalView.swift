@@ -140,6 +140,9 @@ public class ChipCadeView       : MTKView
         if viewType == .Game {
             Game.shared.registers[9] = .unsigned16Bit(1)
             Game.shared.cpuRender.update()
+        } else {
+            Game.shared.skin.cursorMoved(pos: mousePos)
+            Game.shared.cpuRender.update()
         }
     }
     
@@ -147,6 +150,9 @@ public class ChipCadeView       : MTKView
         setMousePos(event)
         if viewType == .Game {
             Game.shared.registers[9] = .unsigned16Bit(2)
+            Game.shared.cpuRender.update()
+        } else {
+            Game.shared.skin.cursorMoved(pos: mousePos)
             Game.shared.cpuRender.update()
         }
     }
@@ -378,6 +384,7 @@ struct MetalView: NSViewRepresentable {
         mtkView.drawableSize = mtkView.frame.size
         mtkView.enableSetNeedsDisplay = true
         mtkView.isPaused = true
+        mtkView.viewType = viewType
         
         if viewType == .Game {
             game.gcp.setupView(mtkView)

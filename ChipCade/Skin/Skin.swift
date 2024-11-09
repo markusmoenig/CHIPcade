@@ -11,13 +11,16 @@ enum SkinItemType {
     case rect
     case text
     case register
+    case flag
+    case sprites
+    case layers
 }
 
 class SkinItem {
     
     let type : SkinItemType
     var props: [String: Any] = [:]
-    
+        
     init(type: SkinItemType) {
         self.type = type
     }
@@ -39,7 +42,25 @@ class Skin {
     
     var items : [SkinItem] = []
     
+    var currSprite: Int = 0
+    
+    var markerArea: float4? = nil
+    var markerWidth: Float = 0.0
+    
     init() {
+    }
+    
+    func cursorMoved(pos: float2) {
+        if let markerArea = markerArea {
+            if pos.x > markerArea.x && pos.x - markerArea.x < markerArea.z && pos.y > markerArea.y && pos.y - markerArea.y < markerArea.w {
+                let off = Int(Float(pos.x - markerArea.x) / markerWidth)
+                currSprite = off
+            } else {
+                if pos.x < markerArea.x {
+                    currSprite = 0
+                }
+            }
+        }
     }
     
     /// Draw the skin
@@ -77,6 +98,214 @@ class Skin {
                         borderColor = color
                         borderColor.w *= alpha
                     }
+                    draw2D.drawBox(position: pos + float2(offX, 0), size: size, rounding: rounding, borderSize: borderSize, fillColor: fillColor, borderColor: borderColor)
+                }
+            } else
+            if item.type == .sprites {
+                if let pos = item.props["pos"] as? float2, let size = item.props["size"] as? float2 {
+                    var rounding : Float = 0.0
+                    var borderSize : Float = 0.0
+                    var fillColor : float4 = .one
+                    var borderColor : float4 = .one
+                    var alpha : Float = 1.0
+                    
+                    if let round = item.props["rounding"] as? Float {
+                        rounding = round
+                    }
+                    if let a = item.props["alpha"] as? Float {
+                        alpha = a
+                    }
+                    if let bs = item.props["bordersize"] as? Float {
+                        borderSize = bs
+                    }
+                    if let color = item.props["color"] as? float4 {
+                        fillColor = color
+                        fillColor.w *= alpha
+                    }
+                    if let color = item.props["bordercolor"] as? float4 {
+                        borderColor = color
+                        borderColor.w *= alpha
+                    }
+                    draw2D.drawBox(position: pos + float2(offX, 0), size: size, rounding: rounding, borderSize: borderSize, fillColor: fillColor, borderColor: borderColor)
+                    
+                    var onColor : float4 = .one
+                    var offColor : float4 = .one
+
+                    if let color = item.props["oncolor"] as? float4 {
+                        onColor = color
+                        onColor.w *= alpha
+                    }
+                    if let color = item.props["offcolor"] as? float4 {
+                        offColor = color
+                        offColor.w *= alpha
+                    }
+                    
+                    // Markers
+                    
+                    var markerX = offX + 20
+                    let markerWidth = (size.x - 30.0) / 256.0
+                    
+                    if game.gcp.sprites.count == 256 {
+                        for i in 0..<256 {
+                            var color : float4 = offColor
+                            
+                            if game.gcp.sprites[i].isActive {
+                                color = onColor
+                            }
+                            
+                            draw2D.startShape()
+                            draw2D.drawRect(markerX, pos.y + 8, markerWidth, 8.0, color)
+                            draw2D.endShape()
+                            markerX += markerWidth
+                        }
+                        
+                        markerArea = float4(Float(offX) + 20.0, pos.y + 8.0, Float(size.x - 30.0), pos.y + 20.0)
+                        self.markerWidth = markerWidth
+                        
+                        // Text
+                        
+                        var textColor : float4 = .one
+                        if let color = item.props["textcolor"] as? float4 {
+                            textColor = color
+                            textColor.w *= alpha
+                        }
+                        
+                        draw2D.drawText(position: pos  + float2(offX + 15, 20), text: "Sprite \(currSprite): \(game.gcp.sprites[currSprite].isActive ? "Active" : "Inactive")", size: 15, color: textColor)
+                     
+                        if game.gcp.sprites[currSprite].isActive {
+                            //var pos = float2(offX + 15, 20)
+                            
+                            draw2D.drawText(position: pos  + float2(offX + 120, 20), text: "X: \(String(Int(game.gcp.sprites[currSprite].position.x))), Y: \(String(Int(game.gcp.sprites[currSprite].position.y)))", size: 15, color: textColor)
+                            
+                            draw2D.drawText(
+                                position: pos + float2(offX + 260, 20),
+                                text: "Velocity: \(String(format: "%.3f", Float(game.gcp.sprites[currSprite].velocity.dx))), \(String(format: "%.3f", Float(game.gcp.sprites[currSprite].velocity.dy)))",
+                                size: 15,
+                                color: textColor
+                            )
+                            
+                            draw2D.drawText(
+                                position: pos + float2(offX + 120, 36),
+                                text: "Size: \(String(format: "%.1f", Float(game.gcp.sprites[currSprite].size.width) * Float(game.gcp.sprites[currSprite].scale))) x \(String(format: "%.1f", Float(game.gcp.sprites[currSprite].size.height) * Float(game.gcp.sprites[currSprite].scale)))",
+                                size: 15,
+                                color: textColor
+                            )
+                            
+                            draw2D.drawText(
+                                position: pos + float2(offX + 120, 52),
+                                text: "Rotation: \(String(format: "%.3f", Float(game.gcp.sprites[currSprite].rotation)))",
+                                size: 15,
+                                color: textColor
+                            )
+                        }
+                    } else {
+                        markerArea = nil
+                    }
+                }
+            } else
+            if item.type == .layers {
+                if let pos = item.props["pos"] as? float2, let size = item.props["size"] as? float2 {
+                    var rounding : Float = 0.0
+                    var borderSize : Float = 0.0
+                    var fillColor : float4 = .one
+                    var borderColor : float4 = .one
+                    var alpha : Float = 1.0
+                    
+                    if let round = item.props["rounding"] as? Float {
+                        rounding = round
+                    }
+                    if let a = item.props["alpha"] as? Float {
+                        alpha = a
+                    }
+                    if let bs = item.props["bordersize"] as? Float {
+                        borderSize = bs
+                    }
+                    if let color = item.props["color"] as? float4 {
+                        fillColor = color
+                        fillColor.w *= alpha
+                    }
+                    if let color = item.props["bordercolor"] as? float4 {
+                        borderColor = color
+                        borderColor.w *= alpha
+                    }
+                    draw2D.drawBox(position: pos + float2(offX, 0), size: size, rounding: rounding, borderSize: borderSize, fillColor: fillColor, borderColor: borderColor)
+                }
+            } else
+            if item.type == .flag {
+                if let pos = item.props["pos"] as? float2, let size = item.props["size"] as? float2 {
+                    var rounding : Float = 0.0
+                    var borderSize : Float = 0.0
+                    var fillColor : float4 = .one
+                    var borderColor : float4 = .one
+                    var alpha : Float = 1.0
+                    var name = ""
+                    
+                    if let n = item.props["name"] as? String {
+                        name = n.lowercased()
+                    }
+                    if let round = item.props["rounding"] as? Float {
+                        rounding = round
+                    }
+                    if let a = item.props["alpha"] as? Float {
+                        alpha = a
+                    }
+                    if let bs = item.props["bordersize"] as? Float {
+                        borderSize = bs
+                    }
+                    if let color = item.props["bordercolor"] as? float4 {
+                        borderColor = color
+                        borderColor.w *= alpha
+                    }
+                    
+                    if name == "zf" {
+                        if game.flags.zeroFlag {
+                            if let color = item.props["oncolor"] as? float4 {
+                                fillColor = color
+                                fillColor.w *= alpha
+                            }
+                        } else
+                       if let color = item.props["offcolor"] as? float4 {
+                           fillColor = color
+                           fillColor.w *= alpha
+                       }
+                    } else
+                    if name == "cf" {
+                        if game.flags.carryFlag {
+                            if let color = item.props["oncolor"] as? float4 {
+                                fillColor = color
+                                fillColor.w *= alpha
+                            }
+                        } else
+                       if let color = item.props["offcolor"] as? float4 {
+                           fillColor = color
+                           fillColor.w *= alpha
+                       }
+                    } else
+                    if name == "of" {
+                        if game.flags.overflowFlag {
+                            if let color = item.props["oncolor"] as? float4 {
+                                fillColor = color
+                                fillColor.w *= alpha
+                            }
+                        } else
+                       if let color = item.props["offcolor"] as? float4 {
+                           fillColor = color
+                           fillColor.w *= alpha
+                       }
+                    } else
+                    if name == "nf" {
+                        if game.flags.negativeFlag {
+                            if let color = item.props["oncolor"] as? float4 {
+                                fillColor = color
+                                fillColor.w *= alpha
+                            }
+                        } else
+                       if let color = item.props["offcolor"] as? float4 {
+                           fillColor = color
+                           fillColor.w *= alpha
+                       }
+                    }
+                    
                     draw2D.drawBox(position: pos + float2(offX, 0), size: size, rounding: rounding, borderSize: borderSize, fillColor: fillColor, borderColor: borderColor)
                 }
             } else
@@ -177,6 +406,18 @@ class Skin {
                 if lexeme == "register" {
                     items.append(SkinItem(type: .register))
                     advance()
+                } else
+                if lexeme == "flag" {
+                    items.append(SkinItem(type: .flag))
+                    advance()
+                } else
+                if lexeme == "sprites" {
+                    items.append(SkinItem(type: .sprites))
+                    advance()
+                } else
+                if lexeme == "layers" {
+                    items.append(SkinItem(type: .layers))
+                    advance()
                 }
                 
                 // Check for properties
@@ -194,11 +435,11 @@ class Skin {
                         advance()
                         item.props[lexeme] = readFloat()
                     } else
-                    if lexeme == "color" || lexeme == "bordercolor" {
+                    if lexeme == "color" || lexeme == "bordercolor" || lexeme == "oncolor" || lexeme == "offcolor" || lexeme == "textcolor" {
                         advance()
                         item.props[lexeme] = readColor()
                     } else
-                    if lexeme == "string" {
+                    if lexeme == "string" || lexeme == "name" {
                         advance()
                         item.props[lexeme] = readString()
                     }
