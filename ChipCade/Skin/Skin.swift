@@ -47,17 +47,32 @@ class Skin {
     var markerArea: float4? = nil
     var markerWidth: Float = 0.0
     
+    var currLayer: Int = 0
+
+    var layerMarkerArea: float4? = nil
+    var layerMarkerWidth: Float = 0.0
+    
     init() {
     }
     
     func cursorMoved(pos: float2) {
         if let markerArea = markerArea {
-            if pos.x > markerArea.x && pos.x - markerArea.x < markerArea.z && pos.y > markerArea.y && pos.y - markerArea.y < markerArea.w {
+            if pos.x > markerArea.x && pos.x - markerArea.x < markerArea.z {//}&& pos.y > markerArea.y && pos.y - markerArea.y < markerArea.w {
                 let off = Int(Float(pos.x - markerArea.x) / markerWidth)
                 currSprite = off
             } else {
                 if pos.x < markerArea.x {
                     currSprite = 0
+                }
+            }
+        }
+        if let layerMarkerArea = layerMarkerArea {
+            if pos.x > layerMarkerArea.x && pos.x - layerMarkerArea.x < layerMarkerArea.z {//}&& pos.y > markerArea.y && pos.y - markerArea.y < markerArea.w {
+                let off = Int(Float(pos.x - layerMarkerArea.x) / layerMarkerWidth)
+                currLayer = off
+            } else {
+                if pos.x < layerMarkerArea.x {
+                    currLayer = 0
                 }
             }
         }
@@ -142,7 +157,7 @@ class Skin {
                     
                     // Markers
                     
-                    var markerX = offX + 20
+                    var markerX = offX + pos.x + 15
                     let markerWidth = (size.x - 30.0) / 256.0
                     
                     if game.gcp.sprites.count == 256 {
@@ -159,7 +174,7 @@ class Skin {
                             markerX += markerWidth
                         }
                         
-                        markerArea = float4(Float(offX) + 20.0, pos.y + 8.0, Float(size.x - 30.0), pos.y + 20.0)
+                        markerArea = float4(Float(offX) + pos.x + 15.0, pos.y + 8.0, Float(size.x - 30.0), pos.y + 20.0)
                         self.markerWidth = markerWidth
                         
                         // Text
@@ -175,7 +190,9 @@ class Skin {
                         if game.gcp.sprites[currSprite].isActive {
                             //var pos = float2(offX + 15, 20)
                             
-                            draw2D.drawText(position: pos  + float2(offX + 120, 20), text: "X: \(String(Int(game.gcp.sprites[currSprite].position.x))), Y: \(String(Int(game.gcp.sprites[currSprite].position.y)))", size: 15, color: textColor)
+                            draw2D.drawText(position: pos  + float2(offX + 120, 20), text: "X: \(String(Int(game.gcp.sprites[currSprite].position.x)))", size: 15, color: textColor)
+                            
+                            draw2D.drawText(position: pos  + float2(offX + 165, 20), text: "Y: \(String(Int(game.gcp.sprites[currSprite].position.y)))", size: 15, color: textColor)
                             
                             draw2D.drawText(
                                 position: pos + float2(offX + 260, 20),
@@ -229,6 +246,88 @@ class Skin {
                         borderColor.w *= alpha
                     }
                     draw2D.drawBox(position: pos + float2(offX, 0), size: size, rounding: rounding, borderSize: borderSize, fillColor: fillColor, borderColor: borderColor)
+                    
+                    var onColor : float4 = .one
+                    var offColor : float4 = .one
+
+                    if let color = item.props["oncolor"] as? float4 {
+                        onColor = color
+                        onColor.w *= alpha
+                    }
+                    if let color = item.props["offcolor"] as? float4 {
+                        offColor = color
+                        offColor.w *= alpha
+                    }
+                    
+                    // Markers
+                    
+                    var markerX = offX + pos.x + 20
+                    let markerWidth = (size.x - 20.0) / 8.0
+                    
+                    if game.gcp.layers.count == 8 {
+                        for i in 0..<7 {
+                            var color : float4 = offColor
+                            
+                            if game.gcp.layers[i].isVisible {
+                                color = onColor
+                            }
+                            
+                            draw2D.startShape()
+                            draw2D.drawRect(markerX, pos.y + 8, markerWidth, 8.0, color)
+                            draw2D.endShape()
+                            markerX += markerWidth
+                        }
+                        
+                        layerMarkerArea = float4(Float(offX) + pos.x + 20.0, pos.y + 8.0, Float(size.x - 20.0), pos.y + 20.0)
+                        self.layerMarkerWidth = markerWidth
+                        
+                        // Text
+                        
+                        var textColor : float4 = .one
+                        if let color = item.props["textcolor"] as? float4 {
+                            textColor = color
+                            textColor.w *= alpha
+                        }
+                        
+                        draw2D.drawText(position: pos  + float2(offX + 15, 20), text: "Layer \(currLayer): \(game.gcp.layers[currLayer].isVisible ? "Visible" : "Invisible")", size: 15, color: textColor)
+                        
+                        //if game.gcp.layers[currLayer].isVisible {
+                            //var pos = float2(offX + 15, 20)
+                        
+                            if let size = game.gcp.layers[currLayer].size {
+                                draw2D.drawText(position: pos + float2(offX + 15, 36), text: "Custom (\(String(Int(size.width))) x \(String(Int(size.width))))", size: 15, color: textColor)
+                            } else {
+                                let width = Int(Game.shared.gcp.draw2D.metalView.frame.width)
+                                let height = Int(Game.shared.gcp.draw2D.metalView.frame.height)
+                                
+                                draw2D.drawText(position: pos + float2(offX + 15, 36), text: "Screen (\(String(width)) x \(String(height))", size: 15, color: textColor)
+                            }
+                            
+                            /*
+                            draw2D.drawText(position: pos  + float2(offX + 120, 20), text: "X: \(String(Int(game.gcp.sprites[currSprite].position.x))), Y: \(String(Int(game.gcp.sprites[currSprite].position.y)))", size: 15, color: textColor)
+                            
+                            draw2D.drawText(
+                                position: pos + float2(offX + 260, 20),
+                                text: "Velocity: \(String(format: "%.3f", Float(game.gcp.sprites[currSprite].velocity.dx))), \(String(format: "%.3f", Float(game.gcp.sprites[currSprite].velocity.dy)))",
+                                size: 15,
+                                color: textColor
+                            )
+                            
+                            draw2D.drawText(
+                                position: pos + float2(offX + 120, 36),
+                                text: "Size: \(String(format: "%.1f", Float(game.gcp.sprites[currSprite].size.width) * Float(game.gcp.sprites[currSprite].scale))) x \(String(format: "%.1f", Float(game.gcp.sprites[currSprite].size.height) * Float(game.gcp.sprites[currSprite].scale)))",
+                                size: 15,
+                                color: textColor
+                            )
+                            
+                            draw2D.drawText(
+                                position: pos + float2(offX + 120, 52),
+                                text: "Rotation: \(String(format: "%.3f", Float(game.gcp.sprites[currSprite].rotation)))",
+                                size: 15,
+                                color: textColor
+                            )*/
+                        //}
+                    }
                 }
             } else
             if item.type == .flag {
