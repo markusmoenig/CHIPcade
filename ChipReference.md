@@ -93,6 +93,7 @@ Layers are drawn starting from index 0 up to 7. By default layers are in the res
 - **SPRX Sd (Value|Rs)**. Set the x position of the sprite.
 - **SPRY Sd (Value|Rs)**. Set the y position of the sprite.
 - **SPRROT Sd (Value|Rs)**. Set the rotation of the sprite.
+- **SPRROO Sd (Value|Rs)**. Set the rotation offset of the sprite. By default, CHIPcade assumes sprites are oriented upwards (0° points up). If a sprite, like a bullet, is designed to face right, you can apply a rotation offset of **-90s** to align it correctly. This offset adjusts the sprite’s default orientation, effectively rotating it an additional 90° counterclockwise.
 - **SPRPRI Sd (Value|Rs)**. Set the priority of the sprite. Sprite with a higher priority are drawn on top of sprites with a lower priority. Default is 0.
 - **SPRALP Sd (Value|Rs)**. Set the alpha value of the sprite. Default is 1.0 (fully opaque).
 - **SPRSCL Sd (Value|Rs)**. Set the scale of the sprite. Default is 1.0.

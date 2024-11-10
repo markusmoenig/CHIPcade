@@ -213,7 +213,7 @@ struct CodeItemListView: View {
                             )
                         case .ld:
                             HStack {
-                                Int8RegisterMenu(
+                                Int8FullRegisterMenu(
                                     selectedRegister: Binding(
                                         get: { instruction.register1! },
                                         set: { newRegister in
@@ -233,7 +233,7 @@ struct CodeItemListView: View {
                             }
                         case .ldi, .rand:
                             HStack {
-                                Int8RegisterMenu(
+                                Int8FullRegisterMenu(
                                     selectedRegister: Binding(
                                         get: { instruction.register1! },
                                         set: { newRegister in
@@ -284,7 +284,7 @@ struct CodeItemListView: View {
                                     index: index
                                 )                                
                             }                            
-                        case .sprgrp, .sprcol, .sprfps, .sprfri, .sprrot, .sprx, .spry, .sprspd, .spracc, .sprimg, .sprmxs, .sprpri, .spract, .sprwrp, .spralp, .sprscl:
+                        case .sprgrp, .sprcol, .sprfps, .sprfri, .sprroo, .sprrot, .sprx, .spry, .sprspd, .spracc, .sprimg, .sprmxs, .sprpri, .spract, .sprwrp, .spralp, .sprscl:
                             HStack {
                                 SpriteIndexTextField(
                                     spriteIndex: Binding(

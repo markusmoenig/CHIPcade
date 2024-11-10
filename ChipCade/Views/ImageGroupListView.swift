@@ -93,14 +93,17 @@ struct ImageGroupItemListView: View {
     #if os(macOS)
     private func openFileDialogMacOS() {
         let panel = NSOpenPanel()
-        panel.allowsMultipleSelection = false
+        panel.allowsMultipleSelection = true
         panel.canChooseFiles = true
         panel.allowedContentTypes = [.png, .jpeg]
-        if panel.runModal() == .OK, let url = panel.url {
-            if let imageData = try? Data(contentsOf: url) {
-                imageGroupItem.images.append(imageData)
-                selectedImageIndex = imageGroupItem.images.count - 1
+
+        if panel.runModal() == .OK {
+            for url in panel.urls {
+                if let imageData = try? Data(contentsOf: url) {
+                    imageGroupItem.images.append(imageData)
+                }
             }
+            selectedImageIndex = imageGroupItem.images.count - 1
         }
     }
     #endif

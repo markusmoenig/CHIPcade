@@ -51,6 +51,7 @@ public enum InstructionType: String, Codable, CaseIterable {
     case sprlyr
     case sprmxs
     case sprpri
+    case sprroo
     case sprrot
     case sprscl
     case sprset
@@ -130,7 +131,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
             register1 = 0
             memory = "Data"
             memoryOffset = 0
-        case .ldi, .sprcol, .sprgrp, .sprfri, .spracc, .sprrot, .sprspd, .spract, .sprx, .spry, .sprwrp, .sprimg, .sprmxs, .sprpri, .spralp, .sprscl:
+        case .ldi, .sprcol, .sprgrp, .sprfri, .spracc, .sprroo, .sprrot, .sprspd, .spract, .sprx, .spry, .sprwrp, .sprimg, .sprmxs, .sprpri, .spralp, .sprscl:
             register1 = 0
             value = .unsigned16Bit(0)
         case .rand:
@@ -345,6 +346,9 @@ public class Instruction: ObservableObject, Codable, Equatable {
           
         case .sprpri:
             return "SPRPRI S\(register1!) \(value!.toString())"
+         
+        case .sprroo:
+            return "SPRROO S\(register1!) \(value!.toString())"
             
         case .sprrot:
             return "SPRROT S\(register1!) \(value!.toString())"
@@ -521,6 +525,9 @@ public class Instruction: ObservableObject, Codable, Equatable {
         case .sprpri:
             return "SPRPRI Sd (Value|Rs)"
             
+        case .sprroo:
+            return "SPRROO Sd (Value|Rs)"
+            
         case .sprrot:
             return "SPRROT Sd (Value|Rs)"
             
@@ -651,6 +658,8 @@ public class Instruction: ObservableObject, Codable, Equatable {
             return "Set sprite maximum speed."
         case .sprpri:
             return "Set sprite priority."
+        case .sprroo:
+            return "Set sprite rotation offset."
         case .sprrot:
             return "Set sprite rotation."
         case .sprset:

@@ -14,6 +14,7 @@ public enum GCPCmd  {
     case spract(spriteIndex: Int, value: Int)
     case sprx(spriteIndex: Int, value: Int)
     case spry(spriteIndex: Int, value: Int)
+    case sprroo(spriteIndex: Int, value: Float)
     case sprrot(spriteIndex: Int, value: Float)
     case sprspd(spriteIndex: Int, value: Float)
     case spracc(spriteIndex: Int, value: Float)
@@ -197,6 +198,9 @@ public class GCP {
                 
             case .spract(let spriteIndex, let value) :
                 sprites[spriteIndex].isActive = Bool(value != 0)
+             
+            case .sprroo(let spriteIndex, let value) :
+                sprites[spriteIndex].rotationOffset = CGFloat(value)
                 
             case .sprrot(let spriteIndex, let value) :
                 sprites[spriteIndex].setRotation(value)
@@ -328,7 +332,7 @@ public class GCP {
                         }
                         
                         draw2D.startShape(type: .triangle)
-                        draw2D.drawRect(spriteX, spriteY, spriteWidth, spriteHeight, float4(0, 0, 0, Float(sprite.alpha)), Float(sprite.rotation), aspectX, aspectY)
+                        draw2D.drawRect(spriteX, spriteY, spriteWidth, spriteHeight, float4(0, 0, 0, Float(sprite.alpha)), Float(sprite.rotation + sprite.rotationOffset), aspectX, aspectY)
                         draw2D.endShape(externalTexture: imageGroup.images[index])
                         
                         if sprite.isWrapped {
@@ -347,14 +351,14 @@ public class GCP {
                                 let x = sprite.position.x
                                 if x > -bufferX {
                                     draw2D.startShape(type: .triangle)
-                                    draw2D.drawRect(Float(layerSize.width + x) / scaleX, spriteY, spriteWidth, spriteHeight, float4(0, 0, 0, 1), Float(sprite.rotation), aspectX, aspectY)
+                                    draw2D.drawRect(Float(layerSize.width + x) / scaleX, spriteY, spriteWidth, spriteHeight, float4(0, 0, 0, 1), Float(sprite.rotation + sprite.rotationOffset), aspectX, aspectY)
                                     draw2D.endShape(externalTexture: imageGroup.images[index])
                                 }
                             } else if sprite.position.x > layerSize.width - bufferX {
                                 let x = sprite.position.x - (layerSize.width - bufferX)
                                 if x < bufferX {
                                     draw2D.startShape(type: .triangle)
-                                    draw2D.drawRect(Float(x - bufferX) / scaleX, spriteY, spriteWidth, spriteHeight, float4(0, 0, 0, 1), Float(sprite.rotation), aspectX, aspectY)
+                                    draw2D.drawRect(Float(x - bufferX) / scaleX, spriteY, spriteWidth, spriteHeight, float4(0, 0, 0, 1), Float(sprite.rotation + sprite.rotationOffset), aspectX, aspectY)
                                     draw2D.endShape(externalTexture: imageGroup.images[index])
                                 }
                             }
@@ -364,14 +368,14 @@ public class GCP {
                                 let y = sprite.position.y
                                 if y > -bufferY {
                                     draw2D.startShape(type: .triangle)
-                                    draw2D.drawRect(spriteX, Float(layerSize.height + y) / scaleY, spriteWidth, spriteHeight, float4(0, 0, 0, 1), Float(sprite.rotation), aspectX, aspectY)
+                                    draw2D.drawRect(spriteX, Float(layerSize.height + y) / scaleY, spriteWidth, spriteHeight, float4(0, 0, 0, 1), Float(sprite.rotation + sprite.rotationOffset), aspectX, aspectY)
                                     draw2D.endShape(externalTexture: imageGroup.images[index])
                                 }
                             } else if sprite.position.y > layerSize.height - bufferY {
                                 let y = sprite.position.y - (layerSize.height - bufferY)
                                 if y < bufferY {
                                     draw2D.startShape(type: .triangle)
-                                    draw2D.drawRect(spriteX, Float(y - bufferY) / scaleY, spriteWidth, spriteHeight, float4(0, 0, 0, 1), Float(sprite.rotation), aspectX, aspectY)
+                                    draw2D.drawRect(spriteX, Float(y - bufferY) / scaleY, spriteWidth, spriteHeight, float4(0, 0, 0, 1), Float(sprite.rotation + sprite.rotationOffset), aspectX, aspectY)
                                     draw2D.endShape(externalTexture: imageGroup.images[index])
                                 }
                             }

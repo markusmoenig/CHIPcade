@@ -191,7 +191,7 @@ extension Instruction {
                 return nil
             }
             
-        case .spracc, .sprrot, .sprspd, .sprx, .spry, .sprimg, .sprmxs, .sprpri, .spract, .sprwrp, .spralp, .sprscl:
+        case .spracc, .sprroo, .sprrot, .sprspd, .sprx, .spry, .sprimg, .sprmxs, .sprpri, .spract, .sprwrp, .spralp, .sprscl:
             // XXXXXX Sd Rs
             if components.count == 3,
                let reg1 = parseRegister(components[1]),

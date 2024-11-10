@@ -8,6 +8,7 @@
 enum ChipCadeError: Error {
     case none
     case syntaxError
+    case invalidRegister
     case invalidMemoryAddress
     case invalidCodeAddress
     case invalidComparison
@@ -24,6 +25,8 @@ enum ChipCadeError: Error {
             return "No error"
         case .syntaxError:
             return "Syntax Error"
+        case .invalidRegister:
+            return "Invalid Register"
         case .invalidMemoryAddress:
             return "Invalid memory address"
         case .invalidCodeAddress:

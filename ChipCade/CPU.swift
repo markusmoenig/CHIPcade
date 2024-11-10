@@ -181,38 +181,62 @@ public class CPU {
         
         case .ld    :
             if let value = game.getMemoryValue(memoryItemName: instruction.memory!, offset: instruction.memoryOffset!) {
-                game.registers[Int(instruction.register1!)] = value
+                let register = Int(instruction.register1!)
+                if register <= 11 {
+                    game.registers[register] = value
+                } else {
+                    game.setError(.invalidRegister)
+                }
             } else {
                 game.setError(.invalidMemoryAddress)
             }
         
-        case .ldi   : game.registers[Int(instruction.register1!)] = instruction.value!.resolve(game)
+        case .ldi   :
+            let register = Int(instruction.register1!)
+            if register <= 11 {
+                game.registers[register] = instruction.value!.resolve(game)
+            } else {
+                game.setError(.invalidRegister)
+            }
         
         case .ldresx:
-            game.registers[Int(instruction.register1!)] = .unsigned16Bit(UInt16(gcp.draw2D.metalView.frame.size.width))
+            let register = Int(instruction.register1!)
+            if register <= 11 {
+                game.registers[Int(instruction.register1!)] = .unsigned16Bit(UInt16(gcp.draw2D.metalView.frame.size.width))
+            } else {
+                game.setError(.invalidRegister)
+            }
         
         case .ldresy:
-            game.registers[Int(instruction.register1!)] = .unsigned16Bit(UInt16(gcp.draw2D.metalView.frame.size.height))
-        
+            let register = Int(instruction.register1!)
+            if register <= 11 {
+                game.registers[Int(instruction.register1!)] = .unsigned16Bit(UInt16(gcp.draw2D.metalView.frame.size.height))
+            } else {
+                game.setError(.invalidRegister)
+            }
+            
         case .ldspr   :
             let spriteIndex = Int(instruction.register2!)
             if spriteIndex >= 0 && spriteIndex <= 255 {
                 let register = Int(instruction.register1!)
-                switch instruction.memory?.lowercased() {
-                 
-                case "x":
-                    game.registers[register] = .signed16Bit(Int16(gcp.sprites[spriteIndex].position.x))
-                    
-                case "y":
-                    game.registers[register] = .signed16Bit(Int16(gcp.sprites[spriteIndex].position.y))
-
-                case "speed":
-                    game.registers[register] = .float16Bit(ChipCadeData.float32ToFloat16(Float(gcp.sprites[spriteIndex].speed)))
-                    
-                default:
-                    break
+                if register <= 11 {
+                    switch instruction.memory?.lowercased() {
+                        
+                    case "x":
+                        game.registers[register] = .signed16Bit(Int16(gcp.sprites[spriteIndex].position.x))
+                        
+                    case "y":
+                        game.registers[register] = .signed16Bit(Int16(gcp.sprites[spriteIndex].position.y))
+                        
+                    case "speed":
+                        game.registers[register] = .float16Bit(ChipCadeData.float32ToFloat16(Float(gcp.sprites[spriteIndex].speed)))
+                        
+                    default:
+                        break
+                    }
+                } else {
+                    game.setError(.invalidRegister)
                 }
-                
             } else {
                 game.setError(.invalidSpriteIndex)
             }
@@ -330,6 +354,14 @@ public class CPU {
             let spriteIndex = Int(instruction.register1!)
             if spriteIndex >= 0 && spriteIndex <= 255 {
                 gcp.addCmd(.spract(spriteIndex: Int(instruction.register1!), value: instruction.value!.resolve(game).toInt32Bit()))
+            } else {
+                game.setError(.invalidSpriteIndex)
+            }
+            
+        case .sprroo:
+            let spriteIndex = Int(instruction.register1!)
+            if spriteIndex >= 0 && spriteIndex <= 255 {
+                gcp.addCmd(.sprroo(spriteIndex: Int(instruction.register1!), value: instruction.value!.resolve(game).toFloat32Bit()))
             } else {
                 game.setError(.invalidSpriteIndex)
             }
@@ -496,7 +528,7 @@ public class CPU {
                         } else {
                             break;
                         }
-                    }                    
+                    }
                     gcp.addCmd(.text(text: text, x: x, y: y, colorIndex: colorIndex))
                 }
             } else {
