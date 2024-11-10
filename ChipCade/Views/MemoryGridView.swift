@@ -22,7 +22,8 @@ struct MemoryGridView: View {
                     ForEach(0..<memoryItem.memory.count / bytesPerLine, id: \.self) { lineIndex in
                         HStack {
                             let lineStart = lineIndex * bytesPerLine
-                            Text(String(format: "%03X", lineStart))
+//                            Text(String(format: "%03X", lineStart))
+                            Text(String(format: "%04d", lineStart))
                                 .font(.system(.body, design: .monospaced))
                                 .frame(width: 40, alignment: .leading)
 

@@ -53,6 +53,9 @@ struct ContentView: View {
     @State private var infoViewIcon: String = "info.circle.fill"
     @State private var stackViewIcon: String = "square.3.layers.3d"
 
+    @State private var playIcon: String = "play"
+    @State private var stopIcon: String = "stop.fill"
+
     @AppStorage("editingMode") private var editingMode: Int = EditingMode.list.rawValue
     @AppStorage("editingIcon") private var editingIcon: String = "list.bullet.rectangle"
     
@@ -360,8 +363,10 @@ struct ContentView: View {
                 
                 Button(action: {
                     document.game.play()
+                    playIcon = "play.fill"
+                    stopIcon = "stop"
                 }) {
-                    Label("Play", systemImage: "play.fill")
+                    Label("Play", systemImage: playIcon)
                 }
                 .keyboardShortcut("R")
 
@@ -376,8 +381,10 @@ struct ContentView: View {
                 
                 Button(action: {
                     document.game.stop()
+                    playIcon = "play"
+                    stopIcon = "stop.fill"
                 }) {
-                    Label("Stop", systemImage: "stop.fill")
+                    Label("Stop", systemImage: stopIcon)
                 }
                 
                 Spacer()
@@ -446,7 +453,9 @@ struct ContentView: View {
             } else {
                 referenceText = "Reference document not found."
             }
-            //document.game.play()
+            #if os(macOS)
+            document.game.play(initOnly: true)            
+            #endif
             document.game.skin.compile(text: document.game.data.skin)
             Game.shared.scriptEditor?.setTheme(colorScheme)
         }

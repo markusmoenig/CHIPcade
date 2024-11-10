@@ -480,9 +480,25 @@ public class CPU {
             let x = game.registers[0].toFloat32Bit()
             let y = game.registers[1].toFloat32Bit()
             let colorIndex = game.registers[2].toInt32Bit()
-            if let value = game.getMemoryValue(memoryItemName: instruction.memory!, offset: instruction.memoryOffset!) {
-                let text: String = value.toString(false)
-                gcp.addCmd(.text(text: value.toString(false), x: x, y: y, colorIndex: colorIndex))
+            var offset = instruction.memoryOffset!
+            if var value = game.getMemoryValue(memoryItemName: instruction.memory!, offset: offset) {
+                if !value.isUnicode() {
+                    gcp.addCmd(.text(text: value.toString(false), x: x, y: y, colorIndex: colorIndex))
+                } else {
+                    var text: String = value.toChar()
+                    while value.isUnicode() {
+                        offset += 1
+                        if let val = game.getMemoryValue(memoryItemName: instruction.memory!, offset: offset) {
+                            if val.isUnicode() {
+                                text += val.toChar()
+                            }
+                            value = val
+                        } else {
+                            break;
+                        }
+                    }                    
+                    gcp.addCmd(.text(text: text, x: x, y: y, colorIndex: colorIndex))
+                }
             } else {
                 game.setError(.invalidMemoryAddress)
             }

@@ -96,8 +96,8 @@ public class Game : ObservableObject
         cpu.game = self
     }
     
-    // Start playback, execute init
-    public func play() {
+    // Executes init, if initOnly is set just updates the display for preview, otherwise starts playback.
+    public func play(initOnly: Bool = false) {
         reset()
              
         prevCodeItemIndex = currCodeItemIndex
@@ -111,14 +111,22 @@ public class Game : ObservableObject
         error = .none
         state = .running
         
-        gcp.draw2D.metalView.enableSetNeedsDisplay = false
-        gcp.draw2D.metalView.isPaused = false
+        if !initOnly {
+            gcp.draw2D.metalView.enableSetNeedsDisplay = false
+            gcp.draw2D.metalView.isPaused = false
+        }
         
         // init
         execute()
         
         currCodeItemIndex = prevCodeItemIndex
         currInstructionIndex = prevInstructionIndex
+        
+        if initOnly {
+            reset()
+            gcp.draw2D.update()
+            cpuRender.update()
+        }
     }
     
     // Stop playback

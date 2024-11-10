@@ -200,6 +200,15 @@ enum ChipCadeData: Codable {
         default: return false
         }
     }
+    
+    /// Checks if the value is an unicode char
+    func isUnicode() -> Bool {
+        switch self {
+        case .unicodeChar(_):
+            return true
+        default: return false
+        }
+    }
 
     // MARK: - Static Function for 32-bit Color to 16-bit Conversion
 
@@ -288,6 +297,17 @@ enum ChipCadeData: Codable {
             return "Unicode Char: \(String(UnicodeScalar(unicodeVal) ?? "?"))"
         case .register(let register):
             return String(format: "Register: R\(register)")
+        }
+    }
+    
+    // Convert to a character
+    func toChar(_ identifier: Bool = true) -> String {
+        switch self {
+        case .unicodeChar(let unicodeVal):
+            let char = String(UnicodeScalar(unicodeVal) ?? "?")
+            return "\(char)"
+        default:
+            return ""
         }
     }
     

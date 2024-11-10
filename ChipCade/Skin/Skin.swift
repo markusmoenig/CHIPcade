@@ -298,7 +298,7 @@ class Skin {
                                 let width = Int(Game.shared.gcp.draw2D.metalView.frame.width)
                                 let height = Int(Game.shared.gcp.draw2D.metalView.frame.height)
                                 
-                                draw2D.drawText(position: pos + float2(offX + 15, 36), text: "Screen (\(String(width)) x \(String(height))", size: 15, color: textColor)
+                                draw2D.drawText(position: pos + float2(offX + 15, 36), text: "Screen (\(String(width)) x \(String(height)))", size: 15, color: textColor)
                             }
                         //}
                     }
