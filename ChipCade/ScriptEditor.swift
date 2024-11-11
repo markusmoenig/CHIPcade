@@ -284,7 +284,6 @@ class ScriptEditor
     
     func setSession(_ session: String)
     {
-        print("set session \(session)")
         let cmd = """
         editor.setSession(\(session))
         """
@@ -296,19 +295,29 @@ class ScriptEditor
     {
         let cmd : String
         
-        if !Game.shared.skinMode {
+        if Game.shared.editorMode == .code {
             cmd = """
             \(session).setValue(`\(value)`)
             \(session).setMode("ace/mode/chipcade");
             editor.moveCursorTo(\(line), 0);
-            editor.gotoLine(\(line))
+            editor.gotoLine(\(line));
+            editor.setReadOnly(false);            
             """
-        } else {
+        } else if Game.shared.editorMode == .skin {
             cmd = """
             \(session).setValue(`\(value)`)
             \(session).setMode("ace/mode/chipcade_skin");
             editor.moveCursorTo(\(line), 0);
-            editor.gotoLine(\(line))
+            editor.gotoLine(\(line));
+            editor.setReadOnly(false);            
+            """
+        } else {//if Game.shared.editorMode == .library {
+            cmd = """
+            \(session).setValue(`\(value)`)
+            \(session).setMode("ace/mode/chipcade");
+            editor.moveCursorTo(\(line), 0);
+            editor.gotoLine(\(line));
+            editor.setReadOnly(true);            
             """
         }
 
@@ -329,11 +338,11 @@ class ScriptEditor
     /// Script has changed
     func updated()
     {
-        if !Game.shared.skinMode {
+        if Game.shared.editorMode == .code {
             getSessionValue("mainSession", { (value) in
                 Game.shared.codeTextChanged.send(value)
             })
-        } else {
+        } else if Game.shared.editorMode == .skin {
             getSessionValue("mainSession", { (value) in
                 Game.shared.data.skin = value
                 Game.shared.codeTextChanged.send(value)
@@ -416,13 +425,15 @@ struct SwiftUIWebView: NSViewRepresentable {
                     
                     if let editor = Game.shared.scriptEditor {
                         editor.setTheme(colorScheme)
-                        if Game.shared.skinMode == false {
+                        if Game.shared.editorMode == .code {
                             if let codeItem = Game.shared.getCodeItem() {
                                 editor.setSessionValue("mainSession",  codeItem.source, codeItem.currLine)
                             }
-                        } else {
+                        } else if Game.shared.editorMode == .skin {
                             editor.setSessionValue("mainSession",  Game.shared.data.skin, 0)
-                        }
+                        } else if Game.shared.editorMode == .mathLibrary {
+                            editor.setSessionValue("mainSession",  Game.shared.mathSource, 0)
+                       }
                     }
                 }
             }

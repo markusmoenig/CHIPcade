@@ -21,6 +21,12 @@ public enum SelectionState {
     case data
 }
 
+public enum EditorMode {
+    case code
+    case skin
+    case mathLibrary
+}
+
 public class Game : ObservableObject
 {
     static var shared = Game()
@@ -75,9 +81,10 @@ public class Game : ObservableObject
     
     // The Math Library
     var mathLib: [Instruction] = []
+    var mathSource: String = ""
     
     // We are currently editing a skin
-    var skinMode = false
+    var editorMode : EditorMode = .code
     
     private enum CodingKeys: String, CodingKey {
         case codeItems
@@ -104,8 +111,8 @@ public class Game : ObservableObject
     public func compileStandardModules() {
         if let path = Bundle.main.path(forResource: "MathLib", ofType: "") {
             do {
-                let mathLibContent = try String(contentsOfFile: path, encoding: .utf8)
-                let errorLine = compile(string: mathLibContent, instructions: &mathLib)
+                mathSource = try String(contentsOfFile: path, encoding: .utf8)
+                let errorLine = compile(string: mathSource, instructions: &mathLib)
                 if let errorLine = errorLine {
                     print("Error in MathLib at \(String(describing: errorLine))")
                 }

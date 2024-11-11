@@ -28,6 +28,7 @@ struct ContentView: View {
     @State private var isPaletteSelected: Bool = false
     @State private var isNotesSelected: Bool = false
     @State private var isSkinSelected: Bool = false
+    @State private var isMathLibrarySelected: Bool = false
     @State private var isReferenceSelected: Bool = false
 
     @State private var notes: String = ""
@@ -95,6 +96,7 @@ struct ContentView: View {
                     isNotesSelected = false
                     isReferenceSelected = false
                     isSkinSelected = false
+                    isMathLibrarySelected = false
                 }) {
                     HStack {
                         Text("Palette")
@@ -118,6 +120,7 @@ struct ContentView: View {
                     isNotesSelected = true
                     isReferenceSelected = false
                     isSkinSelected = false
+                    isMathLibrarySelected = false
                 }) {
                     HStack {
                         Text("Notes")
@@ -141,7 +144,8 @@ struct ContentView: View {
                     isNotesSelected = false
                     isReferenceSelected = false
                     isSkinSelected = true
-                    Game.shared.skinMode = true
+                    isMathLibrarySelected = false
+                    Game.shared.editorMode = .skin
                     Game.shared.scriptEditor?.setSessionValue("mainSession", Game.shared.data.skin, 0)
                 }) {
                     HStack {
@@ -162,6 +166,34 @@ struct ContentView: View {
                 Divider()
                 #endif
                 
+                Section(header: Text("Standard").font(.headline)) {
+                    Button(action: {
+                        selectedCodeItem = nil
+                        selectedImageGroupItem = nil
+                        selectedMemoryItem = nil
+                        isPaletteSelected = false
+                        isNotesSelected = false
+                        isReferenceSelected = false
+                        isSkinSelected = false
+                        isMathLibrarySelected = true
+                        Game.shared.editorMode = .mathLibrary
+                        Game.shared.scriptEditor?.setSessionValue("mainSession", Game.shared.mathSource, 0)
+                    }) {
+                        HStack {
+                            Text("Math Library")
+                                .foregroundColor(.primary)
+                                .padding(.leading, 10)
+                            Spacer()
+                        }
+                        .padding(.vertical, 6)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill((isMathLibrarySelected) ? Color.accentColor.opacity(0.2) : Color.clear)
+                        )
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                }
+                
                 Button(action: {
                     selectedCodeItem = nil
                     selectedImageGroupItem = nil
@@ -170,6 +202,7 @@ struct ContentView: View {
                     isNotesSelected = false
                     isReferenceSelected = true
                     isSkinSelected = false
+                    isMathLibrarySelected = false
                 }) {
                     HStack {
                         Text("Chip Reference")
@@ -228,7 +261,9 @@ struct ContentView: View {
                                 Markdown(referenceText)
                                     .padding(4)
                             }
-                        }
+                        } else if isMathLibrarySelected {
+                           WebView(colorScheme)
+                       }
                     } else {
                         MetalView(document.game, .Game)
                     }
@@ -279,7 +314,9 @@ struct ContentView: View {
                                 Markdown(referenceText)
                                     .padding(4)
                             }
-                        }
+                        } else if isMathLibrarySelected {
+                           WebView(colorScheme)
+                       }
                     } else {
                         MetalView(document.game, .Game)
                     }
@@ -515,6 +552,7 @@ struct ContentView: View {
             isNotesSelected = false
             isSkinSelected = false
             isReferenceSelected = true
+            isMathLibrarySelected = false
         }
         
         .onChange(of: selectedInstructionIndex) {
@@ -561,7 +599,8 @@ struct ContentView: View {
                 isNotesSelected = false
                 isSkinSelected = false
                 isReferenceSelected = false
-                Game.shared.skinMode = false
+                isMathLibrarySelected = false
+                Game.shared.editorMode = .code
             }
         }
         
@@ -570,6 +609,7 @@ struct ContentView: View {
                 isPaletteSelected = false
                 isNotesSelected = false
                 isSkinSelected = false
+                isMathLibrarySelected = false
                 isReferenceSelected = false
             }
         }
@@ -579,6 +619,7 @@ struct ContentView: View {
                 isPaletteSelected = false
                 isNotesSelected = false
                 isSkinSelected = false
+                isMathLibrarySelected = false
                 isReferenceSelected = false
             }
         }
