@@ -31,7 +31,7 @@ Values can also reference a register, for example to set the friction of sprite 
 - **LDI Rd (Value|Rs)**. Load an immediate value to the destination register.
 - **LDRESX Rd**. Load the x value of the screen resolution to the destination register.
 - **LDRESY Rd**. Load the y value of the screen resolution to the destination register.
-- **LDSPR Rd Ss Attr**. Load an attribute of the sprite into the destination register. Attributes: "x", "y".
+- **LDSPR Rd (Ss|Rs) Attr**. Load an attribute of the sprite into the destination register. Attributes: "x", "y".
 - **ST Memory + (Value|Rs) (Value|Rs)**. Store the value at the destination memory address.
 
 - **ADD Rd (Value|Rs)**. Add the source value to the destination register.
@@ -80,33 +80,33 @@ Layers are drawn starting from index 0 up to 7. By default layers are in the res
 
 256 hardware sprites
 
-- **SPRLYR Sd Ls**. Assign a layer to the sprite. By default a sprite is not bound to a layer and will be drawn on top of all layers.
+- **SPRLYR (Sd|Rs) Ls**. Assign a layer to the sprite. By default a sprite is not bound to a layer and will be drawn on top of all layers.
 
-- **SPRSET Sd ImageGroup**. Assign an image group to the sprite.
-- **SPRIMG Sd (Value|Rs)**. Set the index of the image in the current image group. Stops any animation. Default is 0.
-- **SPRANM Sd From To**. Set the animation range for the sprite and start animation. If the current image index is not inside the range set it to the animation start frame.
-- **SPRFPS Sd (Value|Rs)**. Set the fps for the sprite's animation. Default is 10.
+- **SPRSET (Sd|Rs) ImageGroup**. Assign an image group to the sprite.
+- **SPRIMG (Sd|Rs) (Value|Rs)**. Set the index of the image in the current image group. Stops any animation. Default is 0.
+- **SPRANM (Sd|Rs) From To**. Set the animation range for the sprite and start animation. If the current image index is not inside the range set it to the animation start frame.
+- **SPRFPS (Sd|Rs) (Value|Rs)**. Set the fps for the sprite's animation. Default is 10.
 
-- **SPRACT Sd (Value|Rs)**. Activate / deactivate the sprite. A value of 0 deactivates the sprite, any other value will activate it. Every sprite is deactivated by default.
-- **SPRWRP Sd (Value|Rs)**. Set the wrapping mode for the sprite (0 for off, on otherwise). Wrapped sprites wrap around the layer or screen (i.e. when they go offscreen re-appear on the other side).
+- **SPRACT (Sd|Rs) (Value|Rs)**. Activate / deactivate the sprite. A value of 0 deactivates the sprite, any other value will activate it. Every sprite is deactivated by default.
+- **SPRWRP (Sd|Rs) (Value|Rs)**. Set the wrapping mode for the sprite (0 for off, on otherwise). Wrapped sprites wrap around the layer or screen (i.e. when they go offscreen re-appear on the other side).
 
-- **SPRX Sd (Value|Rs)**. Set the x position of the sprite.
-- **SPRY Sd (Value|Rs)**. Set the y position of the sprite.
-- **SPRROT Sd (Value|Rs)**. Set the rotation of the sprite.
-- **SPRROO Sd (Value|Rs)**. Set the rotation offset of the sprite. By default, CHIPcade assumes sprites are oriented upwards (0° points up). If a sprite, like a bullet, is designed to face right, you can apply a rotation offset of **-90s** to align it correctly. This offset adjusts the sprite’s default orientation, effectively rotating it an additional 90° counterclockwise.
-- **SPRPRI Sd (Value|Rs)**. Set the priority of the sprite. Sprite with a higher priority are drawn on top of sprites with a lower priority. Default is 0.
-- **SPRALP Sd (Value|Rs)**. Set the alpha value of the sprite. Default is 1.0 (fully opaque).
-- **SPRSCL Sd (Value|Rs)**. Set the scale of the sprite. Default is 1.0.
+- **SPRX (Sd|Rs) (Value|Rs)**. Set the x position of the sprite.
+- **SPRY (Sd|Rs) (Value|Rs)**. Set the y position of the sprite.
+- **SPRROT (Sd|Rs) (Value|Rs)**. Set the rotation of the sprite.
+- **SPRROO (Sd|Rs) (Value|Rs)**. Set the rotation offset of the sprite. By default, CHIPcade assumes sprites are oriented upwards (0° points up). If a sprite, like a bullet, is designed to face right, you can apply a rotation offset of **-90s** to align it correctly. This offset adjusts the sprite’s default orientation, effectively rotating it an additional 90° counterclockwise.
+- **SPRPRI (Sd|Rs) (Value|Rs)**. Set the priority of the sprite. Sprite with a higher priority are drawn on top of sprites with a lower priority. Default is 0.
+- **SPRALP (Sd|Rs) (Value|Rs)**. Set the alpha value of the sprite. Default is 1.0 (fully opaque).
+- **SPRSCL (Sd|Rs) (Value|Rs)**. Set the scale of the sprite. Default is 1.0.
 
-- **SPRACC Sd (Value|Rs)**. Apply an acceleration impulse to the sprite.
-- **SPRSPD Sd (Value|Rs)**. Set a constant speed to the sprite.
-- **SPRMXS Sd (Value|Rs)**. Set the maximum speed for the sprite (for acceleration / impulse driven games).
-- **SPRFRI Sd (Value|Rs)**. Set the friction of the sprite (default is 1.0). A friction lower than 1.0 will reduce speed.
-- **SPRSTP Sd**. Deactivates the sprite after the current animation finishes. Useful for example for explosions.
-- **SPRHLT Sd**. Set the velocity of the sprite to zero. Halt!
+- **SPRACC (Sd|Rs) (Value|Rs)**. Apply an acceleration impulse to the sprite.
+- **SPRSPD (Sd|Rs) (Value|Rs)**. Set a constant speed to the sprite.
+- **SPRMXS (Sd|Rs) (Value|Rs)**. Set the maximum speed for the sprite (for acceleration / impulse driven games).
+- **SPRFRI (Sd|Rs) (Value|Rs)**. Set the friction of the sprite (default is 1.0). A friction lower than 1.0 will reduce speed.
+- **SPRSTP (Sd|Rs)**. Deactivates the sprite after the current animation finishes. Useful for example for explosions.
+- **SPRHLT (Sd|Rs)**. Set the velocity of the sprite to zero. Halt!
 
-- **SPRGRP Sd (Value|Rs)**. Set the collision group of the sprite to the given value. The value can be any numerical value.
-- **SPRCOL Sd (Value|Rs)**. Checks if the sprite collides with any sprite in the collision group. If no, sets the ZF to 1, if yes sets the ZF to 0.
+- **SPRGRP (Sd|Rs) (Value|Rs)**. Set the collision group of the sprite to the given value. The value can be any numerical value.
+- **SPRCOL (Sd|Rs) (Value|Rs)**. Checks if the sprite collides with any sprite in the collision group. If no, sets the ZF to 1, if yes sets the ZF to 0.
 
 ## Text
 

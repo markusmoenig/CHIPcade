@@ -1,0 +1,25 @@
+# Math.DEG2RAD: Converts degrees to radians
+# Inputs:
+#   - R0: Angle in degrees
+# Outputs:
+#   - R1: Angle in radians
+# Description:
+#   Multiplies the input angle in degrees by π/180 to convert it to radians.
+DEG2RAD:
+    LDI R1 R0           # Load the input angle (degrees) into R1
+    MUL R1 0.0174533f   # Multiply R1 by π/180 to convert to radians
+    RET
+
+# Math.RAD2DEG: Converts radians to degrees
+# Inputs:
+#   - R0: Angle in radians
+# Outputs:
+#   - R1: Angle in degrees
+# Description:
+#   Multiplies the input angle in radians by 180/π to convert it to degrees.
+RAD2DEG:
+    LDI R1 R0           # Load the input angle (radians) into R1
+    MUL R1 57.2958f     # Multiply R1 by 180/π to convert to degrees
+    RET
+    
+

@@ -87,6 +87,14 @@ class GameData: ObservableObject, Codable {
                     return (codeIndex, instructionIndex)
                 }
             }
+            
+            // Check for Math Library
+            if moduleName == "Math" {
+                let mathLibrary = Game.shared.mathLib
+                if let instructionIndex =  mathLibrary.firstIndex(where: { $0.type == .tag && $0.memory! == markerName }) {
+                    return (MathLibraryIndex, instructionIndex)
+                }
+            }
         } else if components.count == 1 {
             
             // Check if the single component is the name of a module

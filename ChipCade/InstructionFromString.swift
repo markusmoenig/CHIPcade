@@ -7,8 +7,13 @@
 
 extension Instruction {
     static func fromString(_ string: String) -> Instruction? {
-        let components = string.split(separator: " ").map { String($0) }
         
+        // Remove trailing comments (everything after #)
+        let cleanedString = string.split(separator: "#", maxSplits: 1, omittingEmptySubsequences: true).first ?? ""
+        
+        // Split by " "
+        let components = cleanedString.split(separator: " ").map { String($0) }
+                
         guard let firstComponent = components.first else { return nil }
         guard let type = InstructionType.fromString(firstComponent) else { return nil }
         
@@ -17,10 +22,20 @@ extension Instruction {
         let instruction = Instruction(type)
         
         switch type {
-        case .inc, .dec, .sprstp, .sprhlt:
+        case .inc, .dec:
             // XXXXXX Rd
             if components.count == 2,
                let reg1 = parseRegister(components[1]) {
+                instruction.register1 = reg1
+            } else {
+                return nil
+            }
+            
+        case .sprstp, .sprhlt:
+            // XXXXXX (Sd|Rs)
+            if components.count == 2,
+               let reg1 = parseRegister(components[1]) {
+                instruction.resolveObject = resolveObject(components[1])
                 instruction.register1 = reg1
             } else {
                 return nil
@@ -37,12 +52,13 @@ extension Instruction {
             }
             
         case .ldspr:
-            // LDSPR Rd Ss Attribute
+            // LDSPR Rd (Ss|Rs) Attribute
             if components.count == 4,
                let reg1 = parseRegister(components[1]),
                let reg2 = parseRegister(components[2]) {
                 instruction.register1 = reg1
                 instruction.register2 = reg2
+                instruction.resolveObject = resolveObject(components[2])
                 instruction.memory = components[3].replacingOccurrences(of: "\"", with: "")
             } else {
                 return nil
@@ -106,15 +122,17 @@ extension Instruction {
             if components.count == 2,
                let reg1 = parseRegister(components[1]) {
                 instruction.register1 = reg1
+                instruction.resolveObject = resolveObject(components[1])
             } else {
                 return nil
             }
             
         case .lyrres:
-            // LYRRES L0 320 200
+            // LYRRES (Ld|Rs) 320 200
             if components.count == 4,
                let reg1 = parseRegister(components[1]) {
                 instruction.register1 = reg1
+                instruction.resolveObject = resolveObject(components[1])
                 instruction.memory = "\(components[2]) \(components[3])"
             } else {
                 return nil
@@ -171,22 +189,24 @@ extension Instruction {
 
 
         case .sprset:
-            // SPRSET S0 ImageGroup
+            // SPRSET (Sd|Rs) ImageGroup
             if components.count == 3,
                let reg1 = parseRegister(components[1]) {
                 instruction.register1 = reg1
+                instruction.resolveObject = resolveObject(components[1])
                 instruction.memory = components[2].replacingOccurrences(of: "\"", with: "")
             } else {
                 return nil
             }
 
         case .sprlyr:
-            // XXXXXX Sd Rs
+            // XXXXXX (Sd|Rs) Rs
             if components.count == 3,
                let reg1 = parseRegister(components[1]),
                let reg2 = parseRegister(components[2]) {
                 instruction.register1 = reg1
                 instruction.register2 = reg2
+                instruction.resolveObject = resolveObject(components[1])
             } else {
                 return nil
             }
@@ -198,23 +218,25 @@ extension Instruction {
                let value = ChipCadeData.fromString(text: components[2], unsignedDefault: true) {
                 instruction.register1 = reg1
                 instruction.value = value
+                instruction.resolveObject = resolveObject(components[1])
             } else {
                 return nil
             }
             
         case .lyrvis:
-            // LYRVIS L0 0
+            // LYRVIS (Ld|Rs) 0
             if components.count == 3,
                let reg1 = parseRegister(components[1]),
                let value = ChipCadeData.fromString(text: components[2], unsignedDefault: true) {
                 instruction.register1 = reg1
                 instruction.value = value
+                instruction.resolveObject = resolveObject(components[1])
             } else {
                 return nil
             }
 
         case .spranm:
-            // XXXXXX Sd From To
+            // XXXXXX (Sd|Rs) From To
             if components.count == 4,
                let reg1 = parseRegister(components[1]),
                let reg2 = ChipCadeData.fromString(text: components[2], unsignedDefault: true),
@@ -222,17 +244,19 @@ extension Instruction {
                 instruction.register1 = reg1
                 instruction.register2 = UInt8(reg2.toInt32Bit())
                 instruction.register3 = UInt8(reg3.toInt32Bit())
+                instruction.resolveObject = resolveObject(components[1])
             } else {
                 return nil
             }
             
         case .sprcol, .sprgrp, .sprfps, .rand, .sprfri:
-            // XXXXXX Sd Value
+            // XXXXXX (Sd|Rs) Value
             if components.count == 3,
                let reg1 = parseRegister(components[1]),
                let value = ChipCadeData.fromString(text: components[2], unsignedDefault: true) {
                 instruction.register1 = reg1
                 instruction.value = value
+                instruction.resolveObject = resolveObject(components[1])
             } else {
                 return nil
             }
@@ -295,6 +319,14 @@ extension Instruction {
         if component.starts(with: "L"),
            let layerNumber = UInt8(component.dropFirst()) {
             return layerNumber
+        }
+        return nil
+    }
+    
+    private static func resolveObject(_ component: String) -> Bool? {
+        let component = component.uppercased()
+        if component.starts(with: "R") {
+            return true
         }
         return nil
     }

@@ -29,6 +29,7 @@ struct ChipCadeDocument: FileDocument {
     init(configuration: ReadConfiguration) throws {
         game = Game.shared
         game.reset()
+        game.compileStandardModules()
 
         // Load game data using a temporary variable
         guard let data = configuration.file.regularFileContents else {

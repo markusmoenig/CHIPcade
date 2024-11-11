@@ -8,10 +8,10 @@
 import SwiftUI
 import MarkdownUI
 
-enum EditingMode: Int {
-    case list
-    case code
-}
+//enum EditingMode: Int {
+//    case list
+//    case code
+//}
 
 // Hack to avoid UndoManager closure warnings
 extension UndoManager: @unchecked @retroactive Sendable { }
@@ -56,8 +56,10 @@ struct ContentView: View {
     @State private var playIcon: String = "play"
     @State private var stopIcon: String = "stop.fill"
 
-    @AppStorage("editingMode") private var editingMode: Int = EditingMode.list.rawValue
-    @AppStorage("editingIcon") private var editingIcon: String = "list.bullet.rectangle"
+    @State private var errorInstructionType: InstructionType? = nil
+
+    //@AppStorage("editingMode") private var editingMode: Int = EditingMode.list.rawValue
+    //@AppStorage("editingIcon") private var editingIcon: String = "list.bullet.rectangle"
     
     @AppStorage("skinMode") private var skinMode: Bool = true
     @AppStorage("skinIcon") private var skinIcon: String = "cpu.fill"
@@ -194,17 +196,18 @@ struct ContentView: View {
                     // Middle Panel
                     
                     if editorIsOnLeftSide == true {
-                        if let codeItem = selectedCodeItem {
+                        if selectedCodeItem != nil {//let codeItem = selectedCodeItem {
                             if editorIsOnLeftSide {
+                                /*
                                 if editingMode == EditingMode.list.rawValue {
                                     CodeItemListView(
                                         codeItem: codeItem,
                                         selectedInstruction: $selectedInstruction,
                                         selectedInstructionIndex: $selectedInstructionIndex
                                     )
-                                } else {
+                                } else {*/
                                     WebView(colorScheme)
-                                }
+                                //}
                             }
                         } else if isSkinSelected {
                             WebView(colorScheme)
@@ -247,16 +250,16 @@ struct ContentView: View {
                     // Right Panel
                     
                     if !editorIsOnLeftSide {
-                        if let codeItem = selectedCodeItem {
-                            if editingMode == EditingMode.list.rawValue {
+                        if selectedCodeItem != nil {//let codeItem = selectedCodeItem {
+                            /*if editingMode == EditingMode.list.rawValue {
                                 CodeItemListView(
                                     codeItem: codeItem,
                                     selectedInstruction: $selectedInstruction,
                                     selectedInstructionIndex: $selectedInstructionIndex
                                 )
-                            } else {
+                            } else {*/
                                 WebView(colorScheme)
-                            }
+                            //}
                         } else if isSkinSelected {
                             WebView(colorScheme)
                         } else
@@ -311,7 +314,7 @@ struct ContentView: View {
                     .padding(.bottom, 6)
                         
                     if selectedInfoType == 0 {
-                        InstructionInfoView(selectedInstruction: $selectedInstruction, error: $currError)
+                        InstructionInfoView(selectedInstruction: $selectedInstruction, error: $currError, errorInstructionType: $errorInstructionType)
                             .frame(maxHeight: 100)
                     } else {
                         StackView(game: document.game)
@@ -391,14 +394,15 @@ struct ContentView: View {
                 
                 Button(action: {
                     editorIsOnLeftSide.toggle()
-                    if editorIsOnLeftSide {
-                        editingMode = EditingMode.code.rawValue
-                        editingIcon = "list.bullet.rectangle.fill"
-                    }
+//                    if editorIsOnLeftSide {
+//                        editingMode = EditingMode.code.rawValue
+//                        editingIcon = "list.bullet.rectangle.fill"
+//                    }
                 }) {
                     Label("Swap Views", systemImage: "rectangle.2.swap")
                 }
                 
+                 /*
                 Button(action: {
                     if editingMode == EditingMode.list.rawValue {
                         editingMode = EditingMode.code.rawValue
@@ -409,7 +413,7 @@ struct ContentView: View {
                     }
                 }) {
                     Label("Editing Mode", systemImage: editingIcon)
-                }
+                }*/
                 
                 Button(action: {
                     if skinMode {
@@ -461,9 +465,9 @@ struct ContentView: View {
         }
         
         // When the code changes in the code editor, compile it
-        .onReceive(document.game.codeTextChanged) { _ in
+        .onReceive(document.game.codeTextChanged) { value in
             if !isSkinSelected {
-                compile()
+                compile(string: value)
             } else {
                 Game.shared.skin.compile(text: Game.shared.data.skin)
                 Game.shared.cpuRender.update()
@@ -482,20 +486,22 @@ struct ContentView: View {
         // Error state has changed
         .onReceive(document.game.errorChanged) { error in
             currError = error
-            if error != .none {
-                selectedCodeItem = document.game.data.codeItems[document.game.errorCodeItemIndex]
-                selectedInstruction = document.game.data.codeItems[document.game.errorCodeItemIndex].codes[document.game.errorInstructionIndex]
-                selectedInstructionIndex = document.game.errorInstructionIndex
-            }
-            else {
-                selectedCodeItem = document.game.data.codeItems[document.game.currCodeItemIndex]
-                
-                if document.game.currInstructionIndex >= document.game.data.codeItems[document.game.currCodeItemIndex].codes.count {
-                    document.game.currInstructionIndex = 0
+            if  document.game.errorCodeItemIndex < document.game.data.codeItems.count {
+                if error != .none {
+                    selectedCodeItem = document.game.data.codeItems[document.game.errorCodeItemIndex]
+                    selectedInstruction = document.game.data.codeItems[document.game.errorCodeItemIndex].codes[document.game.errorInstructionIndex]
+                    selectedInstructionIndex = document.game.errorInstructionIndex
                 }
-                
-                selectedInstruction = document.game.data.codeItems[document.game.currCodeItemIndex].codes[document.game.currInstructionIndex]
-                selectedInstructionIndex = document.game.currInstructionIndex
+                else {
+                    selectedCodeItem = document.game.data.codeItems[document.game.currCodeItemIndex]
+                    
+                    if document.game.currInstructionIndex >= document.game.data.codeItems[document.game.currCodeItemIndex].codes.count {
+                        document.game.currInstructionIndex = 0
+                    }
+                    
+                    selectedInstruction = document.game.data.codeItems[document.game.currCodeItemIndex].codes[document.game.currInstructionIndex]
+                    selectedInstructionIndex = document.game.currInstructionIndex
+                }
             }
             selectedImageGroupItem = nil
             selectedMemoryItem = nil
@@ -535,10 +541,13 @@ struct ContentView: View {
                     document.game.currCodeItemIndex = index
                 }
                 
-                let codeText = selectedCodeItem.codes.map { $0.format() }.joined(separator: "\n")
-                Game.shared.currentCodeItemText = codeText
+                //let codeText = selectedCodeItem.codes.map { $0.format() }.joined(separator: "\n")
+                //Game.shared.currentCodeItemText = selectedCodeItem.source
+//                if selectedCodeItem.source.isEmpty && !codeText.isEmpty {
+//                    selectedCodeItem.source = codeText
+//                }
                 if let editor = Game.shared.scriptEditor {
-                    editor.setSessionValue("mainSession", codeText, selectedCodeItem.currLine)
+                    editor.setSessionValue("mainSession", selectedCodeItem.source, selectedCodeItem.currLine)
                 }
             }
             document.game.currInstructionIndex = 0
@@ -619,50 +628,18 @@ struct ContentView: View {
     }
     
     // The codeText has changed in .code editing mode, we have to compile back into Instructions
-    func compile() {
-        guard editingMode == EditingMode.code.rawValue else { return }
+    func compile(string: String) {
+        //guard editingMode == EditingMode.code.rawValue else { return }
         
         if let codeItem = selectedCodeItem {
 
             var instructions = [Instruction]()
-            let lines = Game.shared.currentCodeItemText.split(separator: "\n", omittingEmptySubsequences: false)
+            codeItem.source = string
+
+            Game.shared.errorInstructionType = nil
+            let errorLine : Int? = Game.shared.compile(string:  string, instructions: &instructions)
             
-            var errorLine : Int? = nil
-            
-            for (index, line) in lines.enumerated() {
-                // If line is empty, treat it as NOP
-                if line.trimmingCharacters(in: .whitespaces).isEmpty {
-                    instructions.append(Instruction(.nop))
-                    continue
-                }
-                
-                // Check if the line is a tag (ends with ':')
-                if line.hasSuffix(":") {
-                    let tagName = String(line.dropLast()) // Remove the colon
-                    
-                    // Validate the tag name
-                    if tagName.isEmpty || tagName.contains(" ") || tagName.first?.isNumber == true {
-                        errorLine = index
-                        break
-                    }
-                    
-                    // Create the tag instruction
-                    let instruction = Instruction(.tag)
-                    instruction.memory = tagName
-                    //print(instruction.format())
-                    instructions.append(instruction)
-                    continue
-                }
-                
-                if let instruction = Instruction.fromString(String(line)) {
-                    //print(instruction.format())
-                    instructions.append(instruction)
-                } else {
-                    print("Error: \(String(line))")
-                    errorLine = index
-                    break;
-                }
-            }
+            errorInstructionType = Game.shared.errorInstructionType
             
             if let errorLine {
                 selectedInstructionIndex = errorLine

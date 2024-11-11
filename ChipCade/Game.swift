@@ -8,6 +8,8 @@
 import Combine
 import SwiftUI
 
+let MathLibraryIndex : Int = 1000
+
 public enum GameState {
     case running
     case paused
@@ -24,7 +26,7 @@ public class Game : ObservableObject
     static var shared = Game()
     
     let errorChanged = PassthroughSubject<ChipCadeError, Never>()
-    let codeTextChanged = PassthroughSubject<(), Never>()
+    let codeTextChanged = PassthroughSubject<String, Never>()
     let codeLineChanged = PassthroughSubject<Int, Never>()
     let skinTextChanged = PassthroughSubject<(), Never>()
 
@@ -67,10 +69,12 @@ public class Game : ObservableObject
     var lastCMPWasUnsigned: Bool = false
     
     var scriptEditor: ScriptEditor? = nil
-    var currentCodeItemText = ""
     
     // The skin compiler & drawer
     var skin = Skin()
+    
+    // The Math Library
+    var mathLib: [Instruction] = []
     
     // We are currently editing a skin
     var skinMode = false
@@ -94,6 +98,21 @@ public class Game : ObservableObject
         ]
         stack = []
         cpu.game = self
+    }
+    
+    /// Compile Math Library
+    public func compileStandardModules() {
+        if let path = Bundle.main.path(forResource: "MathLib", ofType: "") {
+            do {
+                let mathLibContent = try String(contentsOfFile: path, encoding: .utf8)
+                let errorLine = compile(string: mathLibContent, instructions: &mathLib)
+                if let errorLine = errorLine {
+                    print("Error in MathLib at \(String(describing: errorLine))")
+                }
+            } catch {
+                print("Failed to read MathLib: \(error.localizedDescription)")
+            }
+        }
     }
     
     // Executes init, if initOnly is set just updates the display for preview, otherwise starts playback.
@@ -206,6 +225,15 @@ public class Game : ObservableObject
     
     // Gets the current instruction
     public func getInstruction() -> Instruction? {
+        
+        // Check for Math Library
+        if currCodeItemIndex == MathLibraryIndex {
+            guard currInstructionIndex >= 0 && currInstructionIndex < mathLib.count else {
+                return nil
+            }
+            return mathLib[currInstructionIndex]
+        }
+        
         // Check if the currCodeItemIndex is within bounds
         guard currCodeItemIndex >= 0 && currCodeItemIndex < data.codeItems.count else {
             return nil
@@ -315,5 +343,58 @@ public class Game : ObservableObject
         
         pause()
         errorChanged.send(error)
+    }
+    
+    // Error
+    func compile(string: String, instructions: inout [Instruction]) -> Int? {
+        let lines = string.split(separator: "\n", omittingEmptySubsequences: false)
+        
+        var errorLine : Int? = nil
+        
+        for (index, line) in lines.enumerated() {
+            // If line is empty, treat it as NOP
+            if line.trimmingCharacters(in: .whitespaces).isEmpty {
+                instructions.append(Instruction(.nop))
+                continue
+            }
+            
+            // Check if the string is a comment
+            if let comment = line.split(separator: "#", maxSplits: 1, omittingEmptySubsequences: false).last,
+                line.trimmingCharacters(in: .whitespaces).starts(with: "#") {
+                let instruction = Instruction(.comnt)
+                instruction.memory = String(comment.trimmingCharacters(in: .whitespaces))
+                instructions.append(instruction)
+                continue
+            }
+            
+            // Check if the line is a tag (ends with ':')
+            if line.hasSuffix(":") {
+                let tagName = String(line.dropLast()) // Remove the colon
+                
+                // Validate the tag name
+                if tagName.isEmpty || tagName.contains(" ") || tagName.first?.isNumber == true {
+                    errorLine = index
+                    break
+                }
+                
+                // Create the tag instruction
+                let instruction = Instruction(.tag)
+                instruction.memory = tagName
+                //print(instruction.format())
+                instructions.append(instruction)
+                continue
+            }
+            
+            if let instruction = Instruction.fromString(String(line)) {
+                //print(instruction.format())
+                instructions.append(instruction)
+            } else {
+                print("Error: \(String(line))")
+                errorLine = index
+                break;
+            }
+        }
+        
+        return errorLine
     }
 }

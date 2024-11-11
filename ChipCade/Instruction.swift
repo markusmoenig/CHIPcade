@@ -90,6 +90,8 @@ public class Instruction: ObservableObject, Codable, Equatable {
     @Published var register3: UInt8? = nil
     @Published var value: ChipCadeData? = nil
 
+    @Published var resolveObject: Bool? = nil
+
     @Published var memory: String? = nil
     @Published var memoryOffset: Int? = nil
 
@@ -102,6 +104,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
         case value
         case memory
         case memoryOffset
+        case resolveObject
     }
     
     init(_ type: InstructionType) {
@@ -187,6 +190,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
         try container.encodeIfPresent(value, forKey: .value)
         try container.encodeIfPresent(memory, forKey: .memory)
         try container.encodeIfPresent(memoryOffset, forKey: .memoryOffset)
+        try container.encodeIfPresent(resolveObject, forKey: .resolveObject)
     }
     
     // Decoding
@@ -201,7 +205,8 @@ public class Instruction: ObservableObject, Codable, Equatable {
         value = try container.decodeIfPresent(ChipCadeData.self, forKey: .value)
         memory = try container.decodeIfPresent(String.self, forKey: .memory)
         memoryOffset = try container.decodeIfPresent(Int.self, forKey: .memoryOffset)
-        
+        resolveObject = try container.decodeIfPresent(Bool.self, forKey: .resolveObject)
+
 //        switch type{
 //        case .ldspr:
 //            print("load \(memory)")
@@ -275,13 +280,13 @@ public class Instruction: ObservableObject, Codable, Equatable {
             return "LDRESY R\(register1!)"
             
         case .lyrcur:
-            return "LYRCUR L\(register1!)"
+            return "LYRCUR \(resolveObject == true ? "R" : "L")\(register1!)"
             
         case .lyrres:
-            return "LYRRES L\(register1!) \(memory!)"
+            return "LYRRES \(resolveObject == true ? "R" : "L")\(register1!) \(memory!)"
             
         case .lyrvis:
-            return "LYRVIS L\(register1!) \(value!.toString())"
+            return "LYRVIS \(resolveObject == true ? "R" : "L")\(register1!) \(value!.toString())"
             
         case .mod:
             return "MOD R\(register1!) \(value!.toString())"
@@ -312,70 +317,70 @@ public class Instruction: ObservableObject, Codable, Equatable {
             return "SUB R\(register1!) \(value!.toString())"
           
         case .spracc:
-            return "SPRACC S\(register1!) \(value!.toString())"
+            return "SPRACC \(resolveObject == true ? "R" : "S")\(register1!) \(value!.toString())"
       
         case .spralp:
-            return "SPRALP S\(register1!) \(value!.toString())"
+            return "SPRALP \(resolveObject == true ? "R" : "S")\(register1!) \(value!.toString())"
             
         case .spranm:
-            return "SPRANM S\(register1!) \(register2!) \(register3!)"
+            return "SPRANM \(resolveObject == true ? "R" : "S")\(register1!) \(register2!) \(register3!)"
             
         case .sprcol:
-            return "SPRCOL S\(register1!) \(value!.toString())"
+            return "SPRCOL \(resolveObject == true ? "R" : "S")\(register1!) \(value!.toString())"
             
         case .sprfps:
-            return "SPRFPS S\(register1!) \(value!.toString())"
+            return "SPRFPS \(resolveObject == true ? "R" : "S")\(register1!) \(value!.toString())"
             
         case .sprfri:
-            return "SPRFRI S\(register1!) \(value!.toString())"
+            return "SPRFRI \(resolveObject == true ? "R" : "S")\(register1!) \(value!.toString())"
            
         case .sprhlt:
-            return "SPRHLT S\(register1!)"
+            return "SPRHLT \(resolveObject == true ? "R" : "S")\(register1!)"
             
         case .sprgrp:
-            return "SPRGRP S\(register1!) \(value!.toString())"
+            return "SPRGRP \(resolveObject == true ? "R" : "S")\(register1!) \(value!.toString())"
             
         case .sprimg:
-            return "SPRIMG S\(register1!) \(value!.toString())"
+            return "SPRIMG \(resolveObject == true ? "R" : "S")\(register1!) \(value!.toString())"
             
         case .sprlyr:
-            return "SPRLYR S\(register1!) L\(register2!)"
+            return "SPRLYR \(resolveObject == true ? "R" : "S")\(register1!) L\(register2!)"
             
         case .sprmxs:
-            return "SPRMXS S\(register1!) \(value!.toString())"
+            return "SPRMXS \(resolveObject == true ? "R" : "S")\(register1!) \(value!.toString())"
           
         case .sprpri:
-            return "SPRPRI S\(register1!) \(value!.toString())"
+            return "SPRPRI \(resolveObject == true ? "R" : "S")\(register1!) \(value!.toString())"
          
         case .sprroo:
-            return "SPRROO S\(register1!) \(value!.toString())"
+            return "SPRROO \(resolveObject == true ? "R" : "S")\(register1!) \(value!.toString())"
             
         case .sprrot:
-            return "SPRROT S\(register1!) \(value!.toString())"
+            return "SPRROT \(resolveObject == true ? "R" : "S")\(register1!) \(value!.toString())"
             
         case .sprset:
-            return "SPRSET S\(register1!) \"\(memory!)\""
+            return "SPRSET \(resolveObject == true ? "R" : "S")\(register1!) \"\(memory!)\""
             
         case .sprscl:
-            return "SPRSCL S\(register1!) \(value!.toString())"
+            return "SPRSCL \(resolveObject == true ? "R" : "S")\(register1!) \(value!.toString())"
             
         case .sprspd:
-            return "SPRSPD S\(register1!) \(value!.toString())"
+            return "SPRSPD \(resolveObject == true ? "R" : "S")\(register1!) \(value!.toString())"
             
         case .sprstp:
-            return "SPRSTP S\(register1!)"
+            return "SPRSTP \(resolveObject == true ? "R" : "S")\(register1!)"
             
         case .spract:
-            return "SPRACT S\(register1!) \(value!.toString())"
+            return "SPRACT \(resolveObject == true ? "R" : "S")\(register1!) \(value!.toString())"
             
         case .sprx:
-            return "SPRX S\(register1!) \(value!.toString())"
+            return "SPRX \(resolveObject == true ? "R" : "S")\(register1!) \(value!.toString())"
             
         case .spry:
-            return "SPRY S\(register1!) \(value!.toString())"
+            return "SPRY \(resolveObject == true ? "R" : "S")\(register1!) \(value!.toString())"
             
         case .sprwrp:
-            return "SPRWRP S\(register1!) \(value!.toString())"
+            return "SPRWRP \(resolveObject == true ? "R" : "S")\(register1!) \(value!.toString())"
             
         case .tag:
             return "\(memory!):"
@@ -454,13 +459,13 @@ public class Instruction: ObservableObject, Codable, Equatable {
             return "LDSPR Rd Ss Attribute"
           
         case .lyrcur:
-            return "LYRCUR Ld"
+            return "LYRCUR (Ld|Rs)"
             
         case .lyrres:
-            return "LYRRES Ld Width Height"
+            return "LYRRES (Ld|Rs) Width Height"
             
         case .lyrvis:
-            return "LYRVIS Ld (Value|Rs)"
+            return "LYRVIS (Ld|Rs) (Value|Rs)"
             
         case .mod:
             return "MOD Rd (Value|Rs)"
@@ -490,70 +495,70 @@ public class Instruction: ObservableObject, Codable, Equatable {
             return "SUB Rd (Value|Rs)"
           
         case .spracc:
-            return "SPRACC Sd (Value|Rs)"
+            return "SPRACC (Sd|Rs) (Value|Rs)"
       
         case .spralp:
-            return "SPRALP Sd (Value|Rs)"
+            return "SPRALP (Sd|Rs) (Value|Rs)"
             
         case .spranm:
-            return "SPRANM Sd (Value|Rs) (Value|Rs)"
+            return "SPRANM (Sd|Rs) (Value|Rs) (Value|Rs)"
             
         case .sprcol:
-            return "SPRCOL Sd (Value|Rs)"
+            return "SPRCOL (Sd|Rs) (Value|Rs)"
             
         case .sprfps:
-            return "SPRFPS Sd (Value|Rs)"
+            return "SPRFPS (Sd|Rs) (Value|Rs)"
             
         case .sprfri:
-            return "SPRFRI Sd (Value|Rs)"
+            return "SPRFRI (Sd|Rs) (Value|Rs)"
             
         case .sprhlt:
-            return "SPRHLT Sd"
+            return "SPRHLT (Sd|Rs)"
             
         case .sprgrp:
-            return "SPRGRP Sd (Value|Rs)"
+            return "SPRGRP (Sd|Rs) (Value|Rs)"
             
         case .sprimg:
-            return "SPRIMG Sd (Value|Rs)"
+            return "SPRIMG (Sd|Rs) (Value|Rs)"
             
         case .sprlyr:
-            return "SPRLYR Sd Ls"
+            return "SPRLYR (Sd|Rs) Ls"
             
         case .sprmxs:
-            return "SPRMXS Sd (Value|Rs)"
+            return "SPRMXS (Sd|Rs) (Value|Rs)"
           
         case .sprpri:
-            return "SPRPRI Sd (Value|Rs)"
+            return "SPRPRI (Sd|Rs) (Value|Rs)"
             
         case .sprroo:
-            return "SPRROO Sd (Value|Rs)"
+            return "SPRROO (Sd|Rs) (Value|Rs)"
             
         case .sprrot:
-            return "SPRROT Sd (Value|Rs)"
+            return "SPRROT (Sd|Rs) (Value|Rs)"
             
         case .sprset:
-            return "SPRSET Sd ImageGroup"
+            return "SPRSET (Sd|Rs) ImageGroup"
             
         case .sprscl:
-            return "SPRSCL Sd (Value|Rs)"
+            return "SPRSCL (Sd|Rs) (Value|Rs)"
             
         case .sprspd:
-            return "SPRSPD Sd (Value|Rs)"
+            return "SPRSPD (Sd|Rs) (Value|Rs)"
             
         case .sprstp:
-            return "SPRSTP Sd"
+            return "SPRSTP (Sd|Rs)"
             
         case .spract:
-            return "SPRACT Sd (Value|Rs)"
+            return "SPRACT (Sd|Rs) (Value|Rs)"
             
         case .sprx:
-            return "SPRX Sd (Value|Rs)"
+            return "SPRX (Sd|Rs) (Value|Rs)"
             
         case .spry:
-            return "SPRY Sd (Value|Rs)"
+            return "SPRY (Sd|Rs) (Value|Rs)"
             
         case .sprwrp:
-            return "SPRWRP Sd (Value|Rs)"
+            return "SPRWRP (Sd|Rs) (Value|Rs)"
             
         case .tag:
             return "Tag:"

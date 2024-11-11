@@ -331,13 +331,12 @@ class ScriptEditor
     {
         if !Game.shared.skinMode {
             getSessionValue("mainSession", { (value) in
-                Game.shared.currentCodeItemText = value
-                Game.shared.codeTextChanged.send()
+                Game.shared.codeTextChanged.send(value)
             })
         } else {
             getSessionValue("mainSession", { (value) in
                 Game.shared.data.skin = value
-                Game.shared.codeTextChanged.send()
+                Game.shared.codeTextChanged.send(value)
             })
         }
     }
@@ -419,7 +418,7 @@ struct SwiftUIWebView: NSViewRepresentable {
                         editor.setTheme(colorScheme)
                         if Game.shared.skinMode == false {
                             if let codeItem = Game.shared.getCodeItem() {
-                                editor.setSessionValue("mainSession",  Game.shared.currentCodeItemText, codeItem.currLine)
+                                editor.setSessionValue("mainSession",  codeItem.source, codeItem.currLine)
                             }
                         } else {
                             editor.setSessionValue("mainSession",  Game.shared.data.skin, 0)
@@ -494,7 +493,7 @@ struct SwiftUIWebView: UIViewRepresentable {
                     if let editor = Game.shared.scriptEditor {
                         if Game.shared.skinMode == false {
                             if let codeItem = Game.shared.getCodeItem() {
-                                editor.setSessionValue("mainSession",  Game.shared.currentCodeItemText, codeItem.currLine)
+                                editor.setSessionValue("mainSession",  codeItem.source, codeItem.currLine)
                             }
                         } else {
                             editor.setSessionValue("mainSession",  Game.shared.data.skin, 0)

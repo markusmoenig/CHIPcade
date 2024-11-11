@@ -11,6 +11,8 @@ struct InstructionInfoView: View {
     @Binding var selectedInstruction: Instruction?
     @Binding var error: ChipCadeError
 
+    @Binding var errorInstructionType: InstructionType?
+
     var body: some View {
         VStack {
             if error != .none {
@@ -19,7 +21,7 @@ struct InstructionInfoView: View {
                     .font(.system(.title))
                     .padding(4)
                     .foregroundStyle(.red)
-                Text("Module: \(Game.shared.data.codeItems[Game.shared.errorCodeItemIndex].name)")
+                Text("Module: \(Game.shared.errorCodeItemIndex == MathLibraryIndex ? "Math" : Game.shared.data.codeItems[Game.shared.errorCodeItemIndex].name)")
                     .font(.system(.headline))
                     .padding(2)
                     .foregroundStyle(.red)
