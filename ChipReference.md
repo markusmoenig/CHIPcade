@@ -43,6 +43,9 @@ Values can also reference a register, for example to set the friction of sprite 
 - **INC Rd**. Increase the destination register by 1.
 - **DEC Rd**. Decrease the destination register by 1.
 
+- **COS Rd (Value|Rs)**. Calculates the cosine of the given angle (in radians) and stores the result in the destination register Rd.
+- **SIN Rd (Value|Rs)**. Calculates the sine of the given angle (in radians) and stores the result in the destination register Rd.
+
 - **CALL CodeTag**. Saves the current code address on the stack and invokes the subroutine.
 - **RET**. Returns from a subroutine invoked by CALL. Pops the code address from the stack and continues execution after the original CALL statement. If there is no address on the stack, stops execution.
 
@@ -84,7 +87,7 @@ Layers are drawn starting from index 0 up to 7. By default layers are in the res
 
 - **SPRSET (Sd|Rs) ImageGroup**. Assign an image group to the sprite.
 - **SPRIMG (Sd|Rs) (Value|Rs)**. Set the index of the image in the current image group. Stops any animation. Default is 0.
-- **SPRANM (Sd|Rs) From To**. Set the animation range for the sprite and start animation. If the current image index is not inside the range set it to the animation start frame.
+- **SPRANM (Sd|Rs) From To**. Set the animation range for the sprite and start animation. If the current image index is not inside the range, set it to the animation start frame.
 - **SPRFPS (Sd|Rs) (Value|Rs)**. Set the fps for the sprite's animation. Default is 10.
 
 - **SPRACT (Sd|Rs) (Value|Rs)**. Activate / deactivate the sprite. A value of 0 deactivates the sprite, any other value will activate it. Every sprite is deactivated by default.

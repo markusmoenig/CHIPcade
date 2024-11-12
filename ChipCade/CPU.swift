@@ -34,15 +34,96 @@ public class CPU {
         
         switch instruction.type {
         
-        case .add   :  if game.registers[Int(instruction.register1!)].add(other: instruction.value!.resolve(game), flags: game.flags) {
-            game.setError(.invalidArithmetic)
-        }
+        // Arithmetic
+        case .add:
+            let registerIndex = Int(instruction.register1!)
+            if registerIndex >= 0 && registerIndex <= 7 {
+                if game.registers[registerIndex].add(other: instruction.value!.resolve(game), flags: game.flags) {
+                    game.setError(.invalidArithmetic)
+                }
+            } else {
+                game.setError(.invalidRegister)
+            }
         
-        case .cmp   :  if game.registers[Int(instruction.register1!)].cmp(other: instruction.value!.resolve(game), flags: game.flags) {
-            game.setError(.invalidComparison)
-        } else {
-            game.lastCMPWasUnsigned = game.registers[Int(instruction.register1!)].isUnsigned()
-        }
+        case .sub:
+            let registerIndex = Int(instruction.register1!)
+            if registerIndex >= 0 && registerIndex <= 7 {
+                if game.registers[registerIndex].sub(other: instruction.value!.resolve(game), flags: game.flags) {
+                    game.setError(.invalidArithmetic)
+                }
+            } else {
+                game.setError(.invalidRegister)
+            }
+            
+        case .inc:
+            let registerIndex = Int(instruction.register1!)
+            if registerIndex >= 0 && registerIndex <= 7 {
+                game.registers[registerIndex].inc(flags: game.flags)
+            } else {
+                game.setError(.invalidRegister)
+            }
+        
+        case .div:
+            let registerIndex = Int(instruction.register1!)
+            if registerIndex >= 0 && registerIndex <= 7 {
+                if game.registers[registerIndex].div(other: instruction.value!.resolve(game), flags: game.flags) {
+                    game.setError(.invalidArithmetic)
+                }
+            } else {
+                game.setError(.invalidRegister)
+            }
+        
+        case .mod:
+            let registerIndex = Int(instruction.register1!)
+            if registerIndex >= 0 && registerIndex <= 7 {
+                if game.registers[Int(instruction.register1!)].mod(other: instruction.value!.resolve(game), flags: game.flags) {
+                    game.setError(.invalidArithmetic)
+                }
+            } else {
+                game.setError(.invalidRegister)
+            }
+        
+            case .mul:
+                let registerIndex = Int(instruction.register1!)
+                if registerIndex >= 0 && registerIndex <= 7 {
+                    if game.registers[registerIndex].mul(other: instruction.value!.resolve(game), flags: game.flags) {
+                        game.setError(.invalidArithmetic)
+                    }
+                } else {
+                    game.setError(.invalidRegister)
+                }
+
+        case .cos:
+            let registerIndex = Int(instruction.register1!)
+            if registerIndex >= 0 && registerIndex <= 7 {
+                let value = instruction.value!.resolve(game).toFloat32Bit()
+                game.registers[registerIndex] = .float16Bit(ChipCadeData.float32ToFloat16(cos(value)))
+            } else {
+                game.setError(.invalidRegister)
+            }
+            
+        case .sin:
+            let registerIndex = Int(instruction.register1!)
+            if registerIndex >= 0 && registerIndex <= 7 {
+                let value = instruction.value!.resolve(game).toFloat32Bit()
+                game.registers[registerIndex] = .float16Bit(ChipCadeData.float32ToFloat16(sin(value)))
+            } else {
+                game.setError(.invalidRegister)
+            }
+            
+        case .cmp:
+            let registerIndex = Int(instruction.register1!)
+            if registerIndex >= 0 && registerIndex <= 11 {
+                if game.registers[registerIndex].cmp(other: instruction.value!.resolve(game), flags: game.flags) {
+                    game.setError(.invalidComparison)
+                } else {
+                    game.lastCMPWasUnsigned = game.registers[Int(instruction.register1!)].isUnsigned()
+                }
+            } else {
+                game.setError(.invalidRegister)
+            }
+            
+        //
             
         case .call:
             if let (codeItemIndex, instructionIndex) = game.data.getCodeAddress(name: instruction.memory!, currentCodeIndex: game.currCodeItemIndex) {
@@ -89,12 +170,6 @@ public class CPU {
             } else {
                 return .stop
             }
-        
-        case .inc   :  game.registers[Int(instruction.register1!)].inc(flags: game.flags)
-        
-        case .div   :  if game.registers[Int(instruction.register1!)].div(other: instruction.value!.resolve(game), flags: game.flags) {
-            game.setError(.invalidArithmetic)
-        }
             
         case .j    :
             if let (codeItemIndex, instructionIndex) = game.data.getCodeAddress(name: instruction.memory!, currentCodeIndex: game.currCodeItemIndex) {
@@ -291,15 +366,7 @@ public class CPU {
             } else {
                 game.setError(.invalidLayerIndex)
             }
-            
-        case .mod   :  if game.registers[Int(instruction.register1!)].mod(other: instruction.value!.resolve(game), flags: game.flags) {
-            game.setError(.invalidArithmetic)
-        }
-        
-        case .mul   :  if game.registers[Int(instruction.register1!)].mul(other: instruction.value!.resolve(game), flags: game.flags) {
-            game.setError(.invalidArithmetic)
-        }
-            
+    
         case .push  : game.stack.append(.value(instruction.value!.resolve(game)))
         
         case .rand:
@@ -636,10 +703,6 @@ public class CPU {
             } else {
                 game.setError(.invalidSpriteIndex)
             }
-            
-        case .sub   :  if game.registers[Int(instruction.register1!)].sub(other: instruction.value!.resolve(game), flags: game.flags) {
-            game.setError(.invalidArithmetic)
-        }
             
         case .sprstp:
             var spriteIndex = Int(instruction.register1!)

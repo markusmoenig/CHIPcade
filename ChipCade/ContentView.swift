@@ -31,15 +31,12 @@ struct ContentView: View {
     @State private var isMathLibrarySelected: Bool = false
     @State private var isReferenceSelected: Bool = false
 
-    @State private var notes: String = ""
     @State private var referenceText: String = ""
 
     @State private var selectedInstructionIndex: Int?
     @State private var selectedInstruction: Instruction?
 
     @State private var selectedImageIndex: Int?
-
-    @State private var showingAddMemoryItemPopover = false
 
     @AppStorage("editorIsOnLeftSide") private var editorIsOnLeftSide = false
 
@@ -65,6 +62,11 @@ struct ContentView: View {
     @AppStorage("skinMode") private var skinMode: Bool = true
     @AppStorage("skinIcon") private var skinIcon: String = "cpu.fill"
     
+    @AppStorage("noteLine") private var noteLine: Int = 0
+    @AppStorage("skinLine") private var skinLine: Int = 0
+    @AppStorage("mathLibLine") private var mathLibLine: Int = 0
+    @AppStorage("chipRefLine") private var chipRefLine: Int = 0
+
     @State private var currError: ChipCadeError = .none
     
     //@StateObject private var controllerManager = GameControllerManager()
@@ -117,10 +119,12 @@ struct ContentView: View {
                     selectedImageGroupItem = nil
                     selectedMemoryItem = nil
                     isPaletteSelected = false
-                    isNotesSelected = true
                     isReferenceSelected = false
                     isSkinSelected = false
                     isMathLibrarySelected = false
+                    isNotesSelected = true
+                    Game.shared.editorMode = .note
+                    Game.shared.scriptEditor?.setSessionValue("mainSession", Game.shared.data.notes, noteLine)
                 }) {
                     HStack {
                         Text("Notes")
@@ -146,7 +150,7 @@ struct ContentView: View {
                     isSkinSelected = true
                     isMathLibrarySelected = false
                     Game.shared.editorMode = .skin
-                    Game.shared.scriptEditor?.setSessionValue("mainSession", Game.shared.data.skin, 0)
+                    Game.shared.scriptEditor?.setSessionValue("mainSession", Game.shared.data.skin, skinLine)
                 }) {
                     HStack {
                         Text("Skin Editor")
@@ -177,7 +181,7 @@ struct ContentView: View {
                         isSkinSelected = false
                         isMathLibrarySelected = true
                         Game.shared.editorMode = .mathLibrary
-                        Game.shared.scriptEditor?.setSessionValue("mainSession", Game.shared.mathSource, 0)
+                        Game.shared.scriptEditor?.setSessionValue("mainSession", Game.shared.mathSource, mathLibLine)
                     }) {
                         HStack {
                             Text("Math Library")
@@ -200,9 +204,11 @@ struct ContentView: View {
                     selectedMemoryItem = nil
                     isPaletteSelected = false
                     isNotesSelected = false
-                    isReferenceSelected = true
                     isSkinSelected = false
                     isMathLibrarySelected = false
+                    isReferenceSelected = true
+                    Game.shared.editorMode = .chipReference
+                    Game.shared.scriptEditor?.setSessionValue("mainSession", Game.shared.chipRef, chipRefLine)
                 }) {
                     HStack {
                         Text("Chip Reference")
@@ -254,13 +260,13 @@ struct ContentView: View {
                             PaletteView(game: document.game)
                                 .padding(0)
                         } else if isNotesSelected {
-                            TextEditor(text: $notes)
-                                .padding(4)
+                            WebView(colorScheme)
                         } else if isReferenceSelected {
-                            ScrollView {
-                                Markdown(referenceText)
-                                    .padding(4)
-                            }
+//                            ScrollView {
+//                                Markdown(referenceText)
+//                                    .padding(4)
+//                            }
+                            WebView(colorScheme)
                         } else if isMathLibrarySelected {
                            WebView(colorScheme)
                        }
@@ -307,13 +313,13 @@ struct ContentView: View {
                             PaletteView(game: document.game)
                                 .padding(0)
                         } else if isNotesSelected {
-                            TextEditor(text: $notes)
-                                .padding(4)
+                            WebView(colorScheme)
                         } else if isReferenceSelected {
-                            ScrollView {
-                                Markdown(referenceText)
-                                    .padding(4)
-                            }
+//                            ScrollView {
+//                                Markdown(referenceText)
+//                                    .padding(4)
+//                            }
+                            WebView(colorScheme)
                         } else if isMathLibrarySelected {
                            WebView(colorScheme)
                        }
@@ -466,21 +472,10 @@ struct ContentView: View {
                 }
                 
                 Spacer()
-
-                // Toolbar button for adding a new MemoryItem
-//                Button(action: {
-//                    showingAddMemoryItemPopover.toggle() // Toggle popover visibility
-//                }) {
-//                    Label("Add Memory Item", systemImage: "plus")
-//                }
-//                .popover(isPresented: $showingAddMemoryItemPopover) {
-//                    AddMemoryItemView(game: document.game, selectedMemoryItem: $selectedMemoryItem)
-//                }
             }
         }
         .onAppear {
             selectedCodeItem = document.game.data.codeItems[0]
-            notes = document.game.data.notes
             
             if let fileURL = Bundle.main.url(forResource: "ChipReference", withExtension: "md") {
                 do {
@@ -499,13 +494,22 @@ struct ContentView: View {
             #endif
             document.game.skin.compile(text: document.game.data.skin)
             Game.shared.scriptEditor?.setTheme(colorScheme)
+            
+            // Set the current line numbers
+            Game.shared.noteLine = noteLine
+            Game.shared.skinLine = skinLine
+            Game.shared.mathLibLine = mathLibLine
+            Game.shared.chipRefLine = chipRefLine
         }
         
         // When the code changes in the code editor, compile it
         .onReceive(document.game.codeTextChanged) { value in
+            if Game.shared.editorMode == .note {
+                Game.shared.data.notes = value
+            } else
             if !isSkinSelected {
                 compile(string: value)
-            } else {
+            } else if isSkinSelected {
                 Game.shared.skin.compile(text: Game.shared.data.skin)
                 Game.shared.cpuRender.update()
             }
@@ -513,10 +517,28 @@ struct ContentView: View {
         
         // The cursor has changed in the codeEditor
         .onReceive(document.game.codeLineChanged) { line in
-            if line < document.game.data.codeItems[document.game.currCodeItemIndex].codes.count {
-                document.game.currInstructionIndex = line
-                selectedInstruction = document.game.data.codeItems[document.game.currCodeItemIndex].codes[document.game.currInstructionIndex]
-                selectedInstructionIndex = document.game.currInstructionIndex
+            if Game.shared.editorMode == .code {
+                if line < document.game.data.codeItems[document.game.currCodeItemIndex].codes.count {
+                    document.game.currInstructionIndex = line
+                    selectedInstruction = document.game.data.codeItems[document.game.currCodeItemIndex].codes[document.game.currInstructionIndex]
+                    selectedInstructionIndex = document.game.currInstructionIndex
+                }
+            } else
+            if Game.shared.editorMode == .note {
+                Game.shared.noteLine = line + 1
+                noteLine = line + 1
+            } else
+            if Game.shared.editorMode == .skin {
+                Game.shared.skinLine = line + 1
+                skinLine = line + 1
+            } else
+            if Game.shared.editorMode == .mathLibrary {
+                Game.shared.mathLibLine = line + 1
+                mathLibLine = line + 1
+            } else
+            if Game.shared.editorMode == .chipReference {
+                Game.shared.chipRefLine = line + 1
+                chipRefLine = line + 1
             }
         }
         
@@ -567,10 +589,6 @@ struct ContentView: View {
                 }
             }
             document.game.cpuRender.update()
-        }
-        
-        .onChange(of: notes) {
-            document.game.data.notes = notes
         }
         
         .onChange(of: selectedCodeItem) {

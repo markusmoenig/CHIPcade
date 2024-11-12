@@ -303,6 +303,14 @@ class ScriptEditor
             editor.gotoLine(\(line));
             editor.setReadOnly(false);            
             """
+        } else if Game.shared.editorMode == .note {
+            cmd = """
+            \(session).setValue(`\(value)`)
+            \(session).setMode("ace/mode/text");
+            editor.moveCursorTo(\(line), 0);
+            editor.gotoLine(\(line));
+            editor.setReadOnly(false);            
+            """
         } else if Game.shared.editorMode == .skin {
             cmd = """
             \(session).setValue(`\(value)`)
@@ -311,7 +319,15 @@ class ScriptEditor
             editor.gotoLine(\(line));
             editor.setReadOnly(false);            
             """
-        } else {//if Game.shared.editorMode == .library {
+        } else if Game.shared.editorMode == .mathLibrary {
+            cmd = """
+            \(session).setValue(`\(value)`)
+            \(session).setMode("ace/mode/chipcade");
+            editor.moveCursorTo(\(line), 0);
+            editor.gotoLine(\(line));
+            editor.setReadOnly(true);            
+            """
+        } else {
             cmd = """
             \(session).setValue(`\(value)`)
             \(session).setMode("ace/mode/chipcade");
@@ -338,7 +354,7 @@ class ScriptEditor
     /// Script has changed
     func updated()
     {
-        if Game.shared.editorMode == .code {
+        if Game.shared.editorMode == .code || Game.shared.editorMode == .note {
             getSessionValue("mainSession", { (value) in
                 Game.shared.codeTextChanged.send(value)
             })
@@ -429,11 +445,15 @@ struct SwiftUIWebView: NSViewRepresentable {
                             if let codeItem = Game.shared.getCodeItem() {
                                 editor.setSessionValue("mainSession",  codeItem.source, codeItem.currLine)
                             }
+                        } else if Game.shared.editorMode == .note {
+                            editor.setSessionValue("mainSession",  Game.shared.data.notes, Game.shared.noteLine)
                         } else if Game.shared.editorMode == .skin {
-                            editor.setSessionValue("mainSession",  Game.shared.data.skin, 0)
+                            editor.setSessionValue("mainSession",  Game.shared.data.skin, Game.shared.skinLine)
                         } else if Game.shared.editorMode == .mathLibrary {
-                            editor.setSessionValue("mainSession",  Game.shared.mathSource, 0)
-                       }
+                            editor.setSessionValue("mainSession",  Game.shared.mathSource, Game.shared.mathLibLine)
+                        } else if Game.shared.editorMode == .chipReference {
+                            editor.setSessionValue("mainSession",  Game.shared.chipRef, Game.shared.chipRefLine)
+                        }
                     }
                 }
             }

@@ -23,8 +23,10 @@ public enum SelectionState {
 
 public enum EditorMode {
     case code
+    case note
     case skin
     case mathLibrary
+    case chipReference
 }
 
 public class Game : ObservableObject
@@ -83,6 +85,15 @@ public class Game : ObservableObject
     var mathLib: [Instruction] = []
     var mathSource: String = ""
     
+    // Chip Reference
+    var chipRef: String = ""
+    
+    // Current line numbers
+    var noteLine: Int = 0
+    var skinLine: Int = 0
+    var mathLibLine: Int = 0
+    var chipRefLine: Int = 0
+    
     // We are currently editing a skin
     var editorMode : EditorMode = .code
     
@@ -109,6 +120,8 @@ public class Game : ObservableObject
     
     /// Compile Math Library
     public func compileStandardModules() {
+        
+        // Compile Standard Math Library
         if let path = Bundle.main.path(forResource: "MathLib", ofType: "") {
             do {
                 mathSource = try String(contentsOfFile: path, encoding: .utf8)
@@ -118,6 +131,15 @@ public class Game : ObservableObject
                 }
             } catch {
                 print("Failed to read MathLib: \(error.localizedDescription)")
+            }
+        }
+        
+        // Load Chip Reference
+        if let path = Bundle.main.path(forResource: "ChipRef", ofType: "") {
+            do {
+                chipRef = try String(contentsOfFile: path, encoding: .utf8)
+            } catch {
+                print("Failed to read ChipRef: \(error.localizedDescription)")
             }
         }
     }

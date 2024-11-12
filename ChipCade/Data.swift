@@ -421,7 +421,8 @@ enum ChipCadeData: Codable {
     func resolve(_ game: Game) -> ChipCadeData {
         switch self {
         case .register(let register):
-            return game.registers[Int(register)]
+            let reg = register > 7 ? 7 : Int(register)
+            return game.registers[reg]
         default: return self
         }
     }

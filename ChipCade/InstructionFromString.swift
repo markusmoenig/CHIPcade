@@ -64,7 +64,7 @@ extension Instruction {
                 return nil
             }
             
-        case .ldi, .cmp, .add, .sub, .mul, .div, .mod:
+        case .ldi, .cmp, .add, .sub, .mul, .div, .mod, .cos, .sin:
             // XXXXXX Rd Value
             if components.count == 3,
                let reg1 = parseRegister(components[1]),

@@ -13,6 +13,7 @@ public enum InstructionType: String, Codable, CaseIterable {
     case call
     case calltm
     case comnt
+    case cos
     case dec
     case div
     case fntset
@@ -39,6 +40,7 @@ public enum InstructionType: String, Codable, CaseIterable {
     case rand
     case rect
     case ret
+    case sin
     case spracc
     case spralp
     case spranm
@@ -114,9 +116,8 @@ public class Instruction: ObservableObject, Codable, Equatable {
         
         case .cmp:
             value = .unsigned16Bit(0)
-        case .add, .sub, .mul, .div, .mod:
+        case .add, .sub, .mul, .div, .mod, .sin, .cos:
             register1 = 0
-            register2 = 0
             value = .unsigned16Bit(0)
         case .inc, .dec, .sprstp, .sprhlt:
             register1 = 0
@@ -228,6 +229,9 @@ public class Instruction: ObservableObject, Codable, Equatable {
         case .calltm:
             return "CALLTM \(memory!) \(value!.toString())"
             
+        case .cos:
+            return "COS R\(register1!) \(value!.toString())"
+            
         case .comnt:
             return "# \(memory!)"
             
@@ -310,6 +314,9 @@ public class Instruction: ObservableObject, Codable, Equatable {
         case .ret:
             return "RET"
         
+        case .sin:
+            return "SIN R\(register1!) \(value!.toString())"
+            
         case .st:
             return "ST \(memory!) + \(memoryOffset!) \(value!.toString())"
             
@@ -397,6 +404,9 @@ public class Instruction: ObservableObject, Codable, Equatable {
         switch type {
         case .add:
             return "ADD Rd (Value|Rs)"
+            
+        case .cos:
+            return "COS Rd (Value|Rs)"
             
         case .cmp:
             return "CMP Rd (Value|Rs)"
@@ -488,6 +498,9 @@ public class Instruction: ObservableObject, Codable, Equatable {
         case .ret:
             return "RET"
         
+        case .sin:
+            return "SIN Rd (Value|Rs)"
+            
         case .st:
             return "ST Memory + (Value|Rs) (Value|Rs)"
             
@@ -575,12 +588,14 @@ public class Instruction: ObservableObject, Codable, Equatable {
         switch type {
         case .add:
             return "Add value to destination register."
+        case .cos:
+            return "Store the cosine of the value to destination register."
         case .cmp:
             return "Compare two values."
         case .call:
             return "Call a subroutine."
         case .calltm:
-            return "Calls a subroutine after a specified delay (in seconds)."
+            return "Call a subroutine after a specified delay (in seconds)."
         case .comnt:
             return "Comment"
         case .dec:
@@ -635,6 +650,8 @@ public class Instruction: ObservableObject, Codable, Equatable {
             return "Create a random value between 0 and max value."
         case .rect:
             return "Draw rectangle: R0=X, R1=Y, R2=Width, R3=Height, R4=Palette."
+        case .sin:
+            return "Store the sine of the value to destination register."
         case .st:
             return "Store register to memory."
         case .sub:
