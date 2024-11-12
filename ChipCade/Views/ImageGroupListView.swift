@@ -38,27 +38,33 @@ struct ImageGroupItemListView: View {
                         if let uiImage = UIImage(data: imageGroupItem.images[index]) {
                             Image(uiImage: uiImage)
                                 .resizable()
-                                .aspectRatio(contentMode: .fit) // Maintain aspect ratio
-                                .frame(maxWidth: 100, maxHeight: 100) // Set max size for the thumbnail
+                                .aspectRatio(contentMode: .fit)
+                                .frame(maxWidth: 100, maxHeight: 100)
                                 .cornerRadius(8)
+
+                            // Display index and dimensions
+                            Text("Index: \(index) (\(Int(uiImage.size.width)) x \(Int(uiImage.size.height)))")
+                                .foregroundColor(.gray)
+                                .onTapGesture {
+                                    selectedImageIndex = index
+                                }
                         }
                         #elseif os(macOS)
                         if let nsImage = NSImage(data: imageGroupItem.images[index]) {
                             Image(nsImage: nsImage)
                                 .resizable()
-                                .aspectRatio(contentMode: .fit) // Maintain aspect ratio
-                                .frame(maxWidth: 100, maxHeight: 100) // Set max size for the thumbnail
+                                .aspectRatio(contentMode: .fit)
+                                .frame(maxWidth: 100, maxHeight: 100)
                                 .cornerRadius(8)
+
+                            // Display index and dimensions
+                            Text("Index: \(index) (\(Int(nsImage.size.width)) x \(Int(nsImage.size.height)))")
+                                .foregroundColor(.gray)
+                                .onTapGesture {
+                                    selectedImageIndex = index
+                                }
                         }
                         #endif
-                        
-                        // Show the index of the image
-                        Text("Index: \(index)")
-                            //.font(.caption)
-                            .foregroundColor(.gray)
-                            .onTapGesture {
-                                selectedImageIndex = index
-                            }
                         
                         Spacer()
 

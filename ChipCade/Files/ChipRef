@@ -21,6 +21,8 @@ For more detailed information and tutorials please visit CHIPcade.com.
 
 Values can also reference a register, for example to set the friction of sprite 0 you could write SPRFRI S0 0.5f or SPRFRI S0 R2 to set the friction to the content of register 2.
 
+Arithmetic operations automatically convert the source value to match the type of the destination value before execution. As a result, arithmetic operations are guaranteed not to fail.
+
 # Instruction Set
 
 CodeTag: Set a code tag (for JE or Call instructions).
@@ -31,14 +33,14 @@ LD Rd Memory + (Value|Rs). Load memory to the destination register.
 LDI Rd (Value|Rs). Load an immediate value to the destination register.
 LDRESX Rd. Load the x value of the screen resolution to the destination register.
 LDRESY Rd. Load the y value of the screen resolution to the destination register.
-LDSPR Rd (Ss|Rs) Attr. Load an attribute of the sprite into the destination register. Attributes: "x", "y".
+LDSPR Rd (Ss|Rs) Attr. Load an attribute of the sprite into the destination register. All values are returned as floats. Attributes: "x", "y", "width", "height", "rotation", "speed".
 ST Memory + (Value|Rs) (Value|Rs). Store the value at the destination memory address.
 
-ADD Rd (Value|Rs). Add the source value to the destination register.
-SUB Rd (Value|Rs). Subtract the source value from the destination register.
-MUL Rd (Value|Rs). Multiply the source value with the destination register.
-DIV Rd (Value|Rs). Divide the destination by the source value.
-MOD Rd (Value|Rs). Modulus of the destination by the source value.
+ADD Rd (Value|Rs). Add the source value to the destination register. The source value is automatically converted to match the type of the destination value before execution.
+SUB Rd (Value|Rs). Subtract the source value from the destination register. The source value is automatically converted to match the type of the destination value before execution.
+MUL Rd (Value|Rs). Multiply the source value with the destination register. The source value is automatically converted to match the type of the destination value before execution.
+DIV Rd (Value|Rs). Divide the destination by the source value. The source value is automatically converted to match the type of the destination value before execution.
+MOD Rd (Value|Rs). Modulus of the destination by the source value. The source value is automatically converted to match the type of the destination value before execution.
 
 INC Rd. Increase the destination register by 1.
 DEC Rd. Decrease the destination register by 1.
@@ -49,7 +51,7 @@ SIN Rd (Value|Rs). Calculates the sine of the given angle (in radians) and store
 CALL CodeTag. Saves the current code address on the stack and invokes the subroutine.
 RET. Returns from a subroutine invoked by CALL. Pops the code address from the stack and continues execution after the original CALL statement. If there is no address on the stack, stops execution.
 
-CMP Rd (Value|Rs). Compare the content of the destination register with the source value or register.
+CMP Rd (Value|Rs). Compare the content of the destination register with the source value or register, setting the appropriate CPU flags. The source value is automatically converted to match the type of the destination value before execution. As a result, CMP cannot fail.
 
 J [Module.]Tag. Unconditional jump.
 JE [Module.]Tag. Jump if the zero flag is set (equality check).

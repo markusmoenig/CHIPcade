@@ -22,4 +22,53 @@ RAD2DEG:
     MUL R1 57.2958f     # Multiply R1 by 180/π to convert to degrees
     RET
     
+# Math.CalcSpriteFrontPosition: Calculates the sprite's front position for centering another sprite.
+# Inputs:
+#   - R0: Main Sprite Index (input before the call)
+#   - R7: Other Sprite Index (input before the call)
+# Outputs:
+#   - R1: X value (centered front position X)
+#   - R2: Y value (centered front position Y)
+# Description:
+#   Calculates the front position of a sprite and adjusts it to center another sprite.
 
+CalcSpriteFrontPosition:
+    # Load attributes of the main sprite
+    LDSPR R1 R0 "x"        # Load the main sprite's X position into R1
+    LDSPR R2 R0 "y"        # Load the main sprite's Y position into R2
+    LDSPR R3 R0 "width"    # Load the main sprite's width into R3
+    LDSPR R4 R0 "height"   # Load the main sprite's height into R4
+    LDSPR R5 R0 "rotation" # Load the main sprite's rotation (degrees) into R5
+
+    # Load attributes of the other sprite
+    LDSPR R6 R7 "width"    # Load the other sprite's width into R6
+    LDSPR R7 R7 "height"   # Load the other sprite's height into R7
+
+    # Calculate the center of the main sprite
+    DIV R3 2.0f            # Half-width of the main sprite (R3)
+    ADD R1 R3              # Add half-width to X position for center X
+    DIV R4 2.0f            # Half-height of the main sprite (R4)
+    ADD R2 R4              # Add half-height to Y position for center Y
+
+    # Convert rotation to radians using Math.DEG2RAD
+    MOV R0 R5              # Move the rotation (degrees) into R0 for DEG2RAD
+    CALL Math.DEG2RAD      # Call DEG2RAD, result is now in R1 (radians)
+    MOV R5 R1              # Move the result (radians) back to R5
+
+    # Calculate the front offset based on rotation
+    COS R3 R5              # Calculate cosine of the rotation angle into R3
+    MUL R3 R4              # Multiply by half-height (front offset in Y direction)
+    SIN R4 R5              # Calculate sine of the rotation angle into R4
+    MUL R4 R4              # Multiply by half-height (front offset in X direction)
+
+    # Apply the offset to the center position
+    SUB R1 R4              # Subtract the front offset from center X
+    SUB R2 R3              # Subtract the front offset from center Y
+    
+    # Adjust for the center of the other sprite
+    DIV R6 2.0f            # Half the width of the other sprite (R6)
+    SUB R1 R6              # Subtract half-width to center the other sprite
+    DIV R7 2.0f            # Half the height of the other sprite (R7)
+    SUB R2 R7              # Subtract half-height to center the other sprite
+
+    RET                    # Return to the caller with R1 and R2 as outputs

@@ -34,11 +34,12 @@ public class CPU {
         
         switch instruction.type {
         
-        // Arithmetic
+        // Arithmetic. Source types get cast to destination types automatically.
+            
         case .add:
             let registerIndex = Int(instruction.register1!)
             if registerIndex >= 0 && registerIndex <= 7 {
-                if game.registers[registerIndex].add(other: instruction.value!.resolve(game), flags: game.flags) {
+                if game.registers[registerIndex].add(other: instruction.value!.resolve(game).cast(to: game.registers[registerIndex]), flags: game.flags) {
                     game.setError(.invalidArithmetic)
                 }
             } else {
@@ -48,7 +49,7 @@ public class CPU {
         case .sub:
             let registerIndex = Int(instruction.register1!)
             if registerIndex >= 0 && registerIndex <= 7 {
-                if game.registers[registerIndex].sub(other: instruction.value!.resolve(game), flags: game.flags) {
+                if game.registers[registerIndex].sub(other: instruction.value!.resolve(game).cast(to: game.registers[registerIndex]), flags: game.flags) {
                     game.setError(.invalidArithmetic)
                 }
             } else {
@@ -62,11 +63,19 @@ public class CPU {
             } else {
                 game.setError(.invalidRegister)
             }
+            
+        case .dec:
+            let registerIndex = Int(instruction.register1!)
+            if registerIndex >= 0 && registerIndex <= 7 {
+                game.registers[registerIndex].dec(flags: game.flags)
+            } else {
+                game.setError(.invalidRegister)
+            }
         
         case .div:
             let registerIndex = Int(instruction.register1!)
             if registerIndex >= 0 && registerIndex <= 7 {
-                if game.registers[registerIndex].div(other: instruction.value!.resolve(game), flags: game.flags) {
+                if game.registers[registerIndex].div(other: instruction.value!.resolve(game).cast(to: game.registers[registerIndex]), flags: game.flags) {
                     game.setError(.invalidArithmetic)
                 }
             } else {
@@ -76,17 +85,17 @@ public class CPU {
         case .mod:
             let registerIndex = Int(instruction.register1!)
             if registerIndex >= 0 && registerIndex <= 7 {
-                if game.registers[Int(instruction.register1!)].mod(other: instruction.value!.resolve(game), flags: game.flags) {
+                if game.registers[Int(instruction.register1!)].mod(other: instruction.value!.resolve(game).cast(to: game.registers[registerIndex]), flags: game.flags) {
                     game.setError(.invalidArithmetic)
                 }
             } else {
                 game.setError(.invalidRegister)
             }
         
-            case .mul:
+        case .mul:
                 let registerIndex = Int(instruction.register1!)
                 if registerIndex >= 0 && registerIndex <= 7 {
-                    if game.registers[registerIndex].mul(other: instruction.value!.resolve(game), flags: game.flags) {
+                    if game.registers[registerIndex].mul(other: instruction.value!.resolve(game).cast(to: game.registers[registerIndex]), flags: game.flags) {
                         game.setError(.invalidArithmetic)
                     }
                 } else {
@@ -114,7 +123,7 @@ public class CPU {
         case .cmp:
             let registerIndex = Int(instruction.register1!)
             if registerIndex >= 0 && registerIndex <= 11 {
-                if game.registers[registerIndex].cmp(other: instruction.value!.resolve(game), flags: game.flags) {
+                if game.registers[registerIndex].cmp(other: instruction.value!.resolve(game).cast(to: game.registers[registerIndex]), flags: game.flags) {
                     game.setError(.invalidComparison)
                 } else {
                     game.lastCMPWasUnsigned = game.registers[Int(instruction.register1!)].isUnsigned()
@@ -127,7 +136,7 @@ public class CPU {
             
         case .call:
             if let (codeItemIndex, instructionIndex) = game.data.getCodeAddress(name: instruction.memory!, currentCodeIndex: game.currCodeItemIndex) {
-                let memoryText = game.data.codeItems[game.currCodeItemIndex].name
+                let memoryText = game.currCodeItemIndex == MathLibraryIndex ? "Math" : game.data.codeItems[game.currCodeItemIndex].name
                 let offsetText = String(format: "0x%X", game.currInstructionIndex + 1)
                 let string = "\(memoryText) + \(offsetText)"
                 game.stack.append(.address(string))
@@ -251,9 +260,7 @@ public class CPU {
                 game.setError(.invalidCodeAddress)
             }
         }
-            
-        case .dec   :  game.registers[Int(instruction.register1!)].dec(flags: game.flags)
-        
+                    
         case .ld    :
             if let value = game.getMemoryValue(memoryItemName: instruction.memory!, offset: instruction.memoryOffset!) {
                 let register = Int(instruction.register1!)
@@ -305,10 +312,19 @@ public class CPU {
                     switch instruction.memory?.lowercased() {
                         
                     case "x":
-                        game.registers[register] = .signed16Bit(Int16(gcp.sprites[spriteIndex].position.x))
+                        game.registers[register] = .float16Bit(ChipCadeData.float32ToFloat16(Float(gcp.sprites[spriteIndex].position.x)))
                         
                     case "y":
-                        game.registers[register] = .signed16Bit(Int16(gcp.sprites[spriteIndex].position.y))
+                        game.registers[register] = .float16Bit(ChipCadeData.float32ToFloat16(Float(gcp.sprites[spriteIndex].position.y)))
+                        
+                    case "width":
+                        game.registers[register] = .float16Bit(ChipCadeData.float32ToFloat16(Float(gcp.sprites[spriteIndex].size.width * gcp.sprites[spriteIndex].scale)))
+                        
+                    case "height":
+                        game.registers[register] = .float16Bit(ChipCadeData.float32ToFloat16(Float(gcp.sprites[spriteIndex].size.height * gcp.sprites[spriteIndex].scale)))
+                        
+                    case "rotation":
+                        game.registers[register] = .float16Bit(ChipCadeData.float32ToFloat16(Float(gcp.sprites[spriteIndex].rotation)))
                         
                     case "speed":
                         game.registers[register] = .float16Bit(ChipCadeData.float32ToFloat16(Float(gcp.sprites[spriteIndex].speed)))

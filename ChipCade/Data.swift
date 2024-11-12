@@ -62,7 +62,7 @@ enum ChipCadeData: Codable {
     // MARK: - Conversion Methods
 
     /// Convert to unsigned 16-bit integer
-    func toUnsigned16Bit() -> ChipCadeData? {
+    func toUnsigned16Bit() -> ChipCadeData {
         switch self {
         case .unsigned16Bit(let unsignedVal):
             return .unsigned16Bit(unsignedVal)
@@ -79,7 +79,7 @@ enum ChipCadeData: Codable {
     }
 
     /// Convert to signed 16-bit integer
-    func toSigned16Bit() -> ChipCadeData? {
+    func toSigned16Bit() -> ChipCadeData {
         switch self {
         case .unsigned16Bit(let unsignedVal):
             return .signed16Bit(Int16(clamping: unsignedVal))
@@ -96,7 +96,7 @@ enum ChipCadeData: Codable {
     }
 
     /// Convert to 16-bit float
-    func toFloat16Bit() -> ChipCadeData? {
+    func toFloat16Bit() -> ChipCadeData {
         switch self {
         case .unsigned16Bit(let unsignedVal):
             let float32 = Float(unsignedVal)
@@ -118,7 +118,7 @@ enum ChipCadeData: Codable {
     }
 
     /// Convert to 16-bit Unicode character
-    func toUnicodeChar() -> ChipCadeData? {
+    func toUnicodeChar() -> ChipCadeData {
         switch self {
         case .unsigned16Bit(let unsignedVal):
             return .unicodeChar(unsignedVal)
@@ -131,6 +131,22 @@ enum ChipCadeData: Codable {
             return .unicodeChar(unicodeVal)
         case .register(let register):
             return .unicodeChar(UInt16(register))
+        }
+    }
+    
+    /// Cast the value to match the type of the given reference value
+    func cast(to reference: ChipCadeData) -> ChipCadeData {
+        switch reference {
+        case .unsigned16Bit:
+            return self.toUnsigned16Bit()
+        case .signed16Bit:
+            return self.toSigned16Bit()
+        case .float16Bit:
+            return self.toFloat16Bit()
+        case .unicodeChar:
+            return self.toUnicodeChar()
+        case .register:
+            return .register(self.toUInt16())
         }
     }
 
@@ -167,7 +183,7 @@ enum ChipCadeData: Codable {
     }
 
     /// Converts to UInt16, if possible
-    func toUInt16() -> UInt16? {
+    func toUInt16() -> UInt16 {
         switch self {
         case .unsigned16Bit(let value):
             return value
