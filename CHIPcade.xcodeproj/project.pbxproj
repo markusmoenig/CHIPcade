@@ -110,7 +110,7 @@
 					};
 				};
 			};
-			buildConfigurationList = DD72F1232CA82DC00054826E /* Build configuration list for PBXProject "CHIPcade" */;
+			buildConfigurationList = DD72F1232CA82DC00054826E /* Build configuration list for PBXProject "ChipCade" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -364,7 +364,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		DD72F1232CA82DC00054826E /* Build configuration list for PBXProject "CHIPcade" */ = {
+		DD72F1232CA82DC00054826E /* Build configuration list for PBXProject "ChipCade" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				DD72F13C2CA82DC00054826E /* Debug */,

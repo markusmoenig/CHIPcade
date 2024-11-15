@@ -229,6 +229,19 @@ public class Game : ObservableObject
         currInstructionIndex = prevInstructionIndex
     }
     
+    // Execute a single instruction
+    public func step() {
+        if let instruction = getInstruction() {
+            let result = cpu.executeInstruction(instruction: instruction, gcp: gcp)
+
+            if result == .nextInstruction {
+                currInstructionIndex += 1
+            }
+        }
+        cpuRender.update()
+        errorChanged.send(.none)
+    }
+    
     // Executes the current code address
     public func execute() {
         while let instruction = getInstruction() {
@@ -241,6 +254,23 @@ public class Game : ObservableObject
             {
                 break;
             }
+        }
+    }
+    
+    /// Sync the editor to the current code position, mainly used for stepping
+    public func syncEditor() {
+        // Check for Math Library
+        if currCodeItemIndex == MathLibraryIndex {
+            scriptEditor?.setSessionValue("MainSession", mathSource, currInstructionIndex + 1)
+        } else {
+            // Check if the currCodeItemIndex is within bounds
+            guard currCodeItemIndex >= 0 && currCodeItemIndex < data.codeItems.count else {
+                return
+            }
+
+            print("\(currInstructionIndex)")
+            let codeItem = data.codeItems[currCodeItemIndex]
+            scriptEditor?.setSessionValue("MainSession", codeItem.source, currInstructionIndex + 1)
         }
     }
     

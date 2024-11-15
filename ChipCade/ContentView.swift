@@ -417,10 +417,7 @@ struct ContentView: View {
                 .keyboardShortcut("R")
 
                 Button(action: {
-                    document.game.executeInstruction()
-                    document.game.currInstructionIndex += 1
-                    selectedInstructionIndex = document.game.currInstructionIndex
-                    document.game.cpuRender.update()
+                    document.game.step()
                 }) {
                     Label("Step", systemImage: "playpause")
                 }
@@ -552,18 +549,25 @@ struct ContentView: View {
                     selectedInstructionIndex = document.game.errorInstructionIndex
                 }
                 else {
-                    selectedCodeItem = document.game.data.codeItems[document.game.currCodeItemIndex]
-                    
-                    if document.game.currInstructionIndex >= document.game.data.codeItems[document.game.currCodeItemIndex].codes.count {
-                        document.game.currInstructionIndex = 0
+                    if document.game.currCodeItemIndex == MathLibraryIndex {
+                        
+                    } else {
+                        selectedCodeItem = document.game.data.codeItems[document.game.currCodeItemIndex]
+                        
+                        if document.game.currInstructionIndex >= document.game.data.codeItems[document.game.currCodeItemIndex].codes.count {
+                            document.game.currInstructionIndex = 0
+                        }
+                        
+                        selectedInstruction = document.game.data.codeItems[document.game.currCodeItemIndex].codes[document.game.currInstructionIndex]
+                        selectedInstructionIndex = document.game.currInstructionIndex
                     }
-                    
-                    selectedInstruction = document.game.data.codeItems[document.game.currCodeItemIndex].codes[document.game.currInstructionIndex]
-                    selectedInstructionIndex = document.game.currInstructionIndex
                 }
             }
             selectedImageGroupItem = nil
             selectedMemoryItem = nil
+            
+            Game.shared.syncEditor()
+            Game.shared.scriptEditor?.sessionGotoLine("MainSession", selectedInstructionIndex! + 1)
         }
         
         .onChange(of: appState.showHelpReference) {
