@@ -515,10 +515,12 @@ struct ContentView: View {
         // The cursor has changed in the codeEditor
         .onReceive(document.game.codeLineChanged) { line in
             if Game.shared.editorMode == .code {
-                if line < document.game.data.codeItems[document.game.currCodeItemIndex].codes.count {
-                    document.game.currInstructionIndex = line
-                    selectedInstruction = document.game.data.codeItems[document.game.currCodeItemIndex].codes[document.game.currInstructionIndex]
-                    selectedInstructionIndex = document.game.currInstructionIndex
+                if document.game.currCodeItemIndex != MathLibraryIndex {
+                    if line < document.game.data.codeItems[document.game.currCodeItemIndex].codes.count {
+                        document.game.currInstructionIndex = line
+                        selectedInstruction = document.game.data.codeItems[document.game.currCodeItemIndex].codes[document.game.currInstructionIndex]
+                        selectedInstructionIndex = document.game.currInstructionIndex
+                    }
                 }
             } else
             if Game.shared.editorMode == .note {
@@ -550,7 +552,9 @@ struct ContentView: View {
                 }
                 else {
                     if document.game.currCodeItemIndex == MathLibraryIndex {
-                        
+                        selectedCodeItem = nil
+                        Game.shared.editorMode = .mathLibrary
+                        isMathLibrarySelected = true
                     } else {
                         selectedCodeItem = document.game.data.codeItems[document.game.currCodeItemIndex]
                         
