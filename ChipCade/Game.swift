@@ -268,7 +268,6 @@ public class Game : ObservableObject
                 return
             }
 
-            print("\(currInstructionIndex)")
             let codeItem = data.codeItems[currCodeItemIndex]
             scriptEditor?.setSessionValue("MainSession", codeItem.source, currInstructionIndex + 1)
         }

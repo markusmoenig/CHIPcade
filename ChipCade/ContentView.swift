@@ -552,9 +552,12 @@ struct ContentView: View {
                 }
                 else {
                     if document.game.currCodeItemIndex == MathLibraryIndex {
-                        selectedCodeItem = nil
-                        Game.shared.editorMode = .mathLibrary
-                        isMathLibrarySelected = true
+                        if !isMathLibrarySelected {
+                            selectedCodeItem = nil
+                            Game.shared.editorMode = .mathLibrary
+                            isMathLibrarySelected = true
+                        }
+                        mathLibLine = document.game.currInstructionIndex
                     } else {
                         selectedCodeItem = document.game.data.codeItems[document.game.currCodeItemIndex]
                         
@@ -571,7 +574,17 @@ struct ContentView: View {
             selectedMemoryItem = nil
             
             Game.shared.syncEditor()
-            Game.shared.scriptEditor?.sessionGotoLine("MainSession", selectedInstructionIndex! + 1)
+            if Game.shared.editorMode == .code {
+                Game.shared.scriptEditor?.sessionGotoLine("MainSession", selectedInstructionIndex! + 1)
+            } else
+            if Game.shared.editorMode == .mathLibrary {
+                Game.shared.scriptEditor?.sessionGotoLine("MainSession", mathLibLine + 1)
+            }
+//            if Game.shared.editorMode == .mathLibrary {
+//                if let selectedInstructionIndex = selectedInstructionIndex {
+//                    mathLibLine = selectedInstructionIndex + 1
+//                }
+//            }
         }
         
         .onChange(of: appState.showHelpReference) {
@@ -614,9 +627,11 @@ struct ContentView: View {
                     editor.setSessionValue("mainSession", selectedCodeItem.source, selectedCodeItem.currLine)
                 }
             }
-            document.game.currInstructionIndex = 0
-            selectedInstructionIndex = 0
-            document.game.selectionState = .code
+            if selectedCodeItem != nil {
+                document.game.currInstructionIndex = 0
+                selectedInstructionIndex = 0
+                document.game.selectionState = .code
+            }
         }
         
         .onChange(of: selectedCodeItem) {
