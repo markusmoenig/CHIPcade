@@ -278,7 +278,7 @@ extension Instruction {
                 instruction.value = value
             }
 
-        case .nop, .ret:
+        case .nop, .ret, .brkpt:
             // NOP, RET (No additional components expected)
             break
 
@@ -287,7 +287,7 @@ extension Instruction {
             if let comment = string.split(separator: "#").last {
                 instruction.memory = String(comment.trimmingCharacters(in: .whitespaces))
             }
-
+            
         default:
             return nil
         }

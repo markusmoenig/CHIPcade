@@ -52,6 +52,7 @@ struct ContentView: View {
     @State private var stackViewIcon: String = "square.3.layers.3d"
 
     @State private var playIcon: String = "play"
+    @State private var pauseIcon: String = "playpause"
     @State private var stopIcon: String = "stop.fill"
 
     @State private var errorInstructionType: InstructionType? = nil
@@ -328,7 +329,7 @@ struct ContentView: View {
                     }
                     
                     Spacer()
-                    //Divider()
+//                    Divider()
                     
                     HStack(spacing: 8) {
                         Button(action: {
@@ -347,7 +348,7 @@ struct ContentView: View {
                             infoViewIcon = "info.circle"
                             stackViewIcon = "square.3.layers.3d.top.filled"
                         }) {
-                            Label("", systemImage: "square.3.layers.3d")
+                            Label("", systemImage: stackViewIcon)
                         }
                         .buttonStyle(.borderless)
                         .controlSize(.large)
@@ -410,6 +411,7 @@ struct ContentView: View {
                 Button(action: {
                     document.game.play()
                     playIcon = "play.fill"
+                    pauseIcon = "playpause"
                     stopIcon = "stop"
                 }) {
                     Label("Play", systemImage: playIcon)
@@ -418,13 +420,17 @@ struct ContentView: View {
 
                 Button(action: {
                     document.game.step()
+                    playIcon = "play"
+                    pauseIcon = "playpause.fill"
+                    stopIcon = "stop"
                 }) {
-                    Label("Step", systemImage: "playpause")
+                    Label("Step", systemImage: pauseIcon)
                 }
                 
                 Button(action: {
                     document.game.stop()
                     playIcon = "play"
+                    pauseIcon = "playpause"
                     stopIcon = "stop.fill"
                 }) {
                     Label("Stop", systemImage: stopIcon)
@@ -442,6 +448,8 @@ struct ContentView: View {
                     Label("Swap Views", systemImage: "rectangle.2.swap")
                 }
                 
+                Spacer()
+
                  /*
                 Button(action: {
                     if editingMode == EditingMode.list.rawValue {
@@ -467,8 +475,13 @@ struct ContentView: View {
                 }) {
                     Label("CPU Skin", systemImage: skinIcon)
                 }
-                
-                Spacer()
+
+                Button(action: {
+                    Game.shared.reset()
+                    Game.shared.cpuRender.update()
+                }) {
+                    Label("Reset CPU", systemImage: "power.circle")
+                }
             }
         }
         .onAppear {
@@ -573,18 +586,23 @@ struct ContentView: View {
             selectedImageGroupItem = nil
             selectedMemoryItem = nil
             
-            Game.shared.syncEditor()
-            if Game.shared.editorMode == .code {
-                Game.shared.scriptEditor?.sessionGotoLine("MainSession", selectedInstructionIndex! + 1)
-            } else
-            if Game.shared.editorMode == .mathLibrary {
-                Game.shared.scriptEditor?.sessionGotoLine("MainSession", mathLibLine + 1)
+            if Game.shared.stepped {
+                Game.shared.syncEditor()
+                if Game.shared.editorMode == .code {
+                    Game.shared.scriptEditor?.sessionGotoLine("MainSession", selectedInstructionIndex! + 1)
+                } else
+                if Game.shared.editorMode == .mathLibrary {
+                    Game.shared.scriptEditor?.sessionGotoLine("MainSession", mathLibLine + 1)
+                }
             }
-//            if Game.shared.editorMode == .mathLibrary {
-//                if let selectedInstructionIndex = selectedInstructionIndex {
-//                    mathLibLine = selectedInstructionIndex + 1
-//                }
-//            }
+            Game.shared.stepped = false
+        }
+        
+        // Error state has changed
+        .onReceive(document.game.breakpoint) { _ in
+            playIcon = "play"
+            pauseIcon = "playpause.fill"
+            stopIcon = "stop"
         }
         
         .onChange(of: appState.showHelpReference) {

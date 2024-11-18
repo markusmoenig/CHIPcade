@@ -12,6 +12,7 @@ public enum ExecuteResult {
     case nextInstruction
     case jumped
     case stop
+    case breakpoint
 }
 
 /// Functions which will be called after countdown finishes (set via CALLTM).
@@ -325,7 +326,7 @@ public class CPU {
                         
                     case "rotation":
                         game.registers[register] = .float16Bit(ChipCadeData.float32ToFloat16(Float(gcp.sprites[spriteIndex].rotation)))
-                        
+
                     case "speed":
                         game.registers[register] = .float16Bit(ChipCadeData.float32ToFloat16(Float(gcp.sprites[spriteIndex].speed)))
                         
@@ -430,8 +431,9 @@ public class CPU {
                     game.setError(.invalidSpriteIndex)
                 }
             }
+            
             if spriteIndex >= 0 && spriteIndex <= 255 {
-                gcp.addCmd(.spracc(spriteIndex: Int(instruction.register1!), value: instruction.value!.resolve(game).toFloat32Bit()))
+                gcp.addCmd(.spracc(spriteIndex: spriteIndex, value: instruction.value!.resolve(game).toFloat32Bit()))
             } else {
                 game.setError(.invalidSpriteIndex)
             }
@@ -470,7 +472,7 @@ public class CPU {
                 }
             }
             if spriteIndex >= 0 && spriteIndex <= 255 {
-                gcp.addCmd(.sprgrp(spriteIndex: Int(instruction.register1!), value: instruction.value!.resolve(game).toInt32Bit()))
+                gcp.addCmd(.sprgrp(spriteIndex: spriteIndex, value: instruction.value!.resolve(game).toInt32Bit()))
             } else {
                 game.setError(.invalidSpriteIndex)
             }
@@ -485,7 +487,7 @@ public class CPU {
                 }
             }
             if spriteIndex >= 0 && spriteIndex <= 255 {
-                gcp.addCmd(.sprlyr(spriteIndex: Int(instruction.register1!), value: Int(instruction.register2!)))
+                gcp.addCmd(.sprlyr(spriteIndex: spriteIndex, value: Int(instruction.register2!)))
             } else {
                 game.setError(.invalidSpriteIndex)
             }
@@ -500,7 +502,7 @@ public class CPU {
                 }
             }
             if spriteIndex >= 0 && spriteIndex <= 255 {
-                gcp.addCmd(.spract(spriteIndex: Int(instruction.register1!), value: instruction.value!.resolve(game).toInt32Bit()))
+                gcp.addCmd(.spract(spriteIndex: spriteIndex, value: instruction.value!.resolve(game).toInt32Bit()))
             } else {
                 game.setError(.invalidSpriteIndex)
             }
@@ -515,7 +517,7 @@ public class CPU {
                 }
             }
             if spriteIndex >= 0 && spriteIndex <= 255 {
-                gcp.addCmd(.sprroo(spriteIndex: Int(instruction.register1!), value: instruction.value!.resolve(game).toFloat32Bit()))
+                gcp.addCmd(.sprroo(spriteIndex: spriteIndex, value: instruction.value!.resolve(game).toFloat32Bit()))
             } else {
                 game.setError(.invalidSpriteIndex)
             }
@@ -530,7 +532,7 @@ public class CPU {
                 }
             }
             if spriteIndex >= 0 && spriteIndex <= 255 {
-                gcp.addCmd(.sprrot(spriteIndex: Int(instruction.register1!), value: instruction.value!.resolve(game).toFloat32Bit()))
+                gcp.addCmd(.sprrot(spriteIndex: spriteIndex, value: instruction.value!.resolve(game).toFloat32Bit()))
             } else {
                 game.setError(.invalidSpriteIndex)
             }
@@ -545,7 +547,7 @@ public class CPU {
                 }
             }
             if spriteIndex >= 0 && spriteIndex <= 255 {
-                //gcp.addCmd(.sprx(spriteIndex: Int(instruction.register1!), value: instruction.value!.resolve(game).toInt32Bit()))
+                //gcp.addCmd(.sprx(spriteIndex: spriteIndex, value: instruction.value!.resolve(game).toInt32Bit()))
                 
                 // We have to update it here to make sure collisions have up to date data
                 game.gcp.sprites[spriteIndex].position.x = CGFloat(instruction.value!.resolve(game).toFloat32Bit())
@@ -563,7 +565,7 @@ public class CPU {
                 }
             }
             if spriteIndex >= 0 && spriteIndex <= 255 {
-                //gcp.addCmd(.spry(spriteIndex: Int(instruction.register1!), value: instruction.value!.resolve(game).toInt32Bit()))
+                //gcp.addCmd(.spry(spriteIndex: spriteIndex, value: instruction.value!.resolve(game).toInt32Bit()))
                 
                 game.gcp.sprites[spriteIndex].position.y = CGFloat(instruction.value!.resolve(game).toFloat32Bit())
             } else {
@@ -580,7 +582,7 @@ public class CPU {
                 }
             }
             if spriteIndex >= 0 && spriteIndex <= 255 {
-                gcp.addCmd(.sprspd(spriteIndex: Int(instruction.register1!), value: instruction.value!.resolve(game).toFloat32Bit()))
+                gcp.addCmd(.sprspd(spriteIndex: spriteIndex, value: instruction.value!.resolve(game).toFloat32Bit()))
             } else {
                 game.setError(.invalidSpriteIndex)
             }
@@ -595,7 +597,7 @@ public class CPU {
                 }
             }
             if spriteIndex >= 0 && spriteIndex <= 255 {
-                gcp.addCmd(.sprwrp(spriteIndex: Int(instruction.register1!), value: instruction.value!.resolve(game).toInt32Bit()))
+                gcp.addCmd(.sprwrp(spriteIndex: spriteIndex, value: instruction.value!.resolve(game).toInt32Bit()))
             } else {
                 game.setError(.invalidSpriteIndex)
             }
@@ -610,7 +612,7 @@ public class CPU {
                 }
             }
             if spriteIndex >= 0 && spriteIndex <= 255 {
-                gcp.addCmd(.sprimg(spriteIndex: Int(instruction.register1!), value: instruction.value!.resolve(game).toInt32Bit()))
+                gcp.addCmd(.sprimg(spriteIndex: spriteIndex, value: instruction.value!.resolve(game).toInt32Bit()))
             } else {
                 game.setError(.invalidSpriteIndex)
             }
@@ -625,7 +627,7 @@ public class CPU {
                 }
             }
             if spriteIndex >= 0 && spriteIndex <= 255 {
-                gcp.addCmd(.sprpri(spriteIndex: Int(instruction.register1!), value: instruction.value!.resolve(game).toInt32Bit()))
+                gcp.addCmd(.sprpri(spriteIndex: spriteIndex, value: instruction.value!.resolve(game).toInt32Bit()))
             } else {
                 game.setError(.invalidSpriteIndex)
             }
@@ -640,7 +642,7 @@ public class CPU {
                 }
             }
             if spriteIndex >= 0 && spriteIndex <= 255 {
-                gcp.addCmd(.sprmxs(spriteIndex: Int(instruction.register1!), value: instruction.value!.resolve(game).toFloat32Bit()))
+                gcp.addCmd(.sprmxs(spriteIndex: spriteIndex, value: instruction.value!.resolve(game).toFloat32Bit()))
             } else {
                 game.setError(.invalidSpriteIndex)
             }
@@ -655,7 +657,7 @@ public class CPU {
                 }
             }
             if spriteIndex >= 0 && spriteIndex <= 255 {
-                gcp.addCmd(.sprfri(spriteIndex: Int(instruction.register1!), value: instruction.value!.resolve(game).toFloat32Bit()))
+                gcp.addCmd(.sprfri(spriteIndex: spriteIndex, value: instruction.value!.resolve(game).toFloat32Bit()))
             } else {
                 game.setError(.invalidSpriteIndex)
             }
@@ -670,7 +672,7 @@ public class CPU {
                 }
             }
             if spriteIndex >= 0 && spriteIndex <= 255 {
-                gcp.addCmd(.spranm(spriteIndex: Int(instruction.register1!), from: Int(instruction.register2!), to: Int(instruction.register3!)))
+                gcp.addCmd(.spranm(spriteIndex: spriteIndex, from: Int(instruction.register2!), to: Int(instruction.register3!)))
             } else {
                 game.setError(.invalidSpriteIndex)
             }
@@ -685,7 +687,7 @@ public class CPU {
                 }
             }
             if spriteIndex >= 0 && spriteIndex <= 255 {
-                gcp.addCmd(.sprfps(spriteIndex: Int(instruction.register1!), value: instruction.value!.resolve(game).toInt32Bit()))
+                gcp.addCmd(.sprfps(spriteIndex: spriteIndex, value: instruction.value!.resolve(game).toInt32Bit()))
             } else {
                 game.setError(.invalidSpriteIndex)
             }
@@ -700,7 +702,7 @@ public class CPU {
                 }
             }
             if spriteIndex >= 0 && spriteIndex <= 255 {
-                gcp.addCmd(.spralp(spriteIndex: Int(instruction.register1!), value: instruction.value!.resolve(game).toFloat32Bit()))
+                gcp.addCmd(.spralp(spriteIndex: spriteIndex, value: instruction.value!.resolve(game).toFloat32Bit()))
             } else {
                 game.setError(.invalidSpriteIndex)
             }
@@ -715,7 +717,7 @@ public class CPU {
                 }
             }
             if spriteIndex >= 0 && spriteIndex <= 255 {
-                gcp.addCmd(.sprscl(spriteIndex: Int(instruction.register1!), value: instruction.value!.resolve(game).toFloat32Bit()))
+                gcp.addCmd(.sprscl(spriteIndex: spriteIndex, value: instruction.value!.resolve(game).toFloat32Bit()))
             } else {
                 game.setError(.invalidSpriteIndex)
             }
@@ -730,7 +732,7 @@ public class CPU {
                 }
             }
             if spriteIndex >= 0 && spriteIndex <= 255 {
-                gcp.addCmd(.sprstp(spriteIndex: Int(instruction.register1!)))
+                gcp.addCmd(.sprstp(spriteIndex: spriteIndex))
             } else {
                 game.setError(.invalidSpriteIndex)
             }
@@ -745,7 +747,7 @@ public class CPU {
                 }
             }
             if spriteIndex >= 0 && spriteIndex <= 255 {
-                gcp.addCmd(.sprhlt(spriteIndex: Int(instruction.register1!)))
+                gcp.addCmd(.sprhlt(spriteIndex: spriteIndex))
             } else {
                 game.setError(.invalidSpriteIndex)
             }
@@ -796,6 +798,18 @@ public class CPU {
             let colorIndex = game.registers[2].toInt32Bit()
             gcp.addCmd(.text(text: instruction.value!.resolve(game).toString(false), x: x, y: y, colorIndex: colorIndex))
             
+        case .brkpt:
+            if game.state == .running {
+                game.state = .paused
+                game.gcp.draw2D.metalView.enableSetNeedsDisplay = true
+                game.gcp.draw2D.metalView.isPaused = true
+                game.breaked = true
+                game.stepped = true
+                game.errorChanged.send(.none)
+                game.breakpoint.send()
+                return .breakpoint
+            }
+
         default: break
         }
         

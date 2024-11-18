@@ -264,17 +264,22 @@ enum ChipCadeData: Codable {
     /// Convert 32-bit float to 16-bit float
     static func float32ToFloat16(_ value: Float) -> UInt16 {
         let bits = value.bitPattern
-        let sign = UInt16((bits >> 31) & 0x1)  // Cast sign to UInt16
+        let sign = UInt16((bits >> 31) & 0x1)  // Extract the sign bit
         let exponent = Int((bits >> 23) & 0xFF) - 127 + 15
         let mantissa = bits & 0x7FFFFF
 
         // Handle subnormal numbers (exponent < -14)
         if exponent <= 0 {
-            // This is a subnormal number in 16-bit float
-            let float16Bits = UInt16((sign << 15) | UInt16((mantissa | 0x800000) >> (1 - exponent)))
+            if exponent < -10 {
+                // If exponent is too small, round to zero
+                return sign << 15
+            }
+            // Adjust for subnormal numbers
+            let adjustedMantissa = (mantissa | 0x800000) >> (1 - exponent)
+            let float16Bits = UInt16((sign << 15) | UInt16(adjustedMantissa >> 13))
             return float16Bits
         } else if exponent >= 31 {
-            // Handle overflow (exponent >= 31 means infinity or NaN in 16-bit float)
+            // Handle overflow (exponent >= 31 means infinity or NaN in Float16)
             let float16Bits = UInt16((sign << 15) | UInt16(0x1F << 10))
             return float16Bits
         } else {

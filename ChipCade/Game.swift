@@ -37,9 +37,9 @@ public class Game : ObservableObject
     let codeTextChanged = PassthroughSubject<String, Never>()
     let codeLineChanged = PassthroughSubject<Int, Never>()
     let skinTextChanged = PassthroughSubject<(), Never>()
+    let breakpoint = PassthroughSubject<(), Never>()
 
     @Published var data: GameData
-    
     @Published var stack: [StackValue]
     
     var registers: [ChipCadeData]
@@ -97,6 +97,12 @@ public class Game : ObservableObject
     // We are currently editing a skin
     var editorMode : EditorMode = .code
     
+    // Did we just step ?
+    var stepped: Bool = false
+    
+    // Did execution stop via a brkpt ?
+    var breaked: Bool = false
+    
     private enum CodingKeys: String, CodingKey {
         case codeItems
         case spriteItems
@@ -146,41 +152,52 @@ public class Game : ObservableObject
     
     // Executes init, if initOnly is set just updates the display for preview, otherwise starts playback.
     public func play(initOnly: Bool = false) {
-        reset()
-             
-        prevCodeItemIndex = currCodeItemIndex
-        prevInstructionIndex = currInstructionIndex
-        
-        currCodeItemIndex = 0
-        currInstructionIndex = 0
-        
-        gcp.setupGameData(gameData: data)
-        
-        error = .none
-        state = .running
-        
-        if !initOnly {
+        if !breaked {
+            reset()
+            
+            prevCodeItemIndex = currCodeItemIndex
+            prevInstructionIndex = currInstructionIndex
+            
+            currCodeItemIndex = 0
+            currInstructionIndex = 0
+            
+            gcp.setupGameData(gameData: data)
+            
+            error = .none
+            state = .running
+            
+            if !initOnly {
+                gcp.draw2D.metalView.enableSetNeedsDisplay = false
+                gcp.draw2D.metalView.isPaused = false
+            }
+            
+            // init
+            let result = execute()
+            
+            if result != .breakpoint {
+                currCodeItemIndex = prevCodeItemIndex
+                currInstructionIndex = prevInstructionIndex
+            }
+            
+            if initOnly {
+                reset()
+                gcp.draw2D.update()
+                cpuRender.update()
+            }
+        } else {
+            state = .running
             gcp.draw2D.metalView.enableSetNeedsDisplay = false
             gcp.draw2D.metalView.isPaused = false
         }
         
-        // init
-        execute()
-        
-        currCodeItemIndex = prevCodeItemIndex
-        currInstructionIndex = prevInstructionIndex
-        
-        if initOnly {
-            reset()
-            gcp.draw2D.update()
-            cpuRender.update()
-        }
+        breaked = false
     }
     
     // Stop playback
     public func stop() {
         reset()
         
+        breaked = false
         error = .none
         DispatchQueue.main.async {
             self.errorChanged.send(.none)
@@ -214,7 +231,7 @@ public class Game : ObservableObject
             if cpu.eventQueue[index].countdown <= 0 {
                 currCodeItemIndex = cpu.eventQueue[index].codeItemIndex
                 currInstructionIndex = cpu.eventQueue[index].instructionIndex
-                execute()
+                _ = execute()
                 cpu.eventQueue.remove(at: index)
             }
         }
@@ -222,11 +239,13 @@ public class Game : ObservableObject
         // Update
         currCodeItemIndex = 1
         currInstructionIndex = 0
-        execute()
+        let result = execute()
         cpuRender.update()
         
-        currCodeItemIndex = prevCodeItemIndex
-        currInstructionIndex = prevInstructionIndex
+        if result != .breakpoint {
+            currCodeItemIndex = prevCodeItemIndex
+            currInstructionIndex = prevInstructionIndex
+        }
     }
     
     // Execute a single instruction
@@ -239,22 +258,28 @@ public class Game : ObservableObject
             }
         }
         cpuRender.update()
+        stepped = true
         errorChanged.send(.none)
     }
     
     // Executes the current code address
-    public func execute() {
+    public func execute() -> ExecuteResult {
+        var result : ExecuteResult = .stop
         while let instruction = getInstruction() {
-            let result = cpu.executeInstruction(instruction: instruction, gcp: gcp)
+            result = cpu.executeInstruction(instruction: instruction, gcp: gcp)
 
             if result == .nextInstruction {
                 currInstructionIndex += 1
             } else
-            if result == .stop
-            {
+            if result == .stop {
+                break;
+            } else
+            if result == .breakpoint {
+                currInstructionIndex += 1
                 break;
             }
         }
+        return result
     }
     
     /// Sync the editor to the current code position, mainly used for stepping

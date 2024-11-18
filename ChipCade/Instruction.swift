@@ -9,6 +9,7 @@ import SwiftUI
 
 public enum InstructionType: String, Codable, CaseIterable {
     case add
+    case brkpt
     case cmp
     case call
     case calltm
@@ -219,6 +220,9 @@ public class Instruction: ObservableObject, Codable, Equatable {
         switch type {
         case .add:
             return "ADD R\(register1!) \(value!.toString())"
+           
+        case .brkpt:
+            return "BRKPT"
             
         case .cmp:
             return "CMP R\(register1!) \(value!.toString())"
@@ -404,6 +408,9 @@ public class Instruction: ObservableObject, Codable, Equatable {
         switch type {
         case .add:
             return "ADD Rd (Value|Rs)"
+         
+        case .brkpt:
+            return "BRKPT"
             
         case .cos:
             return "COS Rd (Value|Rs)"
@@ -588,6 +595,8 @@ public class Instruction: ObservableObject, Codable, Equatable {
         switch type {
         case .add:
             return "Add value to destination register."
+        case .brkpt:
+            return "Breakpoint. Stops execution for debugging."
         case .cos:
             return "Store the cosine of the value to destination register."
         case .cmp:

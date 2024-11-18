@@ -133,4 +133,24 @@ class Sprite {
             velocity.dy = (velocity.dy / currentSpeed) * maxSpeed
         }
     }
+    
+    func placeForwardInMiddle(of sprite: Sprite, atDistance offsetDistance: CGFloat) {
+        // Calculate parent's center
+        let parentCenterX = sprite.position.x + sprite.size.width / 2
+        let parentCenterY = sprite.position.y + sprite.size.height / 2
+
+        // Convert rotation to radians
+        let radians = (sprite.rotation - 90) * .pi / 180
+
+        // Calculate forward offset
+        let offsetX = cos(radians) * (offsetDistance + sprite.size.height / 2)
+        let offsetY = sin(radians) * (offsetDistance + sprite.size.height / 2)
+
+        // Update this sprite's position
+        self.position.x = parentCenterX + offsetX - self.size.width / 2
+        self.position.y = parentCenterY + offsetY - self.size.height / 2
+
+        // Match rotation
+        self.rotation = sprite.rotation
+    }
 }
