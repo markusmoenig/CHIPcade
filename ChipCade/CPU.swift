@@ -809,6 +809,14 @@ public class CPU {
                 game.breakpoint.send()
                 return .breakpoint
             }
+        
+        case .time:
+            let register = Int(instruction.register1!)
+            if register >= 0 && register <= 7 {
+                game.registers[register] = .float16Bit(ChipCadeData.float32ToFloat16(game.elapsedTime))
+            } else {
+                game.setError(.invalidRegister)
+            }
 
         default: break
         }

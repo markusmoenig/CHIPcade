@@ -67,6 +67,7 @@ public enum InstructionType: String, Codable, CaseIterable {
     case st
     case sub
     case tag
+    case time
     case txtmem
     case txtval
     
@@ -145,7 +146,7 @@ public class Instruction: ObservableObject, Codable, Equatable {
         case .sprfps:
             register1 = 0
             value = .unsigned16Bit(10)
-        case .ldresx, .ldresy:
+        case .ldresx, .ldresy, .time:
             register1 = 0
         case .lyrcur:
             register1 = 0
@@ -395,6 +396,9 @@ public class Instruction: ObservableObject, Codable, Equatable {
             
         case .tag:
             return "\(memory!):"
+        
+        case .time:
+            return "TIME R\(register1!)"
             
         case .txtmem:
             return "TXTMEM \(memory!) + \(memoryOffset!)"
@@ -583,6 +587,9 @@ public class Instruction: ObservableObject, Codable, Equatable {
         case .tag:
             return "Tag:"
             
+        case .time:
+            return "TIME Rd"
+            
         case .txtmem:
             return "TXTMEM Memory + (Value|Rs)"
 
@@ -711,6 +718,8 @@ public class Instruction: ObservableObject, Codable, Equatable {
             return "Set sprite wrapping mode."
         case .tag:
             return "Set a code tag for conditional execution."
+        case .time:
+            return "Load the elpased time into the register (in seconds)."
         case .txtmem:
             return "Draw the text or value at the memory address. R0 = X, R1 = Y, R2 = ColorIndex."
         case .txtval:

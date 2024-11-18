@@ -83,4 +83,4 @@ PlaceCenteredForward:
     SPRY R0 R3             # Set the destination sprite's Y position
     SPRROT R0 R4           # Apply the source sprite's rotation to the destination sprite
 
-    RET                    # Return
+    RET

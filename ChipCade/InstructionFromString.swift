@@ -22,7 +22,7 @@ extension Instruction {
         let instruction = Instruction(type)
         
         switch type {
-        case .inc, .dec:
+        case .inc, .dec, .ldresx, .ldresy, .time:
             // XXXXXX Rd
             if components.count == 2,
                let reg1 = parseRegister(components[1]) {

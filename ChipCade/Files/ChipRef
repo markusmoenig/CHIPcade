@@ -48,8 +48,13 @@ DEC Rd. Decrease the destination register by 1.
 COS Rd (Value|Rs). Calculates the cosine of the given angle (in radians) and stores the result in the destination register Rd.
 SIN Rd (Value|Rs). Calculates the sine of the given angle (in radians) and stores the result in the destination register Rd.
 
-CALL CodeTag. Saves the current code address on the stack and invokes the subroutine.
+CALL [Module.]Tag. Saves the current code address on the stack and invokes the subroutine.
+CALLTM [Module.]Tag (Value|Rs). Call a subroutine after a specified delay (in seconds).
+TIME Rd. Set the destination register to the elapsed time since game start in seconds (float).
+
 RET. Returns from a subroutine invoked by CALL. Pops the code address from the stack and continues execution after the original CALL statement. If there is no address on the stack, stops execution.
+
+BRKPT. Breakpoint. Halts execution allowing you to step through subsequent instructions for debugging purposes. The simulation remains paused until manually resumed, providing an opportunity to inspect register states, memory, and flags.
 
 CMP Rd (Value|Rs). Compare the content of the destination register with the source value or register, setting the appropriate CPU flags. The source value is automatically converted to match the type of the destination value before execution. As a result, CMP cannot fail.
 

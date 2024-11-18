@@ -66,6 +66,9 @@ public class Game : ObservableObject
 
     /// Time between updates
     let deltaTimeInMs: Int = Int((1.0 / 60.0) * 1000.0)
+    
+    /// Elapsed Time
+    var elapsedTime: Float = 0.0
 
     // Game State
     var state = GameState.paused
@@ -184,6 +187,8 @@ public class Game : ObservableObject
                 gcp.draw2D.update()
                 cpuRender.update()
             }
+            
+            elapsedTime = 0
         } else {
             state = .running
             gcp.draw2D.metalView.enableSetNeedsDisplay = false
@@ -222,6 +227,8 @@ public class Game : ObservableObject
     
     // Called when running from the updater
     public func update() {
+        elapsedTime += 1.0 / 60.0
+
         prevCodeItemIndex = currCodeItemIndex
         prevInstructionIndex = currInstructionIndex
         
