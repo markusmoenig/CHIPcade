@@ -35,24 +35,39 @@ struct ImageGroupSectionView: View {
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                         .frame(width: 120)
                     } else {
-                        Button(action: {
-                            selectedImageGroupItem = imageGroupItems[index]
-                            selectedCodeItem = nil
-                            selectedMemoryItem = nil
-                        }) {
-                            HStack {
-                                Text(imageGroupItems[index].name)
-                                    .foregroundColor(.primary)
-                                    .padding(.leading, 10) // Add padding to the left side
-                                Spacer()
+                        
+                        if selectedImageGroupItem === imageGroupItems[index] {
+                            
+                            Button(action: {
+                                selectedImageGroupItem = imageGroupItems[index]
+                                selectedCodeItem = nil
+                                selectedMemoryItem = nil
+                            }) {
+                                HStack {
+                                    Text(imageGroupItems[index].name)
+                                        .foregroundColor(.primary)
+                                        .padding(.leading, 10)
+                                    Spacer()
+                                }
+                                .padding(.vertical, 2)
                             }
-                            .padding(.vertical, 2) // Add vertical padding
-                            .background(
-                                RoundedRectangle(cornerRadius: 8) // Rounded background
-                                    .fill(selectedImageGroupItem === imageGroupItems[index] ? Color.accentColor.opacity(0.2) : Color.clear)
-                            )
+                            .buttonStyle(.borderedProminent)
+                        } else {
+                            Button(action: {
+                                selectedImageGroupItem = imageGroupItems[index]
+                                selectedCodeItem = nil
+                                selectedMemoryItem = nil
+                            }) {
+                                HStack {
+                                    Text(imageGroupItems[index].name)
+                                        .foregroundColor(.primary)
+                                        .padding(.leading, 10)
+                                    Spacer()
+                                }
+                                .padding(.vertical, 2)
+                            }
+                            .buttonStyle(.borderless)
                         }
-                        .buttonStyle(PlainButtonStyle()) // No button decoration
                     }
 
                     Spacer()

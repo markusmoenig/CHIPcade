@@ -19,6 +19,8 @@ struct CodeSectionView: View {
     @State private var isRenaming: Bool = false
     @State private var newName: String = ""
 
+    @State private var selection                        : UUID? = nil
+
     @Environment(\.undoManager) var undoManager
 
     var body: some View {
@@ -27,34 +29,46 @@ struct CodeSectionView: View {
                 HStack {
                     if isRenaming && selectedCodeItem === codeItems[index] {
                         TextField("New Name", text: $newName, onCommit: {
-                            //codeItems[index].name = newName
                             codeItems[index].rename(to: newName, using: undoManager) { newItem in
                                 selectedCodeItem = newItem
                             }
                             isRenaming = false
                         })
                         .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .frame(width: 120)
                     } else {
-                        Button(action: {
-                            selectedCodeItem = codeItems[index]
-                            Game.shared.scriptEditor?.setSession("mainSession")
-                            selectedMemoryItem = nil
-                            selectedImageGroupItem = nil
-                        }) {
-                            HStack {
-                                Text(codeItems[index].name)
-                                    .foregroundColor(.primary)
-                                    .padding(.leading, 10) // Add padding to the left side
-                                Spacer()
+                        if selectedCodeItem === codeItems[index] {
+                            Button(action: {
+                                selectedCodeItem = codeItems[index]
+                                Game.shared.scriptEditor?.setSession("mainSession")
+                                selectedMemoryItem = nil
+                                selectedImageGroupItem = nil
+                            }) {
+                                HStack {
+                                    Text(codeItems[index].name)
+                                        .foregroundColor(.primary)
+                                        .padding(.leading, 10)
+                                    Spacer()
+                                }
+                                .padding(.vertical, 2)
                             }
-                            .padding(.vertical, 2)
-                            .background(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .fill(selectedCodeItem === codeItems[index] ? Color.accentColor.opacity(0.2) : Color.clear)
-                            )
+                            .buttonStyle(.borderedProminent)
+                        } else {
+                            Button(action: {
+                                selectedCodeItem = codeItems[index]
+                                Game.shared.scriptEditor?.setSession("mainSession")
+                                selectedMemoryItem = nil
+                                selectedImageGroupItem = nil
+                            }) {
+                                HStack {
+                                    Text(codeItems[index].name)
+                                        .foregroundColor(.primary)
+                                        .padding(.leading, 10)
+                                    Spacer()
+                                }
+                                .padding(.vertical, 2)
+                            }
+                            .buttonStyle(.borderless)
                         }
-                        .buttonStyle(PlainButtonStyle())
                     }
 
                     Spacer()
@@ -109,5 +123,39 @@ struct CodeSectionView: View {
     private func deleteItem(at index: Int) {
         codeItems.remove(at: index)
         selectedCodeItem = nil
+    }
+}
+
+
+struct NewCodeItemPopup: View {
+    @Binding var isPresented: Bool
+    @State private var newName: String = ""
+    let addItem: (String) -> Void
+
+    var body: some View {
+        VStack(spacing: 20) {
+            Text("New Item").font(.headline)
+            TextField("Enter name", text: $newName)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .padding()
+            HStack {
+                Button("Cancel") {
+                    isPresented = false
+                }
+                Spacer()
+                Button("Add") {
+                    if !newName.isEmpty {
+                        addItem(newName)
+                        isPresented = false
+                    }
+                }
+                .disabled(newName.isEmpty)
+            }
+            .padding()
+        }
+        .padding()
+        .frame(maxWidth: 400)
+        .cornerRadius(12)
+        .shadow(radius: 8)
     }
 }

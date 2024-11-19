@@ -35,24 +35,37 @@ struct MemorySectionView: View {
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                         .frame(width: 120)
                     } else {
-                        Button(action: {
-                            selectedMemoryItem = memoryItems[index]
-                            selectedCodeItem = nil
-                            selectedImageGroupItem = nil
-                        }) {
-                            HStack {
-                                Text(memoryItems[index].name)
-                                    .foregroundColor(.primary)
-                                    .padding(.leading, 10) // Add padding to the left side
-                                Spacer()
+                        if selectedMemoryItem === memoryItems[index] {
+                            Button(action: {
+                                selectedMemoryItem = memoryItems[index]
+                                selectedCodeItem = nil
+                                selectedImageGroupItem = nil
+                            }) {
+                                HStack {
+                                    Text(memoryItems[index].name)
+                                        .foregroundColor(.primary)
+                                        .padding(.leading, 10)
+                                    Spacer()
+                                }
+                                .padding(.vertical, 2)
                             }
-                            .padding(.vertical, 6) // Add vertical padding
-                            .background(
-                                RoundedRectangle(cornerRadius: 8) // Rounded background
-                                    .fill(selectedMemoryItem === memoryItems[index] ? Color.accentColor.opacity(0.2) : Color.clear)
-                            )
+                            .buttonStyle(.borderedProminent)
+                        } else {
+                            Button(action: {
+                                selectedMemoryItem = memoryItems[index]
+                                selectedCodeItem = nil
+                                selectedImageGroupItem = nil
+                            }) {
+                                HStack {
+                                    Text(memoryItems[index].name)
+                                        .foregroundColor(.primary)
+                                        .padding(.leading, 10)
+                                    Spacer()
+                                }
+                                .padding(.vertical, 2)
+                            }
+                            .buttonStyle(.borderless)
                         }
-                        .buttonStyle(PlainButtonStyle()) // No button decoration
                     }
 
                     Spacer()

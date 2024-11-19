@@ -91,87 +91,95 @@ struct ContentView: View {
                 Divider()
                 #endif
                 
-                Button(action: {
-                    selectedCodeItem = nil
-                    selectedImageGroupItem = nil
-                    selectedMemoryItem = nil
-                    isPaletteSelected = true
-                    isNotesSelected = false
-                    isReferenceSelected = false
-                    isSkinSelected = false
-                    isMathLibrarySelected = false
-                }) {
-                    HStack {
-                        Text("Palette")
-                            .foregroundColor(.primary)
-                            .padding(.leading, 10)
-                        Spacer()
+                if isPaletteSelected {
+                    Button(action: {
+                        selectedCodeItem = nil
+                        selectedImageGroupItem = nil
+                        selectedMemoryItem = nil
+                        isPaletteSelected = true
+                        isNotesSelected = false
+                        isReferenceSelected = false
+                        isSkinSelected = false
+                        isMathLibrarySelected = false
+                    }) {
+                        HStack {
+                            Text("Palette")
+                                .foregroundColor(.primary)
+                                .padding(.leading, 10)
+                            Spacer()
+                        }
+                        .padding(.vertical, 2)
                     }
-                    .padding(.vertical, 6)
-                    .background(
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill((isPaletteSelected) ? Color.accentColor.opacity(0.2) : Color.clear)
-                    )
-                }
-                .buttonStyle(PlainButtonStyle())
-                
-                Button(action: {
-                    selectedCodeItem = nil
-                    selectedImageGroupItem = nil
-                    selectedMemoryItem = nil
-                    isPaletteSelected = false
-                    isReferenceSelected = false
-                    isSkinSelected = false
-                    isMathLibrarySelected = false
-                    isNotesSelected = true
-                    Game.shared.editorMode = .note
-                    Game.shared.scriptEditor?.setSessionValue("mainSession", Game.shared.data.notes, noteLine)
-                }) {
-                    HStack {
-                        Text("Notes")
-                            .foregroundColor(.primary)
-                            .padding(.leading, 10)
-                        Spacer()
+                    .buttonStyle(.borderedProminent)
+                } else {
+                    Button(action: {
+                        selectedCodeItem = nil
+                        selectedImageGroupItem = nil
+                        selectedMemoryItem = nil
+                        isPaletteSelected = true
+                        isNotesSelected = false
+                        isReferenceSelected = false
+                        isSkinSelected = false
+                        isMathLibrarySelected = false
+                    }) {
+                        HStack {
+                            Text("Palette")
+                                .foregroundColor(.primary)
+                                .padding(.leading, 10)
+                            Spacer()
+                        }
+                        .padding(.vertical, 2)
                     }
-                    .padding(.vertical, 6)
-                    .background(
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill((isNotesSelected) ? Color.accentColor.opacity(0.2) : Color.clear)
-                    )
+                    .buttonStyle(.borderless)
                 }
-                .buttonStyle(PlainButtonStyle())
                 
-                Button(action: {
-                    selectedCodeItem = nil
-                    selectedImageGroupItem = nil
-                    selectedMemoryItem = nil
-                    isPaletteSelected = false
-                    isNotesSelected = false
-                    isReferenceSelected = false
-                    isSkinSelected = true
-                    isMathLibrarySelected = false
-                    Game.shared.editorMode = .skin
-                    Game.shared.scriptEditor?.setSessionValue("mainSession", Game.shared.data.skin, skinLine)
-                }) {
-                    HStack {
-                        Text("Skin Editor")
-                            .foregroundColor(.primary)
-                            .padding(.leading, 10)
-                        Spacer()
+                if isNotesSelected {
+                    Button(action: {
+                        selectedCodeItem = nil
+                        selectedImageGroupItem = nil
+                        selectedMemoryItem = nil
+                        isPaletteSelected = false
+                        isReferenceSelected = false
+                        isSkinSelected = false
+                        isMathLibrarySelected = false
+                        isNotesSelected = true
+                        Game.shared.editorMode = .note
+                        Game.shared.scriptEditor?.setSessionValue("mainSession", Game.shared.data.notes, noteLine)
+                    }) {
+                        HStack {
+                            Text("Notes")
+                                .foregroundColor(.primary)
+                                .padding(.leading, 10)
+                            Spacer()
+                        }
+                        .padding(.vertical, 2)
                     }
-                    .padding(.vertical, 6)
-                    .background(
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill((isSkinSelected) ? Color.accentColor.opacity(0.2) : Color.clear)
-                    )
+                    .buttonStyle(.borderedProminent)
+                } else {
+                    Button(action: {
+                        selectedCodeItem = nil
+                        selectedImageGroupItem = nil
+                        selectedMemoryItem = nil
+                        isPaletteSelected = false
+                        isReferenceSelected = false
+                        isSkinSelected = false
+                        isMathLibrarySelected = false
+                        isNotesSelected = true
+                        Game.shared.editorMode = .note
+                        Game.shared.scriptEditor?.setSessionValue("mainSession", Game.shared.data.notes, noteLine)
+                    }) {
+                        HStack {
+                            Text("Notes")
+                                .foregroundColor(.primary)
+                                .padding(.leading, 10)
+                            Spacer()
+                        }
+                        .padding(.vertical, 2)
+                    }
+                    .buttonStyle(.borderless)
                 }
-                .buttonStyle(PlainButtonStyle())
                 
-                #if !os(iOS)
-                Divider()
-                #endif
-                
-                Section(header: Text("Standard").font(.headline)) {
+                if isSkinSelected {
                     Button(action: {
                         selectedCodeItem = nil
                         selectedImageGroupItem = nil
@@ -179,51 +187,141 @@ struct ContentView: View {
                         isPaletteSelected = false
                         isNotesSelected = false
                         isReferenceSelected = false
-                        isSkinSelected = false
-                        isMathLibrarySelected = true
-                        Game.shared.editorMode = .mathLibrary
-                        Game.shared.scriptEditor?.setSessionValue("mainSession", Game.shared.mathSource, mathLibLine)
+                        isSkinSelected = true
+                        isMathLibrarySelected = false
+                        Game.shared.editorMode = .skin
+                        Game.shared.scriptEditor?.setSessionValue("mainSession", Game.shared.data.skin, skinLine)
                     }) {
                         HStack {
-                            Text("Math Library")
+                            Text("Skin Editor")
                                 .foregroundColor(.primary)
                                 .padding(.leading, 10)
                             Spacer()
                         }
-                        .padding(.vertical, 6)
-                        .background(
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill((isMathLibrarySelected) ? Color.accentColor.opacity(0.2) : Color.clear)
-                        )
+                        .padding(.vertical, 2)
                     }
-                    .buttonStyle(PlainButtonStyle())
+                    .buttonStyle(.borderedProminent)
+                } else {
+                    Button(action: {
+                        selectedCodeItem = nil
+                        selectedImageGroupItem = nil
+                        selectedMemoryItem = nil
+                        isPaletteSelected = false
+                        isNotesSelected = false
+                        isReferenceSelected = false
+                        isSkinSelected = true
+                        isMathLibrarySelected = false
+                        Game.shared.editorMode = .skin
+                        Game.shared.scriptEditor?.setSessionValue("mainSession", Game.shared.data.skin, skinLine)
+                    }) {
+                        HStack {
+                            Text("Skin Editor")
+                                .foregroundColor(.primary)
+                                .padding(.leading, 10)
+                            Spacer()
+                        }
+                        .padding(.vertical, 2)
+                    }
+                    .buttonStyle(.borderless)
                 }
                 
-                Button(action: {
-                    selectedCodeItem = nil
-                    selectedImageGroupItem = nil
-                    selectedMemoryItem = nil
-                    isPaletteSelected = false
-                    isNotesSelected = false
-                    isSkinSelected = false
-                    isMathLibrarySelected = false
-                    isReferenceSelected = true
-                    Game.shared.editorMode = .chipReference
-                    Game.shared.scriptEditor?.setSessionValue("mainSession", Game.shared.chipRef, chipRefLine)
-                }) {
-                    HStack {
-                        Text("Chip Reference")
-                            .foregroundColor(.primary)
-                            .padding(.leading, 10)
-                        Spacer()
+                #if !os(iOS)
+                Divider()
+                #endif
+                
+                Section(header: Text("Standard").font(.headline)) {
+                    if isMathLibrarySelected {
+                        Button(action: {
+                            selectedCodeItem = nil
+                            selectedImageGroupItem = nil
+                            selectedMemoryItem = nil
+                            isPaletteSelected = false
+                            isNotesSelected = false
+                            isReferenceSelected = false
+                            isSkinSelected = false
+                            isMathLibrarySelected = true
+                            Game.shared.editorMode = .mathLibrary
+                            Game.shared.scriptEditor?.setSessionValue("mainSession", Game.shared.mathSource, mathLibLine)
+                        }) {
+                            HStack {
+                                Text("Math Library")
+                                    .foregroundColor(.primary)
+                                    .padding(.leading, 10)
+                                Spacer()
+                            }
+                            .padding(.vertical, 2)
+                        }
+                        .buttonStyle(.borderedProminent)
+                    } else {
+                        Button(action: {
+                            selectedCodeItem = nil
+                            selectedImageGroupItem = nil
+                            selectedMemoryItem = nil
+                            isPaletteSelected = false
+                            isNotesSelected = false
+                            isReferenceSelected = false
+                            isSkinSelected = false
+                            isMathLibrarySelected = true
+                            Game.shared.editorMode = .mathLibrary
+                            Game.shared.scriptEditor?.setSessionValue("mainSession", Game.shared.mathSource, mathLibLine)
+                        }) {
+                            HStack {
+                                Text("Math Library")
+                                    .foregroundColor(.primary)
+                                    .padding(.leading, 10)
+                                Spacer()
+                            }
+                            .padding(.vertical, 2)
+                        }
+                        .buttonStyle(.borderless)
                     }
-                    .padding(.vertical, 6)
-                    .background(
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill((isReferenceSelected) ? Color.accentColor.opacity(0.2) : Color.clear)
-                    )
                 }
-                .buttonStyle(PlainButtonStyle())
+                
+                if isReferenceSelected {
+                    Button(action: {
+                        selectedCodeItem = nil
+                        selectedImageGroupItem = nil
+                        selectedMemoryItem = nil
+                        isPaletteSelected = false
+                        isNotesSelected = false
+                        isSkinSelected = false
+                        isMathLibrarySelected = false
+                        isReferenceSelected = true
+                        Game.shared.editorMode = .chipReference
+                        Game.shared.scriptEditor?.setSessionValue("mainSession", Game.shared.chipRef, chipRefLine)
+                    }) {
+                        HStack {
+                            Text("Chip Reference")
+                                .foregroundColor(.primary)
+                                .padding(.leading, 10)
+                            Spacer()
+                        }
+                        .padding(.vertical, 2)
+                    }
+                    .buttonStyle(.borderedProminent)
+                } else {
+                    Button(action: {
+                        selectedCodeItem = nil
+                        selectedImageGroupItem = nil
+                        selectedMemoryItem = nil
+                        isPaletteSelected = false
+                        isNotesSelected = false
+                        isSkinSelected = false
+                        isMathLibrarySelected = false
+                        isReferenceSelected = true
+                        Game.shared.editorMode = .chipReference
+                        Game.shared.scriptEditor?.setSessionValue("mainSession", Game.shared.chipRef, chipRefLine)
+                    }) {
+                        HStack {
+                            Text("Chip Reference")
+                                .foregroundColor(.primary)
+                                .padding(.leading, 10)
+                            Spacer()
+                        }
+                        .padding(.vertical, 2)
+                    }
+                    .buttonStyle(.borderless)
+                }
             }
             .listStyle(SidebarListStyle())
             .frame(minWidth: 200, maxWidth: 250)
