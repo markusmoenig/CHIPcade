@@ -458,8 +458,8 @@ public class Game : ObservableObject
             }
             
             // Check if the line is a tag (ends with ':')
-            if line.hasSuffix(":") {
-                let tagName = String(line.dropLast()) // Remove the colon
+            if line.trimmingCharacters(in: .whitespaces).hasSuffix(":") {
+                let tagName = String(line.trimmingCharacters(in: .whitespaces).dropLast()) // Remove the colon
                 
                 // Validate the tag name
                 if tagName.isEmpty || tagName.contains(" ") || tagName.first?.isNumber == true {
@@ -479,7 +479,7 @@ public class Game : ObservableObject
                 //print(instruction.format())
                 instructions.append(instruction)
             } else {
-                print("Error: \(String(line))")
+                //print("Error: \(String(line))")
                 errorLine = index
                 break;
             }
