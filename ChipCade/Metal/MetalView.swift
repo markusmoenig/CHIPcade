@@ -70,69 +70,88 @@ public class ChipCadeView       : MTKView
     
     override public func keyDown(with event: NSEvent)
     {
-        keysDown.append(Float(event.keyCode))
+        let value : ChipCadeData? = keyCodeToData(with: event)
+        
+        if let value = value {
+            Game.shared.registers[8] = value
+            if !keysDown.contains(value.toFloat32Bit()) {
+                keysDown.append(value.toFloat32Bit())
+            }
+            Game.shared.cpuRender.update()
+        }
+    }
+    
+    override public func keyUp(with event: NSEvent)
+    {
+        let value : ChipCadeData? = keyCodeToData(with: event)
+        if let value = value {
+            keysDown.removeAll{$0 == value.toFloat32Bit()}
+            if Game.shared.registers[8].toFloat32Bit() == value.toFloat32Bit() {
+                Game.shared.registers[8] = .unsigned16Bit(0)
+            }
+            Game.shared.cpuRender.update()
+        }
+    }
+    
+    func keyCodeToData(with event: NSEvent) -> ChipCadeData?
+    {
+        var value : ChipCadeData? = nil
         
         if let characters = event.characters {
             for character in characters {
                 if let asciiValue = character.asciiValue {
-                    Game.shared.registers[8] = .unsigned16Bit(UInt16(asciiValue))
+                    value = .unsigned16Bit(UInt16(asciiValue))
                 }
             }
         } else {
             // Handle special non-character keys based on keyCode
             switch event.keyCode {
             case 123: // Left arrow
-                Game.shared.registers[8] = .unsigned16Bit(128)
+                value = .unsigned16Bit(128)
             case 126: // Up arrow
-                Game.shared.registers[8] = .unsigned16Bit(129)
+                value = .unsigned16Bit(129)
             case 124: // Right arrow
-                Game.shared.registers[8] = .unsigned16Bit(130)
+                value = .unsigned16Bit(130)
             case 125: // Down arrow
-                Game.shared.registers[8] = .unsigned16Bit(131)
-
+                value = .unsigned16Bit(131)
+                
                 // Function keys
             case 122: // F1
-                Game.shared.registers[8] = .unsigned16Bit(132)
+                value = .unsigned16Bit(132)
             case 120: // F2
-                Game.shared.registers[8] = .unsigned16Bit(133)
+                value = .unsigned16Bit(133)
             case 99:  // F3
-                Game.shared.registers[8] = .unsigned16Bit(134)
+                value = .unsigned16Bit(134)
             case 118: // F4
-                Game.shared.registers[8] = .unsigned16Bit(135)
+                value = .unsigned16Bit(135)
             case 96:  // F5
-                Game.shared.registers[8] = .unsigned16Bit(136)
+                value = .unsigned16Bit(136)
             case 97:  // F6
-                Game.shared.registers[8] = .unsigned16Bit(137)
+                value = .unsigned16Bit(137)
             case 98:  // F7
-                Game.shared.registers[8] = .unsigned16Bit(138)
+                value = .unsigned16Bit(138)
             case 100: // F8
-                Game.shared.registers[8] = .unsigned16Bit(139)
+                value = .unsigned16Bit(139)
             case 101: // F9
-                Game.shared.registers[8] = .unsigned16Bit(140)
+                value = .unsigned16Bit(140)
             case 109: // F10
-                Game.shared.registers[8] = .unsigned16Bit(141)
+                value = .unsigned16Bit(141)
             case 103: // F11
-                Game.shared.registers[8] = .unsigned16Bit(142)
+                value = .unsigned16Bit(142)
             case 111: // F12
-                Game.shared.registers[8] = .unsigned16Bit(143)
-
+                value = .unsigned16Bit(143)
+                
                 // Shift keys
             case 56: // Left Shift
-                Game.shared.registers[8] = .unsigned16Bit(144)
+                value = .unsigned16Bit(144)
             case 60: // Right Shift
-                Game.shared.registers[8] = .unsigned16Bit(145)
-
+                value = .unsigned16Bit(145)
+                
             default: break
             }
         }
-        Game.shared.cpuRender.update()
-    }
-    
-    override public func keyUp(with event: NSEvent)
-    {
-        keysDown.removeAll{$0 == Float(event.keyCode)}
-        Game.shared.registers[8] = .unsigned16Bit(0)
-        Game.shared.cpuRender.update()
+        
+        return value
     }
         
     override public func mouseDown(with event: NSEvent) {

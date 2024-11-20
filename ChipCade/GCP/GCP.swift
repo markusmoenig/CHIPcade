@@ -39,7 +39,7 @@ public enum GCPCmd  {
 public class GCP {
     
     var cmds: [GCPCmd] = []
-    var draw2D = MetalDraw2D();
+    var draw2D = MetalDraw2D()
     
     var imageGroups: [ImageGroup] = []
     var layers: [Layer] = []
@@ -366,9 +366,9 @@ public class GCP {
                             // Vertical blitting for wraps
                             if sprite.position.y < 0 {
                                 let y = sprite.position.y
-                                if y > -bufferY {
+                                if y >= -bufferY {
                                     draw2D.startShape(type: .triangle)
-                                    draw2D.drawRect(spriteX, Float(layerSize.height + y) / scaleY, spriteWidth, spriteHeight, float4(0, 0, 0, 1), Float(sprite.rotation + sprite.rotationOffset), aspectX, aspectY)
+                                    draw2D.drawRect(spriteX, Float(layerSize.height + y + 1) / scaleY, spriteWidth, spriteHeight, float4(0, 0, 0, 1), Float(sprite.rotation + sprite.rotationOffset), aspectX, aspectY)
                                     draw2D.endShape(externalTexture: imageGroup.images[index])
                                 }
                             } else if sprite.position.y > layerSize.height - bufferY {

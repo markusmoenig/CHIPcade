@@ -708,20 +708,25 @@ extension ChipCadeData {
             let result = value1 &- value2
             flags.setZeroFlag(result == 0)
             flags.setCarryFlag(value1 < value2) // Set carry if there is a borrow (underflow)
-
+            flags.setNegativeFlag(false)
+            flags.setOverflowFlag(false)
+            
         case (.signed16Bit(let value1), .signed16Bit(let value2)):
             let result = Int16(clamping: value1 &- value2)
             flags.setZeroFlag(result == 0)
             flags.setOverflowFlag((value1 > 0 && value2 < 0 && result < 0) || (value1 < 0 && value2 > 0 && result > 0))
             flags.setNegativeFlag(result < 0)
-
+            flags.setCarryFlag(false)
+            
         case (.float16Bit(let float16_1), .float16Bit(let float16_2)):
             let float32_1 = float16ToFloat32(float16_1)
             let float32_2 = float16ToFloat32(float16_2)
             let result = float32_1 - float32_2
             flags.setZeroFlag(result == 0)
             flags.setNegativeFlag(result < 0)
-
+            flags.setCarryFlag(false)
+            flags.setOverflowFlag(false)
+            
         default:
             return true
         }

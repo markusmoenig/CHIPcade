@@ -124,6 +124,22 @@ public class CPU {
         case .cmp:
             let registerIndex = Int(instruction.register1!)
             if registerIndex >= 0 && registerIndex <= 11 {
+                
+                if registerIndex == 8 {
+                    // Special case: For key codes we iterate over all pressed keys
+                    let value = instruction.value!.resolve(game).toFloat32Bit()
+                    var foundKey: Bool = false
+                    for key in game.gcp.draw2D.metalView.keysDown {
+                        if key == value {
+                            foundKey = true
+                            break
+                        }
+                    }
+                    game.flags.setZeroFlag(foundKey)
+                    game.flags.setCarryFlag(false)
+                    game.flags.setOverflowFlag(false)
+                    game.flags.setNegativeFlag(false)
+                } else
                 if game.registers[registerIndex].cmp(other: instruction.value!.resolve(game).cast(to: game.registers[registerIndex]), flags: game.flags) {
                     game.setError(.invalidComparison)
                 } else {
@@ -277,6 +293,10 @@ public class CPU {
         case .ldi   :
             let register = Int(instruction.register1!)
             if register <= 11 {
+                if register == 8 {
+                    // If the current keyCode gets replaced, remove it from keysDown as well
+                    game.gcp.draw2D.metalView.keysDown.removeAll{$0 == game.registers[register].toFloat32Bit() }
+                }
                 game.registers[register] = instruction.value!.resolve(game)
             } else {
                 game.setError(.invalidRegister)
