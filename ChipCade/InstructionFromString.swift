@@ -96,8 +96,7 @@ extension Instruction {
                 let offsetString = components[3...].joined().replacingOccurrences(of: " ", with: "")
 
                 // Check for and parse "+N" where N is the offset
-                if offsetString.starts(with: "+"),
-                   let offsetValue = Int(offsetString.dropFirst()) {
+                if offsetString.starts(with: "+") {
                     let offsetPart = offsetString.dropFirst()
 
                     // Try parsing as an integer offset
