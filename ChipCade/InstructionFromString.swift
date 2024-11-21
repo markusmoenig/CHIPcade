@@ -76,6 +76,7 @@ extension Instruction {
             }
 
         case .ld:
+            // LD Rd Memory + (Value|Rs)
             // Ensure we have at least 3 components: "LD R0 Data"
             guard components.count >= 3 else { return nil }
 
@@ -87,6 +88,7 @@ extension Instruction {
             // Extract memory part
             let memory = String(components[2])
             var offset = 0
+            var reg2: UInt8? = nil
 
             // Handle offset variations: "LD R0 Data", "LD R0 Data +10", "LD R0 Data + 10"
             if components.count >= 4 {
@@ -96,13 +98,26 @@ extension Instruction {
                 // Check for and parse "+N" where N is the offset
                 if offsetString.starts(with: "+"),
                    let offsetValue = Int(offsetString.dropFirst()) {
-                    offset = offsetValue
+                    let offsetPart = offsetString.dropFirst()
+
+                    // Try parsing as an integer offset
+                    if let offsetValue = Int(offsetPart) {
+                        offset = offsetValue
+                    }
+                    // Otherwise, try parsing as a register offset
+                    else if let reg = parseRegister(String(offsetPart)) {
+                        reg2 = reg
+                        offset = 0 // Default memory offset to 0 when using a register
+                    } else {
+                        return nil // Invalid offset format
+                    }
                 } else {
                     return nil // Invalid offset
                 }
             }
 
             instruction.register1 = reg1
+            instruction.register2 = reg2
             instruction.memory = memory
             instruction.memoryOffset = offset
 
@@ -139,20 +154,34 @@ extension Instruction {
             }
 
         case .st:
+            // ST Memory + (Value|Rs) (Value|Rs)
             // Ensure we have at least 3 components: "ST Data R0"
             guard components.count >= 3 else { return nil }
 
             // Extract memory part
             let memory = String(components[1])
             var offset = 0
+            var reg1: UInt8? = nil
 
             // Handle offset variations: "ST Data R0", "ST Data +1 R0", "ST Data + 1 R0"
             if components.count == 4 || components.count == 5 {
                 // Join the "+" and offset number if separated by a space
                 let offsetPart = components[2...components.count - 2].joined(separator: " ").trimmingCharacters(in: .whitespaces)
                 
-                if offsetPart.starts(with: "+"), let offsetValue = Int(offsetPart.dropFirst().trimmingCharacters(in: .whitespaces)) {
-                    offset = offsetValue
+                if offsetPart.starts(with: "+") {
+                    let offsetValuePart = offsetPart.dropFirst().trimmingCharacters(in: .whitespaces)
+
+                    // Try parsing as an integer offset
+                    if let offsetValue = Int(offsetValuePart) {
+                        offset = offsetValue
+                    }
+                    // Otherwise, try parsing as a register offset
+                    else if let reg = parseRegister(String(offsetValuePart)) {
+                        reg1 = reg
+                        offset = 0 // Default memory offset to 0 when using a register
+                    } else {
+                        return nil // Invalid offset format
+                    }
                 } else {
                     return nil // Invalid offset format
                 }
@@ -166,6 +195,7 @@ extension Instruction {
             instruction.value = value
             instruction.memory = memory
             instruction.memoryOffset = offset
+            instruction.register1 = reg1
         
         case .txtval:
             // XXXXXX Value

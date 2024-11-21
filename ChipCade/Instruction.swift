@@ -164,7 +164,6 @@ public class Instruction: ObservableObject, Codable, Equatable {
             register1 = 0
             memory = "Image Group"
         case .st:
-            register1 = 0
             memory = "Data"
             memoryOffset = 0
             value = .unsigned16Bit(0)

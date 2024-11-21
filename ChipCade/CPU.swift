@@ -268,7 +268,7 @@ public class CPU {
             }
         }
             
-        case .jo    : if game.flags.overflowFlag {
+        case .jo: if game.flags.overflowFlag {
             if let (codeItemIndex, instructionIndex) = game.data.getCodeAddress(name: instruction.memory!, currentCodeIndex: game.currCodeItemIndex) {
                 game.currCodeItemIndex = codeItemIndex
                 game.currInstructionIndex = instructionIndex
@@ -278,8 +278,17 @@ public class CPU {
             }
         }
                     
-        case .ld    :
-            if let value = game.getMemoryValue(memoryItemName: instruction.memory!, offset: instruction.memoryOffset!) {
+        case .ld:
+            var offset = instruction.memoryOffset!
+            
+            // If register2 is set, the offset comes from a register
+            if let register = instruction.register2, offset == 0 {
+                if register <= 7 {
+                    offset = game.registers[Int(register)].toInt32Bit()
+                }
+            }
+            
+            if let value = game.getMemoryValue(memoryItemName: instruction.memory!, offset: offset) {
                 let register = Int(instruction.register1!)
                 if register <= 11 {
                     game.registers[register] = value
@@ -438,7 +447,16 @@ public class CPU {
             }
             
         case .st:
-            if game.setMemoryValue(memoryItemName: instruction.memory!, offset: instruction.memoryOffset!, value: instruction.value!.resolve(game)) {
+            var offset = instruction.memoryOffset!
+            
+            // If register1 is set, the offset comes from a register
+            if let register = instruction.register1, offset == 0 {
+                if register <= 7 {
+                    offset = game.registers[Int(register)].toInt32Bit()
+                }
+            }
+            
+            if game.setMemoryValue(memoryItemName: instruction.memory!, offset: offset, value: instruction.value!.resolve(game)) {
                 game.setError(.invalidMemoryAddress)
             }
             
