@@ -12,18 +12,20 @@ class GameData: ObservableObject, Codable {
     @Published var codeItems: [CodeItem] = []
     @Published var imageGroupItems: [ImageGroupItem] = []
     @Published var dataItems: [MemoryItem] = []
+    @Published var audioItems: [AudioItem] = []
     @Published var palette: [float4] = []
     @Published var notes: String = String()
     @Published var skin: String = String()
-
+    
     enum CodingKeys: String, CodingKey {
-        case codeItems, imageGroupItems, dataItems, palette, notes, skin
+        case codeItems, imageGroupItems, dataItems, audioItems, palette, notes, skin
     }
     
     init() {
         self.codeItems = [CodeItem(name: "Init"), CodeItem(name: "Update")]
         self.imageGroupItems = []
         self.dataItems = [MemoryItem(name: "Data", length: 1024)]
+        self.audioItems = []
         self.palette = GameData.defaultPalette()
         self.notes = ""
         self.skin = ""
@@ -36,6 +38,11 @@ class GameData: ObservableObject, Codable {
         imageGroupItems = try container.decode([ImageGroupItem].self, forKey: .imageGroupItems)
         dataItems = try container.decode([MemoryItem].self, forKey: .dataItems)
         palette = try container.decode([float4].self, forKey: .palette)
+        if let audioItems = try container.decodeIfPresent([AudioItem].self, forKey: .audioItems) {
+            self.audioItems = audioItems
+        } else {
+            self.audioItems = []
+        }
         if let notes = try container.decodeIfPresent(String.self, forKey: .notes) {
             self.notes = notes
         } else {
@@ -54,6 +61,7 @@ class GameData: ObservableObject, Codable {
         try container.encode(codeItems, forKey: .codeItems)
         try container.encode(imageGroupItems, forKey: .imageGroupItems)
         try container.encode(dataItems, forKey: .dataItems)
+        try container.encode(audioItems, forKey: .audioItems)
         try container.encode(palette, forKey: .palette)
         try container.encode(notes, forKey: .notes)
         try container.encode(skin, forKey: .skin)
@@ -175,6 +183,32 @@ class GameData: ObservableObject, Codable {
         undoManager?.setActionName("Add Data Item")
     }
     
+    // Method to add a new AudioItem with undo/redo support
+    func addAudioItem(named name: String, data: Data, using undoManager: UndoManager?, setSelectedItem: @escaping (AudioItem?) -> Void) {
+        let newItem = AudioItem(name: name, data: data)
+        audioItems.append(newItem)
+
+        // Set the newly created DataItem as selected
+        setSelectedItem(newItem)
+
+        // Register undo action to remove the added DataItem
+        undoManager?.registerUndo(withTarget: self) { targetSelf in
+            if let index = targetSelf.audioItems.firstIndex(of: newItem) {
+                targetSelf.dataItems.remove(at: index)
+                
+                // Set the selected item to the first item or nil if the list is empty
+                let newSelectedItem = targetSelf.audioItems.first
+                setSelectedItem(newSelectedItem)
+                
+                undoManager?.registerUndo(withTarget: targetSelf) { redoSelf in
+                    redoSelf.audioItems.insert(newItem, at: index)
+                    setSelectedItem(newItem)  // Set as selected again after redo
+                }
+            }
+        }
+        undoManager?.setActionName("Add Audio Item")
+    }
+    
     // Method to add a new ImageGroup Item with undo/redo support
     func addImageGroupItem(named name: String, using undoManager: UndoManager?, setSelectedItem: @escaping (ImageGroupItem?) -> Void) {
         let newItem = ImageGroupItem(name: name)
@@ -262,6 +296,28 @@ class GameData: ObservableObject, Codable {
             // Register redo action to delete the DataItem again
             undoManager?.registerUndo(withTarget: targetSelf) { redoSelf in
                 redoSelf.deleteDataItem(at: index, using: undoManager, setSelectedItem: setSelectedItem)
+            }
+        }
+        undoManager?.setActionName("Delete Data Item")
+    }
+    
+    // Method to delete a DataItem with undo/redo support
+    func deleteAudioItem(at index: Int, using undoManager: UndoManager?, setSelectedItem: @escaping (AudioItem?) -> Void) {
+        let deletedItem = audioItems[index]
+        audioItems.remove(at: index)
+
+        // Set the selected item to the first item or nil if the list is empty
+        let newSelectedItem = audioItems.first
+        setSelectedItem(newSelectedItem)
+
+        // Register undo action to reinsert the deleted DataItem
+        undoManager?.registerUndo(withTarget: self) { targetSelf in
+            targetSelf.audioItems.insert(deletedItem, at: index)
+            setSelectedItem(deletedItem)  // Set as selected again after undo
+
+            // Register redo action to delete the DataItem again
+            undoManager?.registerUndo(withTarget: targetSelf) { redoSelf in
+                redoSelf.deleteAudioItem(at: index, using: undoManager, setSelectedItem: setSelectedItem)
             }
         }
         undoManager?.setActionName("Delete Data Item")

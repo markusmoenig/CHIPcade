@@ -24,6 +24,7 @@ struct ContentView: View {
     @State private var selectedCodeItem: CodeItem? = nil
     @State private var selectedImageGroupItem: ImageGroupItem? = nil
     @State private var selectedMemoryItem: MemoryItem? = nil
+    @State private var selectedAudioItem: AudioItem? = nil
 
     @State private var isPaletteSelected: Bool = false
     @State private var isNotesSelected: Bool = false
@@ -79,13 +80,16 @@ struct ContentView: View {
         NavigationView {
             List {
                 // Code Section
-                CodeSectionView(title: "Code", gameData: $document.game.data, codeItems: $document.game.data.codeItems, selectedCodeItem: $selectedCodeItem, selectedMemoryItem: $selectedMemoryItem, selectedImageGroupItem: $selectedImageGroupItem)
+                CodeSectionView(title: "Code", gameData: $document.game.data, codeItems: $document.game.data.codeItems, selectedCodeItem: $selectedCodeItem)
                 
                 // ImageGroup Section
-                ImageGroupSectionView(title: "Image Groups", gameData: $document.game.data, imageGroupItems: $document.game.data.imageGroupItems, selectedImageGroupItem: $selectedImageGroupItem, selectedMemoryItem: $selectedMemoryItem, selectedCodeItem: $selectedCodeItem)
+                ImageGroupSectionView(title: "Image Groups", gameData: $document.game.data, imageGroupItems: $document.game.data.imageGroupItems, selectedImageGroupItem: $selectedImageGroupItem)
                 
                 // Data Section
-                MemorySectionView(title: "Data", gameData: $document.game.data, memoryItems: $document.game.data.dataItems, selectedMemoryItem: $selectedMemoryItem, selectedCodeItem: $selectedCodeItem, selectedImageGroupItem: $selectedImageGroupItem)
+                MemorySectionView(title: "Data", gameData: $document.game.data, memoryItems: $document.game.data.dataItems, selectedMemoryItem: $selectedMemoryItem)
+                
+                // Data Section
+                AudioSectionView(title: "Audio", gameData: $document.game.data, audioItems: $document.game.data.audioItems, selectedAudioItem: $selectedAudioItem)
                 
                 #if !os(iOS)
                 Divider()
@@ -96,6 +100,7 @@ struct ContentView: View {
                         selectedCodeItem = nil
                         selectedImageGroupItem = nil
                         selectedMemoryItem = nil
+                        selectedAudioItem = nil
                         isPaletteSelected = true
                         isNotesSelected = false
                         isReferenceSelected = false
@@ -116,6 +121,7 @@ struct ContentView: View {
                         selectedCodeItem = nil
                         selectedImageGroupItem = nil
                         selectedMemoryItem = nil
+                        selectedAudioItem = nil
                         isPaletteSelected = true
                         isNotesSelected = false
                         isReferenceSelected = false
@@ -138,6 +144,7 @@ struct ContentView: View {
                         selectedCodeItem = nil
                         selectedImageGroupItem = nil
                         selectedMemoryItem = nil
+                        selectedAudioItem = nil
                         isPaletteSelected = false
                         isReferenceSelected = false
                         isSkinSelected = false
@@ -160,6 +167,7 @@ struct ContentView: View {
                         selectedCodeItem = nil
                         selectedImageGroupItem = nil
                         selectedMemoryItem = nil
+                        selectedAudioItem = nil
                         isPaletteSelected = false
                         isReferenceSelected = false
                         isSkinSelected = false
@@ -184,6 +192,7 @@ struct ContentView: View {
                         selectedCodeItem = nil
                         selectedImageGroupItem = nil
                         selectedMemoryItem = nil
+                        selectedAudioItem = nil
                         isPaletteSelected = false
                         isNotesSelected = false
                         isReferenceSelected = false
@@ -206,6 +215,7 @@ struct ContentView: View {
                         selectedCodeItem = nil
                         selectedImageGroupItem = nil
                         selectedMemoryItem = nil
+                        selectedAudioItem = nil
                         isPaletteSelected = false
                         isNotesSelected = false
                         isReferenceSelected = false
@@ -235,6 +245,7 @@ struct ContentView: View {
                             selectedCodeItem = nil
                             selectedImageGroupItem = nil
                             selectedMemoryItem = nil
+                            selectedAudioItem = nil
                             isPaletteSelected = false
                             isNotesSelected = false
                             isReferenceSelected = false
@@ -257,6 +268,7 @@ struct ContentView: View {
                             selectedCodeItem = nil
                             selectedImageGroupItem = nil
                             selectedMemoryItem = nil
+                            selectedAudioItem = nil
                             isPaletteSelected = false
                             isNotesSelected = false
                             isReferenceSelected = false
@@ -282,6 +294,7 @@ struct ContentView: View {
                         selectedCodeItem = nil
                         selectedImageGroupItem = nil
                         selectedMemoryItem = nil
+                        selectedAudioItem = nil
                         isPaletteSelected = false
                         isNotesSelected = false
                         isSkinSelected = false
@@ -304,6 +317,7 @@ struct ContentView: View {
                         selectedCodeItem = nil
                         selectedImageGroupItem = nil
                         selectedMemoryItem = nil
+                        selectedAudioItem = nil
                         isPaletteSelected = false
                         isNotesSelected = false
                         isSkinSelected = false
@@ -355,6 +369,9 @@ struct ContentView: View {
                         } else
                         if let memoryItem = selectedMemoryItem {
                             MemoryGridView(memoryItem: memoryItem)
+                        } else
+                        if let audioItem = selectedAudioItem {
+                            AudioInfoView(audioItem: audioItem)
                         } else if isPaletteSelected {
                             PaletteView(game: document.game)
                                 .padding(0)
@@ -408,6 +425,9 @@ struct ContentView: View {
                         } else
                         if let memoryItem = selectedMemoryItem {
                             MemoryGridView(memoryItem: memoryItem)
+                        } else
+                        if let audioItem = selectedAudioItem {
+                            AudioInfoView(audioItem: audioItem)
                         } else if isPaletteSelected {
                             PaletteView(game: document.game)
                                 .padding(0)
@@ -478,24 +498,30 @@ struct ContentView: View {
                     Button("Add Code Module", action: {
                         document.game.data.addCodeItem(named: "New Code Module", using: undoManager) { newItem in
                             selectedCodeItem = newItem
-                            selectedMemoryItem = nil
-                            selectedImageGroupItem = nil
                         }
                     })
                     
                     Button("Add Image Group", action: {
                         document.game.data.addImageGroupItem(named: "New Image Group", using: undoManager) { newItem in
                             selectedImageGroupItem = newItem
-                            selectedCodeItem = nil
-                            selectedMemoryItem = nil
                         }
                     })
                     
                     Button("Add Raw Data", action: {
                         document.game.data.addDataItem(named: "Data", length: 1024, using: undoManager) { newItem in
                             selectedMemoryItem = newItem
-                            selectedCodeItem = nil
-                            selectedImageGroupItem = nil
+                        }
+                    })
+                    
+                    Button("Add Audio...", action: {
+                        openAudioFilePicker { url, filenameWithoutExtension in
+                            if let url = url, let filename = filenameWithoutExtension {
+                                if let audioData: Data = try? Data(contentsOf: url) {
+                                    document.game.data.addAudioItem(named: filename, data: audioData, using: undoManager) { newItem in
+                                        selectedAudioItem = newItem
+                                    }
+                                }
+                            }
                         }
                     })
                 }
@@ -681,8 +707,6 @@ struct ContentView: View {
                     }
                 }
             }
-            selectedImageGroupItem = nil
-            selectedMemoryItem = nil
             
             if Game.shared.stepped {
                 Game.shared.syncEditor()
@@ -707,6 +731,7 @@ struct ContentView: View {
             selectedCodeItem = nil
             selectedImageGroupItem = nil
             selectedMemoryItem = nil
+            selectedAudioItem = nil
             isPaletteSelected = false
             isNotesSelected = false
             isSkinSelected = false
@@ -734,24 +759,17 @@ struct ContentView: View {
                     document.game.currCodeItemIndex = index
                 }
                 
-                //let codeText = selectedCodeItem.codes.map { $0.format() }.joined(separator: "\n")
-                //Game.shared.currentCodeItemText = selectedCodeItem.source
-//                if selectedCodeItem.source.isEmpty && !codeText.isEmpty {
-//                    selectedCodeItem.source = codeText
-//                }
                 if let editor = Game.shared.scriptEditor {
                     editor.setSessionValue("mainSession", selectedCodeItem.source, selectedCodeItem.currLine)
                 }
-            }
-            if selectedCodeItem != nil {
+                
                 document.game.currInstructionIndex = 0
                 selectedInstructionIndex = 0
                 document.game.selectionState = .code
-            }
-        }
-        
-        .onChange(of: selectedCodeItem) {
-            if selectedCodeItem != nil {
+                
+                selectedImageGroupItem = nil
+                selectedMemoryItem = nil
+                selectedAudioItem = nil
                 isPaletteSelected = false
                 isNotesSelected = false
                 isSkinSelected = false
@@ -761,8 +779,11 @@ struct ContentView: View {
             }
         }
         
-        .onChange(of: selectedMemoryItem) {
-            if selectedMemoryItem != nil {
+        .onChange(of: selectedImageGroupItem) {
+            if selectedImageGroupItem != nil {
+                selectedCodeItem = nil
+                selectedMemoryItem = nil
+                selectedAudioItem = nil
                 isPaletteSelected = false
                 isNotesSelected = false
                 isSkinSelected = false
@@ -771,8 +792,24 @@ struct ContentView: View {
             }
         }
         
-        .onChange(of: selectedImageGroupItem) {
-            if selectedImageGroupItem != nil {
+        .onChange(of: selectedMemoryItem) {
+            if selectedMemoryItem != nil {
+                selectedCodeItem = nil
+                selectedImageGroupItem = nil
+                selectedAudioItem = nil
+                isPaletteSelected = false
+                isNotesSelected = false
+                isSkinSelected = false
+                isMathLibrarySelected = false
+                isReferenceSelected = false
+            }
+        }
+        
+        .onChange(of: selectedAudioItem) {
+            if selectedAudioItem != nil {
+                selectedCodeItem = nil
+                selectedImageGroupItem = nil
+                selectedMemoryItem = nil
                 isPaletteSelected = false
                 isNotesSelected = false
                 isSkinSelected = false
@@ -805,6 +842,22 @@ struct ContentView: View {
                     }
                 }
             }
+        }
+    }
+    
+    private func openAudioFilePicker(completion: @escaping (URL?, String?) -> Void) {
+        let panel = NSOpenPanel()
+        panel.title = "Select an Audio File"
+        panel.allowedContentTypes = [.wav, .mp3] // Specify allowed types
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = false
+
+        if panel.runModal() == .OK, let url = panel.url {
+            let filenameWithoutExtension = url.deletingPathExtension().lastPathComponent
+            completion(url, filenameWithoutExtension)
+        } else {
+            completion(nil, nil) // User canceled or no file selected
         }
     }
     

@@ -13,8 +13,6 @@ struct CodeSectionView: View {
     @Binding var gameData: GameData
     @Binding var codeItems: [CodeItem]
     @Binding var selectedCodeItem: CodeItem?
-    @Binding var selectedMemoryItem: MemoryItem?
-    @Binding var selectedImageGroupItem: ImageGroupItem?
 
     @State private var isRenaming: Bool = false
     @State private var newName: String = ""
@@ -40,8 +38,6 @@ struct CodeSectionView: View {
                             Button(action: {
                                 selectedCodeItem = codeItems[index]
                                 Game.shared.scriptEditor?.setSession("mainSession")
-                                selectedMemoryItem = nil
-                                selectedImageGroupItem = nil
                             }) {
                                 HStack {
                                     Text(codeItems[index].name)
@@ -56,8 +52,6 @@ struct CodeSectionView: View {
                             Button(action: {
                                 selectedCodeItem = codeItems[index]
                                 Game.shared.scriptEditor?.setSession("mainSession")
-                                selectedMemoryItem = nil
-                                selectedImageGroupItem = nil
                             }) {
                                 HStack {
                                     Text(codeItems[index].name)
@@ -101,8 +95,6 @@ struct CodeSectionView: View {
                     Button(action: {
                         gameData.deleteCodeItem(at: index, using: undoManager) { newItem in
                             selectedCodeItem = newItem
-                            selectedMemoryItem = nil
-                            selectedImageGroupItem = nil
                        }
                     }) {
                         Text("Delete")

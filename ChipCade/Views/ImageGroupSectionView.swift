@@ -13,8 +13,6 @@ struct ImageGroupSectionView: View {
     @Binding var gameData: GameData
     @Binding var imageGroupItems: [ImageGroupItem]
     @Binding var selectedImageGroupItem: ImageGroupItem?
-    @Binding var selectedMemoryItem: MemoryItem?
-    @Binding var selectedCodeItem: CodeItem?
 
     @State private var isRenaming: Bool = false
     @State private var newName: String = ""
@@ -40,8 +38,6 @@ struct ImageGroupSectionView: View {
                             
                             Button(action: {
                                 selectedImageGroupItem = imageGroupItems[index]
-                                selectedCodeItem = nil
-                                selectedMemoryItem = nil
                             }) {
                                 HStack {
                                     Text(imageGroupItems[index].name)
@@ -55,8 +51,6 @@ struct ImageGroupSectionView: View {
                         } else {
                             Button(action: {
                                 selectedImageGroupItem = imageGroupItems[index]
-                                selectedCodeItem = nil
-                                selectedMemoryItem = nil
                             }) {
                                 HStack {
                                     Text(imageGroupItems[index].name)
@@ -100,8 +94,6 @@ struct ImageGroupSectionView: View {
                     Button(action: {
                         gameData.deleteImageGroupItem(at: index, using: undoManager) { newItem in
                             selectedImageGroupItem = newItem
-                            selectedCodeItem = nil
-                            selectedMemoryItem = nil
                         }
                     }) {
                         Text("Delete")
