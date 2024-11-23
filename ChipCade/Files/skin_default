@@ -1,0 +1,422 @@
+# CPU
+
+RECT
+    pos = 0, 2
+    size = 640, 160
+    rounding = 10
+    color = brown
+
+TEXT
+    pos = 30, 96
+    string = "CPU"
+    fontsize = 60
+    color = red
+    rotated = 1
+
+# GENERAL PURPOSE REGISTERS
+
+TEXT
+    pos = 111, 6
+    string = "GENERAL PURPOSE REGISTERS"
+    fontsize = 22
+    color = black
+    
+RECT
+    pos = 100, 35
+    size = 233, 116
+    rounding = 10
+    color = secondary
+
+# R0
+
+RECT
+    pos = 110, 42
+    size = 48, 48
+    rounding = 6
+    color = black
+    # borderColor = cyan
+    # borderSize = 3
+
+TEXT
+    pos = 122, 42
+    string = "R0"
+    fontsize = 24
+    color = brown
+    
+REGISTER
+    pos = 117, 70
+    index = 0
+    fontsize = 14
+    color = brown
+    
+# R1
+
+RECT
+    pos = 165, 42
+    size = 48, 48
+    rounding = 6
+    color = black
+    # borderColor = cyan
+    # borderSize = 3
+
+TEXT
+    pos = 180, 42
+    string = "R1"
+    fontsize = 24
+    color = brown
+    
+REGISTER
+    pos = 170, 70
+    index = 1
+    fontsize = 15
+    color = brown
+
+# R2
+
+RECT
+    pos = 220, 42
+    size = 48, 48
+    rounding = 6
+    color = black
+    # borderColor = cyan
+    # borderSize = 3
+
+TEXT
+    pos = 233, 42
+    string = "R2"
+    fontsize = 24
+    color = brown
+    
+REGISTER
+    pos = 225, 70
+    index = 2
+    fontsize = 15
+    color = brown
+    
+# R3
+
+RECT
+    pos = 275, 42
+    size = 48, 48
+    rounding = 6
+    color = black
+    # borderColor = cyan
+    # borderSize = 3
+
+TEXT
+    pos = 289, 42
+    string = "R3"
+    fontsize = 24
+    color = brown
+    
+REGISTER
+    pos = 280, 70
+    index = 3
+    fontsize = 15
+    color = brown
+    
+# R4
+
+RECT
+    pos = 110, 96
+    size = 48, 48
+    rounding = 6
+    color = black
+    # borderColor = cyan
+    # borderSize = 3
+
+TEXT
+    pos = 122, 96
+    string = "R4"
+    fontsize = 24
+    color = brown
+    
+REGISTER
+    pos = 117, 124
+    index = 4
+    fontsize = 14
+    color = brown
+    
+# R5
+
+RECT
+    pos = 165, 96
+    size = 48, 48
+    rounding = 6
+    color = black
+    # borderColor = cyan
+    # borderSize = 3
+
+TEXT
+    pos = 177, 96
+    string = "R5"
+    fontsize = 24
+    color = brown
+    
+REGISTER
+    pos = 170, 124
+    index = 5
+    fontsize = 15
+    color = brown
+
+# R6
+
+RECT
+    pos = 220, 96
+    size = 48, 48
+    rounding = 6
+    color = black
+    # borderColor = cyan
+    # borderSize = 3
+
+TEXT
+    pos = 232, 96
+    string = "R6"
+    fontsize = 24
+    color = brown
+    
+REGISTER
+    pos = 225, 124
+    index = 6
+    fontsize = 15
+    color = brown
+    
+# R7
+
+RECT
+    pos = 275, 96
+    size = 48, 48
+    rounding = 6
+    color = black
+    #borderColor = red
+    #borderSize = 2
+
+TEXT
+    pos = 288, 96
+    string = "R7"
+    fontsize = 24
+    color = brown
+    
+REGISTER
+    pos = 280, 124
+    index = 7
+    fontsize = 15
+    color = brown
+    
+# USER EVENTS
+
+TEXT
+    pos = 376, 6
+    string = "USER EVENTS"
+    fontsize = 22
+    color = black
+    
+RECT
+    pos = 360, 35
+    size = 125, 116
+    rounding = 10
+    color = secondary
+
+# R8
+
+RECT
+    pos = 370, 42
+    size = 48, 48
+    rounding = 6
+    color = black
+
+TEXT
+    pos = 385, 42
+    string = "R8"
+    fontsize = 24
+    color = brown
+    
+REGISTER
+    pos = 375, 70
+    index = 8
+    fontsize = 15
+    color = brown
+    
+# R9
+
+RECT
+    pos = 428, 42
+    size = 48, 48
+    rounding = 6
+    color = black
+
+TEXT
+    pos = 442, 42
+    string = "R9"
+    fontsize = 24
+    color = brown
+    
+REGISTER
+    pos = 432, 70
+    index = 9
+    fontsize = 15
+    color = brown
+    
+# R10
+
+RECT
+    pos = 370, 96
+    size = 48, 48
+    rounding = 6
+    color = black
+
+TEXT
+    pos = 380, 96
+    string = "R10"
+    fontsize = 24
+    color = brown
+    
+REGISTER
+    pos = 375, 124
+    index = 10
+    fontsize = 15
+    color = brown
+    
+# R11
+
+RECT
+    pos = 428, 96
+    size = 48, 48
+    rounding = 6
+    color = black
+
+TEXT
+    pos = 439, 96
+    string = "R11"
+    fontsize = 24
+    color = brown
+    
+REGISTER
+    pos = 432, 124
+    index = 11
+    fontsize = 15
+    color = brown
+
+# FLAGS
+
+TEXT
+    pos = 541, 6
+    string = "FLAGS"
+    fontsize = 22
+    color = black
+    
+RECT
+    pos = 515, 35
+    size = 100, 115
+    rounding = 10
+    color = secondary
+
+# ZF
+
+FLAG
+    pos = 536, 45
+    size = 19, 29
+    rounding = 4
+    name = "ZF"
+    onColor = red
+    offColor = black
+
+TEXT
+    pos = 539, 73
+    string = "ZF"
+    fontsize = 18
+    color = brown
+    
+# CF
+
+FLAG
+    pos = 576, 45
+    size = 19, 29
+    rounding = 4
+    name = "CF"
+    onColor = red
+    offColor = black
+
+TEXT
+    pos = 579, 73
+    string = "CF"
+    fontsize = 18
+    color = brown
+
+# OF
+
+FLAG
+    pos = 538, 98
+    size = 19, 29
+    rounding = 4
+    name = "OF"
+    onColor = red
+    offColor = black
+    
+TEXT
+    pos = 539, 125
+    string = "OF"
+    fontsize = 18
+    color = brown
+    
+# NF
+
+FLAG
+    pos = 576, 98
+    size = 19, 29
+    rounding = 4
+    name = "CF"
+    onColor = red
+    offColor = black
+    
+TEXT
+    pos = 579, 125
+    string = "NF"
+    fontsize = 18
+    color = brown
+    
+# Debug
+
+TEXT
+    pos = 0, 500
+    string = "DEBUG"
+    color = black
+    fontSize = 20
+    
+# GCP
+
+RECT
+    pos = 0, 165
+    size = 640, 82
+    rounding = 10
+    color = brown
+    
+# SPRITES
+
+SPRITES
+    pos = 5, 170
+    size = 400, 72
+    rounding = 10
+    color = black
+    onColor = red
+    offColor = brown
+    textColor = brown
+    
+# LAYERS
+
+LAYERS
+    pos = 410, 170
+    size = 160, 72
+    rounding = 10
+    color = black
+    color = black
+    onColor = red
+    offColor = brown
+    textColor = brown
+    
+TEXT
+    pos = 585, 208
+    string = "GCP"
+    fontsize = 36
+    color = red
+    rotated = 1

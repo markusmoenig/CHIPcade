@@ -21,6 +21,7 @@ struct ChipCadeDocument: FileDocument {
     init() {
         game = Game.shared
         game.data = .init()
+        game.loadDefaultSkin()
     }
 
     static var readableContentTypes: [UTType] { [.ChipCadeDocument] }

@@ -127,6 +127,18 @@ public class Game : ObservableObject
         cpu.game = self
     }
     
+    /// Load the default skin
+    public func loadDefaultSkin() {
+        // Compile Standard Math Library
+        if let path = Bundle.main.path(forResource: "skin_default", ofType: "") {
+            do {
+                data.skin = try String(contentsOfFile: path, encoding: .utf8)
+            } catch {
+                print("Failed to read skin_default: \(error.localizedDescription)")
+            }
+        }
+    }
+    
     /// Compile Math Library
     public func compileStandardModules() {
         

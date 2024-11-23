@@ -55,7 +55,7 @@ class AudioItem : ObservableObject, Codable, Equatable, Identifiable {
                 redoSelf.rename(to: newName, using: undoManager, setSelectedItem: setSelectedItem)
             }
         }
-        undoManager?.setActionName("Rename Code Item")
+        undoManager?.setActionName("Rename Audio Item")
     }
     
     static func == (lhs: AudioItem, rhs: AudioItem) -> Bool {

@@ -12,19 +12,21 @@ class GameData: ObservableObject, Codable {
     @Published var codeItems: [CodeItem] = []
     @Published var imageGroupItems: [ImageGroupItem] = []
     @Published var dataItems: [MemoryItem] = []
+    @Published var mapItems: [MapItem] = []
     @Published var audioItems: [AudioItem] = []
     @Published var palette: [float4] = []
     @Published var notes: String = String()
     @Published var skin: String = String()
     
     enum CodingKeys: String, CodingKey {
-        case codeItems, imageGroupItems, dataItems, audioItems, palette, notes, skin
+        case codeItems, imageGroupItems, dataItems, audioItems, mapItems, palette, notes, skin
     }
     
     init() {
         self.codeItems = [CodeItem(name: "Init"), CodeItem(name: "Update")]
         self.imageGroupItems = []
         self.dataItems = [MemoryItem(name: "Data", length: 1024)]
+        self.mapItems = []
         self.audioItems = []
         self.palette = GameData.defaultPalette()
         self.notes = ""
@@ -38,6 +40,11 @@ class GameData: ObservableObject, Codable {
         imageGroupItems = try container.decode([ImageGroupItem].self, forKey: .imageGroupItems)
         dataItems = try container.decode([MemoryItem].self, forKey: .dataItems)
         palette = try container.decode([float4].self, forKey: .palette)
+        if let mapItems = try container.decodeIfPresent([MapItem].self, forKey: .mapItems) {
+            self.mapItems = mapItems
+        } else {
+            self.mapItems = []
+        }
         if let audioItems = try container.decodeIfPresent([AudioItem].self, forKey: .audioItems) {
             self.audioItems = audioItems
         } else {
@@ -62,6 +69,7 @@ class GameData: ObservableObject, Codable {
         try container.encode(imageGroupItems, forKey: .imageGroupItems)
         try container.encode(dataItems, forKey: .dataItems)
         try container.encode(audioItems, forKey: .audioItems)
+        try container.encode(mapItems, forKey: .mapItems)
         try container.encode(palette, forKey: .palette)
         try container.encode(notes, forKey: .notes)
         try container.encode(skin, forKey: .skin)
@@ -194,7 +202,7 @@ class GameData: ObservableObject, Codable {
         // Register undo action to remove the added DataItem
         undoManager?.registerUndo(withTarget: self) { targetSelf in
             if let index = targetSelf.audioItems.firstIndex(of: newItem) {
-                targetSelf.dataItems.remove(at: index)
+                targetSelf.audioItems.remove(at: index)
                 
                 // Set the selected item to the first item or nil if the list is empty
                 let newSelectedItem = targetSelf.audioItems.first
@@ -207,6 +215,32 @@ class GameData: ObservableObject, Codable {
             }
         }
         undoManager?.setActionName("Add Audio Item")
+    }
+    
+    // Method to add a new MapItem with undo/redo support
+    func addMapItem(named name: String, using undoManager: UndoManager?, setSelectedItem: @escaping (MapItem?) -> Void) {
+        let newItem = MapItem(name: name)
+        mapItems.append(newItem)
+
+        // Set the newly created DataItem as selected
+        setSelectedItem(newItem)
+
+        // Register undo action to remove the added DataItem
+        undoManager?.registerUndo(withTarget: self) { targetSelf in
+            if let index = targetSelf.mapItems.firstIndex(of: newItem) {
+                targetSelf.mapItems.remove(at: index)
+                
+                // Set the selected item to the first item or nil if the list is empty
+                let newSelectedItem = targetSelf.mapItems.first
+                setSelectedItem(newSelectedItem)
+                
+                undoManager?.registerUndo(withTarget: targetSelf) { redoSelf in
+                    redoSelf.mapItems.insert(newItem, at: index)
+                    setSelectedItem(newItem)  // Set as selected again after redo
+                }
+            }
+        }
+        undoManager?.setActionName("Add Map Item")
     }
     
     // Method to add a new ImageGroup Item with undo/redo support
@@ -321,6 +355,28 @@ class GameData: ObservableObject, Codable {
             }
         }
         undoManager?.setActionName("Delete Data Item")
+    }
+    
+    // Method to delete a MapItem with undo/redo support
+    func deleteMapItem(at index: Int, using undoManager: UndoManager?, setSelectedItem: @escaping (MapItem?) -> Void) {
+        let deletedItem = mapItems[index]
+        mapItems.remove(at: index)
+
+        // Set the selected item to the first item or nil if the list is empty
+        let newSelectedItem = mapItems.first
+        setSelectedItem(newSelectedItem)
+
+        // Register undo action to reinsert the deleted DataItem
+        undoManager?.registerUndo(withTarget: self) { targetSelf in
+            targetSelf.mapItems.insert(deletedItem, at: index)
+            setSelectedItem(deletedItem)  // Set as selected again after undo
+
+            // Register redo action to delete the DataItem again
+            undoManager?.registerUndo(withTarget: targetSelf) { redoSelf in
+                redoSelf.deleteMapItem(at: index, using: undoManager, setSelectedItem: setSelectedItem)
+            }
+        }
+        undoManager?.setActionName("Delete Map Item")
     }
 
     

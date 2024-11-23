@@ -55,7 +55,7 @@ class MemoryItem : ObservableObject, Codable, Equatable, Identifiable {
                 redoSelf.rename(to: newName, using: undoManager, setSelectedItem: setSelectedItem)
             }
         }
-        undoManager?.setActionName("Rename Code Item")
+        undoManager?.setActionName("Rename Data Item")
     }
     // Grow the memory by a given amount
     func growMemory(by amount: Int) {

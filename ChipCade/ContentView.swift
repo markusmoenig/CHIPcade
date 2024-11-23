@@ -25,6 +25,7 @@ struct ContentView: View {
     @State private var selectedImageGroupItem: ImageGroupItem? = nil
     @State private var selectedMemoryItem: MemoryItem? = nil
     @State private var selectedAudioItem: AudioItem? = nil
+    @State private var selectedMapItem: MapItem? = nil
 
     @State private var isPaletteSelected: Bool = false
     @State private var isNotesSelected: Bool = false
@@ -82,11 +83,14 @@ struct ContentView: View {
                 // Code Section
                 CodeSectionView(title: "Code", gameData: $document.game.data, codeItems: $document.game.data.codeItems, selectedCodeItem: $selectedCodeItem)
                 
-                // ImageGroup Section
-                ImageGroupSectionView(title: "Image Groups", gameData: $document.game.data, imageGroupItems: $document.game.data.imageGroupItems, selectedImageGroupItem: $selectedImageGroupItem)
-                
                 // Data Section
                 MemorySectionView(title: "Data", gameData: $document.game.data, memoryItems: $document.game.data.dataItems, selectedMemoryItem: $selectedMemoryItem)
+                
+                // Map Section
+                MapSectionView(title: "Maps", gameData: $document.game.data, mapItems: $document.game.data.mapItems, selectedMapItem: $selectedMapItem)
+                
+                // ImageGroup Section
+                ImageGroupSectionView(title: "Image Groups", gameData: $document.game.data, imageGroupItems: $document.game.data.imageGroupItems, selectedImageGroupItem: $selectedImageGroupItem)
                 
                 // Data Section
                 AudioSectionView(title: "Audio", gameData: $document.game.data, audioItems: $document.game.data.audioItems, selectedAudioItem: $selectedAudioItem)
@@ -101,6 +105,7 @@ struct ContentView: View {
                         selectedImageGroupItem = nil
                         selectedMemoryItem = nil
                         selectedAudioItem = nil
+                        selectedMapItem = nil
                         isPaletteSelected = true
                         isNotesSelected = false
                         isReferenceSelected = false
@@ -122,6 +127,7 @@ struct ContentView: View {
                         selectedImageGroupItem = nil
                         selectedMemoryItem = nil
                         selectedAudioItem = nil
+                        selectedMapItem = nil
                         isPaletteSelected = true
                         isNotesSelected = false
                         isReferenceSelected = false
@@ -145,6 +151,7 @@ struct ContentView: View {
                         selectedImageGroupItem = nil
                         selectedMemoryItem = nil
                         selectedAudioItem = nil
+                        selectedMapItem = nil
                         isPaletteSelected = false
                         isReferenceSelected = false
                         isSkinSelected = false
@@ -168,6 +175,7 @@ struct ContentView: View {
                         selectedImageGroupItem = nil
                         selectedMemoryItem = nil
                         selectedAudioItem = nil
+                        selectedMapItem = nil
                         isPaletteSelected = false
                         isReferenceSelected = false
                         isSkinSelected = false
@@ -193,6 +201,7 @@ struct ContentView: View {
                         selectedImageGroupItem = nil
                         selectedMemoryItem = nil
                         selectedAudioItem = nil
+                        selectedMapItem = nil
                         isPaletteSelected = false
                         isNotesSelected = false
                         isReferenceSelected = false
@@ -216,6 +225,7 @@ struct ContentView: View {
                         selectedImageGroupItem = nil
                         selectedMemoryItem = nil
                         selectedAudioItem = nil
+                        selectedMapItem = nil
                         isPaletteSelected = false
                         isNotesSelected = false
                         isReferenceSelected = false
@@ -246,6 +256,7 @@ struct ContentView: View {
                             selectedImageGroupItem = nil
                             selectedMemoryItem = nil
                             selectedAudioItem = nil
+                            selectedMapItem = nil
                             isPaletteSelected = false
                             isNotesSelected = false
                             isReferenceSelected = false
@@ -269,6 +280,7 @@ struct ContentView: View {
                             selectedImageGroupItem = nil
                             selectedMemoryItem = nil
                             selectedAudioItem = nil
+                            selectedMapItem = nil
                             isPaletteSelected = false
                             isNotesSelected = false
                             isReferenceSelected = false
@@ -295,6 +307,7 @@ struct ContentView: View {
                         selectedImageGroupItem = nil
                         selectedMemoryItem = nil
                         selectedAudioItem = nil
+                        selectedMapItem = nil
                         isPaletteSelected = false
                         isNotesSelected = false
                         isSkinSelected = false
@@ -318,6 +331,7 @@ struct ContentView: View {
                         selectedImageGroupItem = nil
                         selectedMemoryItem = nil
                         selectedAudioItem = nil
+                        selectedMapItem = nil
                         isPaletteSelected = false
                         isNotesSelected = false
                         isSkinSelected = false
@@ -500,19 +514,25 @@ struct ContentView: View {
                             selectedCodeItem = newItem
                         }
                     })
+
+                    Button("Add Data", action: {
+                        document.game.data.addDataItem(named: "Data", length: 1024, using: undoManager) { newItem in
+                            selectedMemoryItem = newItem
+                        }
+                    })
+                    
+                    Button("Add Map", action: {
+                        document.game.data.addMapItem(named: "New Map", using: undoManager) { newItem in
+                            selectedMapItem = newItem
+                        }
+                    })
                     
                     Button("Add Image Group", action: {
                         document.game.data.addImageGroupItem(named: "New Image Group", using: undoManager) { newItem in
                             selectedImageGroupItem = newItem
                         }
                     })
-                    
-                    Button("Add Raw Data", action: {
-                        document.game.data.addDataItem(named: "Data", length: 1024, using: undoManager) { newItem in
-                            selectedMemoryItem = newItem
-                        }
-                    })
-                    
+
                     Button("Add Audio...", action: {
                         openAudioFilePicker { url, filenameWithoutExtension in
                             if let url = url, let filename = filenameWithoutExtension {
@@ -732,6 +752,7 @@ struct ContentView: View {
             selectedImageGroupItem = nil
             selectedMemoryItem = nil
             selectedAudioItem = nil
+            selectedMapItem = nil
             isPaletteSelected = false
             isNotesSelected = false
             isSkinSelected = false
@@ -770,6 +791,7 @@ struct ContentView: View {
                 selectedImageGroupItem = nil
                 selectedMemoryItem = nil
                 selectedAudioItem = nil
+                selectedMapItem = nil
                 isPaletteSelected = false
                 isNotesSelected = false
                 isSkinSelected = false
@@ -784,6 +806,7 @@ struct ContentView: View {
                 selectedCodeItem = nil
                 selectedMemoryItem = nil
                 selectedAudioItem = nil
+                selectedMapItem = nil
                 isPaletteSelected = false
                 isNotesSelected = false
                 isSkinSelected = false
@@ -797,6 +820,21 @@ struct ContentView: View {
                 selectedCodeItem = nil
                 selectedImageGroupItem = nil
                 selectedAudioItem = nil
+                selectedMapItem = nil
+                isPaletteSelected = false
+                isNotesSelected = false
+                isSkinSelected = false
+                isMathLibrarySelected = false
+                isReferenceSelected = false
+            }
+        }
+        
+        .onChange(of: selectedMapItem) {
+            if selectedMapItem != nil {
+                selectedCodeItem = nil
+                selectedImageGroupItem = nil
+                selectedAudioItem = nil
+                selectedMemoryItem = nil
                 isPaletteSelected = false
                 isNotesSelected = false
                 isSkinSelected = false
@@ -810,6 +848,7 @@ struct ContentView: View {
                 selectedCodeItem = nil
                 selectedImageGroupItem = nil
                 selectedMemoryItem = nil
+                selectedMapItem = nil
                 isPaletteSelected = false
                 isNotesSelected = false
                 isSkinSelected = false
