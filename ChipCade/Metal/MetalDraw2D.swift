@@ -51,6 +51,7 @@ class MetalDraw2D
     var copyState       : MTLRenderPipelineState? = nil
     var boxState        : MTLRenderPipelineState? = nil
     var gridState       : MTLRenderPipelineState? = nil
+    var lineState       : MTLRenderPipelineState? = nil
 
     var scaleFactor     : Float
     var viewSize        = float2(0,0)
@@ -156,6 +157,9 @@ class MetalDraw2D
             
             function = defaultLibrary.makeFunction( name: "m4mGridDrawable" )
             gridState = createNewPipelineState(function)
+            
+            function = defaultLibrary.makeFunction( name: "m4mLineDrawable" )
+            lineState = createNewPipelineState(function)
         }
         
         // Create linear and nearest samplers
@@ -523,6 +527,57 @@ class MetalDraw2D
             }
         }
     }
+    
+    /// Draws a box
+    func drawLine(startPos: float2, endPos: float2, radius: Float, borderSize: Float = 0, fillColor: float4 = float4(1,1,1,1), borderColor: float4 = float4(0,0,0,0))
+    {
+        let sx = startPos.x
+        let sy = startPos.y
+        let ex = endPos.x
+        let ey = endPos.y
+        
+        let minX = min(sx, ex)
+        let maxX = max(sx, ex)
+        let minY = min(sy, ey)
+        let maxY = max(sy, ey)
+        
+        let areaWidth : Float = maxX - minX + borderSize + radius * 2
+        let areaHeight : Float = maxY - minY + borderSize + radius * 2
+                
+        let middleX : Float = (sx + ex) / 2
+        let middleY : Float = (sy + ey) / 2
+        
+        var data = LineUniform()
+        data.size = float2(areaWidth, areaHeight)
+        data.width = radius
+        data.borderSize = borderSize
+        data.fillColor = fillColor
+        data.borderColor = borderColor
+        data.sp = float2(sx - middleX, middleY - sy)
+        data.ep = float2(ex - middleX, middleY - ey)
+
+        let rect = MMRect( minX - borderSize / 2, minY - borderSize / 2, areaWidth, areaHeight, scale: 1)
+        let c = fillColor
+        
+        vertexData = [
+            xToMetal(rect.x + rect.width), yToMetal(rect.y + rect.height), 1.0, 0.0, c.x, c.y, c.z, c.w,
+            xToMetal(rect.x), yToMetal(rect.y + rect.height), 0.0, 0.0, c.x, c.y, c.z, c.w,
+            xToMetal(rect.x), yToMetal(rect.y), 0.0, 1.0, c.x, c.y, c.z, c.w,
+             
+            xToMetal(rect.x + rect.width), yToMetal(rect.y + rect.height), 1.0, 0.0, c.x, c.y, c.z, c.w,
+            xToMetal(rect.x), yToMetal(rect.y), 0.0, 1.0, c.x, c.y, c.z, c.w,
+            xToMetal(rect.x + rect.width), yToMetal(rect.y), 1.0, 1.0, c.x, c.y, c.z, c.w,
+        ]
+        vertexCount = 6
+        
+        renderEncoder.setVertexBytes(vertexData, length: vertexData.count * MemoryLayout<Float>.stride, index: 0)
+        renderEncoder.setVertexBytes(&viewportSize, length: MemoryLayout<vector_uint2>.stride, index: 1)
+        
+        renderEncoder.setFragmentBytes(&data, length: MemoryLayout<LineUniform>.stride, index: 0)
+        renderEncoder.setRenderPipelineState(lineState!)
+        renderEncoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 6)
+    }
+
     
     /// Draws a box
     func drawBox(position: float2, size: float2, rounding: Float = 0, borderSize: Float = 0, onion: Float = 0, rotation: Float = 0, fillColor: float4 = float4(1,1,1,1), borderColor: float4 = float4(0,0,0,0), texture: MTLTexture? = nil)

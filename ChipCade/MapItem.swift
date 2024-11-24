@@ -76,16 +76,45 @@ class MapItem: ObservableObject, Codable, Equatable, Identifiable {
 // MARK: - Sector
 class Sector: Codable, ObservableObject {
     let id: Int
-    var vertices: [Int] = []
-    var floorHeight: Float = 0
-    var ceilingHeight: Float = 0
-    var floorTexture: String = ""
-    var ceilingTexture: String = ""
-    var lightLevel: Float = 1.0
-    var neighbors: [Int] = []
+    var vertices: [Int]
+    var floorHeight: Float
+    var ceilingHeight: Float
+    var floorTexture: String
+    var ceilingTexture: String
+    var lightLevel: Float
+    var neighbors: [Int]
 
+    // Default initializer
     init(id: Int) {
         self.id = id
+        self.vertices = []
+        self.floorHeight = 0
+        self.ceilingHeight = 0
+        self.floorTexture = ""
+        self.ceilingTexture = ""
+        self.lightLevel = 1.0
+        self.neighbors = []
+    }
+
+    // Initializer with all properties
+    init(
+        id: Int,
+        vertices: [Int],
+        floorHeight: Float,
+        ceilingHeight: Float,
+        floorTexture: String,
+        ceilingTexture: String,
+        lightLevel: Float,
+        neighbors: [Int]
+    ) {
+        self.id = id
+        self.vertices = vertices
+        self.floorHeight = floorHeight
+        self.ceilingHeight = ceilingHeight
+        self.floorTexture = floorTexture
+        self.ceilingTexture = ceilingTexture
+        self.lightLevel = lightLevel
+        self.neighbors = neighbors
     }
 }
 
@@ -94,6 +123,10 @@ struct Vertex: Codable, Hashable {
     let id: Int
     var x: Float
     var y: Float
+    
+    func float2D() -> float2 {
+        float2(x, y)
+    }
 }
 
 // MARK: - Linedef

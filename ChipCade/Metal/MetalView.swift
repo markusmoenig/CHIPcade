@@ -33,6 +33,8 @@ public class ChipCadeView       : MTKView
     var commandIsDown       : Bool = false
     var shiftIsDown         : Bool = false
     
+    var trackingArea        : NSTrackingArea?
+    
     func reset()
     {
         keysDown = []
@@ -50,6 +52,26 @@ public class ChipCadeView       : MTKView
     func platformInit()
     {
         layer?.isOpaque = false
+    }
+    
+    public override var undoManager: UndoManager? {
+        return self.window?.undoManager
+    }
+    
+    public override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        
+        if let trackingArea = trackingArea {
+            removeTrackingArea(trackingArea)
+        }
+        
+        let options: NSTrackingArea.Options = [
+            .mouseMoved,
+            .activeInKeyWindow,
+            .inVisibleRect
+        ]
+        trackingArea = NSTrackingArea(rect: bounds, options: options, owner: self, userInfo: nil)
+        addTrackingArea(trackingArea!)
     }
     
     func setMousePos(_ event: NSEvent)
@@ -161,13 +183,13 @@ public class ChipCadeView       : MTKView
             Game.shared.cpuRender.update()
         } else if viewType == .Map {
             if let mapIndex = game.currMapIndex {
-                let mapItem = game.data.mapItems[mapIndex]
+                var mapItem = game.data.mapItems[mapIndex]
                 let screenSize = float2(Game.shared.mapRender.viewportSize)
                 let gridSpacePos = mousePos - screenSize / 2.0 - float2(-mapItem.offset.x, mapItem.offset.y)
                 let pos = round(gridSpacePos / game.data.mapItems[mapIndex].gridSize)
                 
                 game.mapWidget.screenSize = screenSize
-                game.mapWidget.mouseDown(pos: mousePos, gridPos: pos, mapItem: mapItem)
+                game.mapWidget.mouseDown(pos: mousePos, gridPos: pos, mapItem: &mapItem, undoManager: undoManager)
             }
         } else {
             Game.shared.skin.cursorMoved(pos: mousePos)
@@ -215,6 +237,21 @@ public class ChipCadeView       : MTKView
                 
                 game.mapWidget.screenSize = screenSize
                 game.mapWidget.mouseUp(pos: mousePos, gridPos: pos, mapItem: mapItem)
+            }
+        }
+    }
+    
+    override public func mouseMoved(with event: NSEvent) {
+        setMousePos(event)
+        if viewType == .Map {
+            if let mapIndex = game.currMapIndex {
+                let mapItem = game.data.mapItems[mapIndex]
+                let screenSize = float2(Game.shared.mapRender.viewportSize)
+                let gridSpacePos = mousePos - screenSize / 2.0 - float2(-mapItem.offset.x, mapItem.offset.y)
+                let pos = round(gridSpacePos / game.data.mapItems[mapIndex].gridSize)
+                
+                game.mapWidget.screenSize = screenSize
+                game.mapWidget.mouseMoved(pos: mousePos, gridPos: pos, mapItem: mapItem)
             }
         }
     }
