@@ -14,6 +14,9 @@ class MapItem: ObservableObject, Codable, Equatable, Identifiable {
 
     @Published var name: String
 
+    var offset: float2 = .zero
+    var gridSize: Float = 30.0
+    
     var sectors: [Int: Sector] = [:]
     var vertices: [Int: Vertex] = [:]
     var linedefs: [Int: Linedef] = [:]

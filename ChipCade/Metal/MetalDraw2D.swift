@@ -50,6 +50,7 @@ class MetalDraw2D
     var textState       : MTLRenderPipelineState? = nil
     var copyState       : MTLRenderPipelineState? = nil
     var boxState        : MTLRenderPipelineState? = nil
+    var gridState       : MTLRenderPipelineState? = nil
 
     var scaleFactor     : Float
     var viewSize        = float2(0,0)
@@ -152,6 +153,9 @@ class MetalDraw2D
             
             function = defaultLibrary.makeFunction( name: "m4mBoxDrawable" )
             boxState = createNewPipelineState(function)
+            
+            function = defaultLibrary.makeFunction( name: "m4mGridDrawable" )
+            gridState = createNewPipelineState(function)
         }
         
         // Create linear and nearest samplers
@@ -556,6 +560,37 @@ class MetalDraw2D
             renderEncoder.setFragmentTexture(texture, index: 1)
         }
         renderEncoder.setRenderPipelineState(boxState!)
+        renderEncoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 6)
+    }
+    
+    /// Draws grid
+    func drawGrid(offset: float2, gridSize: Float, backgroundColor: float4)
+    {
+        var data = GridUniform()
+        data.size = viewSize
+        data.offset = offset
+        data.gridSize = gridSize
+
+        let rect = MMRect(0, 0, viewSize.x, viewSize.y, scale: 1)
+
+        let c = backgroundColor
+        
+        vertexData = [
+            xToMetal(rect.x + rect.width), yToMetal(rect.y + rect.height), 1.0, 0.0, c.x, c.y, c.z, c.w,
+            xToMetal(rect.x), yToMetal(rect.y + rect.height), 0.0, 0.0, c.x, c.y, c.z, c.w,
+            xToMetal(rect.x), yToMetal(rect.y), 0.0, 1.0, c.x, c.y, c.z, c.w,
+             
+            xToMetal(rect.x + rect.width), yToMetal(rect.y + rect.height), 1.0, 0.0, c.x, c.y, c.z, c.w,
+            xToMetal(rect.x), yToMetal(rect.y), 0.0, 1.0, c.x, c.y, c.z, c.w,
+            xToMetal(rect.x + rect.width), yToMetal(rect.y), 1.0, 1.0, c.x, c.y, c.z, c.w,
+        ]
+        vertexCount = 6
+        
+        renderEncoder.setVertexBytes(vertexData, length: vertexData.count * MemoryLayout<Float>.stride, index: 0)
+        renderEncoder.setVertexBytes(&viewportSize, length: MemoryLayout<vector_uint2>.stride, index: 1)
+        
+        renderEncoder.setFragmentBytes(&data, length: MemoryLayout<GridUniform>.stride, index: 0)
+        renderEncoder.setRenderPipelineState(gridState!)
         renderEncoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 6)
     }
     

@@ -390,6 +390,167 @@ fragment float4 m4mGridDrawable(RasterizerData in [[stage_in]],
     return float4( col );
 }*/
 
+// Draw Grid Functions, based on https://www.shadertoy.com/view/ctc3zj
+
+bool odd(int n) {
+    return n % 2 != 0;
+}
+
+// Return the multiple of delta closest to value
+float2 closestMul(float2 delta, float2 value) {
+    return delta * round(value / delta);
+}
+
+// Return the distance of value to the closest multiple of delta
+float2 mulDist(float2 delta, float2 value) {
+    return abs(value - closestMul(delta, value));
+}
+
+// Align the given point to a pixel center if thickness is odd,
+// otherwise align the point to a crossing point between pixels
+float2 alignPixel(float2 point, int thickness) {
+    if (odd(thickness)) {
+        return round(point - 0.5) + 0.5;
+    } else {
+        return round(point);
+    }
+}
+
+float4 drawGrid(
+    float2 position,
+    float2 origin,
+    float2 gridSize,
+    float2 subGridDiv,
+    int thickness,
+    int subThickness,
+    float dotRadius,
+    bool squaredDots,
+    float4 bgColor,
+    float4 lineColor,
+    float4 subLineColor,
+    float4 dotsColor,
+    float4 xAxisColor,
+    float4 yAxisColor
+) {
+    float th = float(thickness);
+    float sth = float(subThickness);
+    
+    origin = alignPixel(origin, thickness);
+
+    float2 relP = position - origin;
+
+    // ---------------------
+    // Draw the axes
+    // ---------------------
+    if (abs(relP.y) < th * 0.5) {
+        return xAxisColor;
+    }
+    
+    if (abs(relP.x) < th * 0.5) {
+        return yAxisColor;
+    }
+
+    float2 mul = closestMul(gridSize, relP);
+
+    // Pixel distance
+    float2 dist = mulDist(gridSize, relP);
+
+    if (dotRadius > 0.0) {
+        // Antialiasing threshold
+        float aa = 1.0;
+
+        float dotDist = squaredDots
+            ? max(dist.x, dist.y)
+            : length(dist);
+
+        // Prevent dots from being drawn on the axes
+        bool drawDots = abs(mul.x) > 0.5 && abs(mul.y) > 0.5;
+
+        if (drawDots && dotDist <= dotRadius + aa) {
+            // Draw the dots
+            float val = max(dotDist - dotRadius, 0.0) / aa;
+            return mix(dotsColor, bgColor, val);
+        }
+    }
+
+    if (min(dist.x, dist.y) <= th * 0.5) {
+        return lineColor;
+    }
+
+    dist = abs(relP - gridSize * floor(relP / gridSize));
+    float2 subSize = round(gridSize / subGridDiv);
+
+    if (odd(thickness) != odd(subThickness)) {
+        dist = abs(dist - 0.5);
+    }
+
+    float2 subDist = mulDist(subSize, dist);
+
+    // Number of columns and rows
+    float2 rc = round(dist / subSize);
+
+    // Extra pixels for the last row/column
+    float2 extra = gridSize - subSize * subGridDiv;
+
+    if (rc.x == subGridDiv.x) { // Last column
+        subDist.x += extra.x;
+    }
+    if (rc.y == subGridDiv.y) { // Last row
+        subDist.y += extra.y;
+    }
+
+    if (min(subDist.x, subDist.y) <= sth * 0.5) {
+        return subLineColor;
+    }
+
+    // ---------------------
+    return bgColor;
+}
+
+fragment float4 m4mGridDrawable(RasterizerData in [[stage_in]],
+                               constant GridUniform *data [[ buffer(0) ]] )
+{
+    float2 uv = in.textureCoordinate * data->size * 2.0;
+    
+    float2 origin = uv / 2.0 + data->size / 2.0 - data->offset;
+    
+    int thickness = 1;
+    int subThickness = 1;
+    
+    // when greater than zero, draw dots or squares in the
+    // crossing points of the main grid
+    float dotRadius = 0.0;
+    bool squaredDots = false;
+    float2 gridSize = float2(data->gridSize);
+    float2 subGridDiv = float2(2, 2);
+    
+    float4 bgColor = float4(0.15, 0.15, 0.15, 0.0);
+    float4 lineColor = float4(0.3, 0.3, 0.3, 1.0);
+    float4 subLineColor = float4(0.2, 0.2, 0.2, 1.0);
+    float4 dotsColor = lineColor;
+    float4 xAxisColor = float4(212.0 / 255.0, 28.0 / 255.0, 15.0 / 255.0, 1.0);
+    float4 yAxisColor = float4(21.0 / 255.0, 191.0 / 255.0, 83.0 / 255.0, 1.0);
+    
+    // ---------------------
+    
+    return drawGrid(
+        uv,
+        origin,
+        gridSize,
+        subGridDiv,
+        thickness,
+        subThickness,
+        dotRadius,
+        squaredDots,
+        bgColor,
+        lineColor,
+        subLineColor,
+        dotsColor,
+        xAxisColor,
+        yAxisColor
+    );
+}
+
 // Copy texture
 fragment float4 m4mCopyTextureDrawable(VertexOut in [[stage_in]],
                                 constant TextureUniform *data [[ buffer(0) ]],

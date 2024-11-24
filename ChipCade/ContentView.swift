@@ -360,49 +360,7 @@ struct ContentView: View {
                     //Spacer()
                     
                     // Middle Panel
-                    
-                    if editorIsOnLeftSide == true {
-                        if selectedCodeItem != nil {//let codeItem = selectedCodeItem {
-                            if editorIsOnLeftSide {
-                                /*
-                                if editingMode == EditingMode.list.rawValue {
-                                    CodeItemListView(
-                                        codeItem: codeItem,
-                                        selectedInstruction: $selectedInstruction,
-                                        selectedInstructionIndex: $selectedInstructionIndex
-                                    )
-                                } else {*/
-                                    WebView(colorScheme)
-                                //}
-                            }
-                        } else if isSkinSelected {
-                            WebView(colorScheme)
-                        } else
-                        if let imageGroupItem = selectedImageGroupItem {
-                            ImageGroupItemListView(imageGroupItem: imageGroupItem, selectedImageIndex: $selectedImageIndex)
-                        } else
-                        if let memoryItem = selectedMemoryItem {
-                            MemoryGridView(memoryItem: memoryItem)
-                        } else
-                        if let audioItem = selectedAudioItem {
-                            AudioInfoView(audioItem: audioItem)
-                        } else if isPaletteSelected {
-                            PaletteView(game: document.game)
-                                .padding(0)
-                        } else if isNotesSelected {
-                            WebView(colorScheme)
-                        } else if isReferenceSelected {
-//                            ScrollView {
-//                                Markdown(referenceText)
-//                                    .padding(4)
-//                            }
-                            WebView(colorScheme)
-                        } else if isMathLibrarySelected {
-                           WebView(colorScheme)
-                       }
-                    } else {
-                        MetalView(document.game, .Game)
-                    }
+                    createEditorForPanel(rightPanel: false)
                     
                     //Spacer()
                     
@@ -419,46 +377,7 @@ struct ContentView: View {
                 VStack(spacing: 0) {
                     
                     // Right Panel
-                    
-                    if !editorIsOnLeftSide {
-                        if selectedCodeItem != nil {//let codeItem = selectedCodeItem {
-                            /*if editingMode == EditingMode.list.rawValue {
-                                CodeItemListView(
-                                    codeItem: codeItem,
-                                    selectedInstruction: $selectedInstruction,
-                                    selectedInstructionIndex: $selectedInstructionIndex
-                                )
-                            } else {*/
-                                WebView(colorScheme)
-                            //}
-                        } else if isSkinSelected {
-                            WebView(colorScheme)
-                        } else
-                        if let imageGroupItem = selectedImageGroupItem {
-                            ImageGroupItemListView(imageGroupItem: imageGroupItem, selectedImageIndex: $selectedImageIndex)
-                        } else
-                        if let memoryItem = selectedMemoryItem {
-                            MemoryGridView(memoryItem: memoryItem)
-                        } else
-                        if let audioItem = selectedAudioItem {
-                            AudioInfoView(audioItem: audioItem)
-                        } else if isPaletteSelected {
-                            PaletteView(game: document.game)
-                                .padding(0)
-                        } else if isNotesSelected {
-                            WebView(colorScheme)
-                        } else if isReferenceSelected {
-//                            ScrollView {
-//                                Markdown(referenceText)
-//                                    .padding(4)
-//                            }
-                            WebView(colorScheme)
-                        } else if isMathLibrarySelected {
-                           WebView(colorScheme)
-                       }
-                    } else {
-                        MetalView(document.game, .Game)
-                    }
+                    createEditorForPanel(rightPanel: true)
                     
                     Spacer()
 //                    Divider()
@@ -644,7 +563,7 @@ struct ContentView: View {
                 referenceText = "Reference document not found."
             }
             #if os(macOS)
-            document.game.play(initOnly: true)            
+            document.game.play(initOnly: true)
             #endif
             document.game.skin.compile(text: document.game.data.skin)
             Game.shared.scriptEditor?.setTheme(colorScheme)
@@ -786,7 +705,6 @@ struct ContentView: View {
                 
                 document.game.currInstructionIndex = 0
                 selectedInstructionIndex = 0
-                document.game.selectionState = .code
                 
                 selectedImageGroupItem = nil
                 selectedMemoryItem = nil
@@ -830,7 +748,7 @@ struct ContentView: View {
         }
         
         .onChange(of: selectedMapItem) {
-            if selectedMapItem != nil {
+            if let selectedMapItem = selectedMapItem {
                 selectedCodeItem = nil
                 selectedImageGroupItem = nil
                 selectedAudioItem = nil
@@ -840,6 +758,9 @@ struct ContentView: View {
                 isSkinSelected = false
                 isMathLibrarySelected = false
                 isReferenceSelected = false
+                Game.shared.currMapIndex = Game.shared.getMapItemIndex(byItem: selectedMapItem)
+            } else {
+                Game.shared.currMapIndex = nil
             }
         }
         
@@ -882,6 +803,57 @@ struct ContentView: View {
                 }
             }
         }
+    }
+    
+    /// Create the
+    private func createEditorForPanel(rightPanel: Bool) -> some View {
+        @ViewBuilder
+        var view: some View {
+            
+            if let selectedMapItem = selectedMapItem {
+                
+                if !rightPanel {
+                    MetalView(document.game, .Map)
+                }
+                
+            } else            
+            if editorIsOnLeftSide != rightPanel {
+                if selectedCodeItem != nil {
+                    // Display WebView when a code item is selected
+                    WebView(colorScheme)
+                } else if isSkinSelected {
+                    // Display WebView for Skin Editor
+                    WebView(colorScheme)
+                } else if let imageGroupItem = selectedImageGroupItem {
+                    // Display ImageGroupItemListView
+                    ImageGroupItemListView(imageGroupItem: imageGroupItem, selectedImageIndex: $selectedImageIndex)
+                } else if let memoryItem = selectedMemoryItem {
+                    // Display MemoryGridView
+                    MemoryGridView(memoryItem: memoryItem)
+                } else if let audioItem = selectedAudioItem {
+                    // Display AudioInfoView
+                    AudioInfoView(audioItem: audioItem)
+                } else if isPaletteSelected {
+                    // Display PaletteView
+                    PaletteView(game: document.game)
+                        .padding(0)
+                } else if isNotesSelected {
+                    // Display WebView for Notes
+                    WebView(colorScheme)
+                } else if isReferenceSelected {
+                    // Display WebView for Reference
+                    WebView(colorScheme)
+                } else if isMathLibrarySelected {
+                    // Display WebView for Math Library
+                    WebView(colorScheme)
+                }
+            } else {
+                // Display MetalView for the game
+                MetalView(document.game, .Game)
+            }
+        }
+
+        return view
     }
     
     private func openAudioFilePicker(completion: @escaping (URL?, String?) -> Void) {

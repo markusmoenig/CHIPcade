@@ -15,12 +15,6 @@ public enum GameState {
     case paused
 }
 
-public enum SelectionState {
-    case code
-    case sprite
-    case data
-}
-
 public enum EditorMode {
     case code
     case note
@@ -55,7 +49,10 @@ public class Game : ObservableObject
     // Drawing widgets
     var cpuRender = MetalDraw2D();
     var cpuWidget = CPUWidget()
-    
+
+    var mapRender = MetalDraw2D();
+    var mapWidget = MapWidget()
+
     var gcp = GCP()
     var cpu = CPU()
 
@@ -73,12 +70,10 @@ public class Game : ObservableObject
     // Game State
     var state = GameState.paused
 
-    // The selection state in the editor
-    var selectionState: SelectionState = .code
-
     // Indicates if the last CMP was unsigned. Needed for later conditional flag evaluation.
     var lastCMPWasUnsigned: Bool = false
     
+    // Ace editor instance
     var scriptEditor: ScriptEditor? = nil
     
     // The skin compiler & drawer
@@ -105,6 +100,9 @@ public class Game : ObservableObject
     
     // Did execution stop via a brkpt ?
     var breaked: Bool = false
+    
+    // Current map index (if any)
+    var currMapIndex: Int? = nil
     
     private enum CodingKeys: String, CodingKey {
         case codeItems
@@ -377,7 +375,7 @@ public class Game : ObservableObject
         return data.codeItems.first { $0.name == name }
     }
     
-    // Returns the codeItem of a given name
+    // Returns the index of the given CodeItem
     func getCodeItemIndex(byItem item: CodeItem) -> Int? {
         return data.codeItems.firstIndex { $0 === item }
     }
@@ -385,6 +383,11 @@ public class Game : ObservableObject
     // Returns the imageGroupItem of a given name
     func getImageGroupItem(imageGroupName: String) -> ImageGroupItem? {
         return data.imageGroupItems.first { $0.name == imageGroupName }
+    }
+    
+    // Returns the index of the given MapItem
+    func getMapItemIndex(byItem item: MapItem) -> Int? {
+        return data.mapItems.firstIndex { $0 === item }
     }
     
     // Get the memory value at the given address
@@ -420,6 +423,13 @@ public class Game : ObservableObject
     public func drawCPU()
     {
         cpuWidget.draw(draw2D: cpuRender, game: self)
+    }
+    
+    public func drawMap()
+    {
+        if let mapIndex = currMapIndex {
+            mapWidget.draw(draw2D: mapRender, mapItem: data.mapItems[mapIndex], game: self)
+        }
     }
     
     public func reset() {

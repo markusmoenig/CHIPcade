@@ -12,7 +12,7 @@ import MetalKit
 public class ChipCadeView       : MTKView
 {
     enum MetalViewType {
-        case Game, CPU
+        case Game, CPU, Map
     }
     
     var viewType            : MetalViewType = .Game
@@ -159,6 +159,16 @@ public class ChipCadeView       : MTKView
         if viewType == .Game {
             Game.shared.registers[9] = .unsigned16Bit(1)
             Game.shared.cpuRender.update()
+        } else if viewType == .Map {
+            if let mapIndex = game.currMapIndex {
+                let mapItem = game.data.mapItems[mapIndex]
+                let screenSize = float2(Game.shared.mapRender.viewportSize)
+                let gridSpacePos = mousePos - screenSize / 2.0 - float2(-mapItem.offset.x, mapItem.offset.y)
+                let pos = round(gridSpacePos / game.data.mapItems[mapIndex].gridSize)
+                
+                game.mapWidget.screenSize = screenSize
+                game.mapWidget.mouseDown(pos: mousePos, gridPos: pos, mapItem: mapItem)
+            }
         } else {
             Game.shared.skin.cursorMoved(pos: mousePos)
             Game.shared.cpuRender.update()
@@ -170,6 +180,16 @@ public class ChipCadeView       : MTKView
         if viewType == .Game {
             Game.shared.registers[9] = .unsigned16Bit(2)
             Game.shared.cpuRender.update()
+        } else if viewType == .Map {
+            if let mapIndex = game.currMapIndex {
+                let mapItem = game.data.mapItems[mapIndex]
+                let screenSize = float2(Game.shared.mapRender.viewportSize)
+                let gridSpacePos = mousePos - screenSize / 2.0 - float2(-mapItem.offset.x, mapItem.offset.y)
+                let pos = round(gridSpacePos / game.data.mapItems[mapIndex].gridSize)
+                
+                game.mapWidget.screenSize = screenSize
+                game.mapWidget.mouseDragged(pos: mousePos, gridPos: pos, mapItem: mapItem)
+            }
         } else {
             Game.shared.skin.cursorMoved(pos: mousePos)
             Game.shared.cpuRender.update()
@@ -186,11 +206,32 @@ public class ChipCadeView       : MTKView
             Game.shared.registers[10] = .signed16Bit(0)
             Game.shared.registers[11] = .signed16Bit(0)
             Game.shared.cpuRender.update()
+        } else if viewType == .Map {
+            if let mapIndex = game.currMapIndex {
+                let mapItem = game.data.mapItems[mapIndex]
+                let screenSize = float2(Game.shared.mapRender.viewportSize)
+                let gridSpacePos = mousePos - screenSize / 2.0 - float2(-mapItem.offset.x, mapItem.offset.y)
+                let pos = round(gridSpacePos / game.data.mapItems[mapIndex].gridSize)
+                
+                game.mapWidget.screenSize = screenSize
+                game.mapWidget.mouseUp(pos: mousePos, gridPos: pos, mapItem: mapItem)
+            }
         }
     }
     
     override public func scrollWheel(with event: NSEvent) {
-        //core.nodesWidget.scrollWheel(float3(Float(event.deltaX), Float(event.deltaY), Float(event.deltaZ)))
+        if viewType == .Map {
+            if let mapIndex = game.currMapIndex {
+                if commandIsDown {
+                    game.data.mapItems[mapIndex].gridSize += Float(event.deltaY) * 0.1
+                    game.data.mapItems[mapIndex].gridSize = game.data.mapItems[mapIndex].gridSize.clamped(to: 5...100)
+                    game.mapRender.update()
+                } else {
+                    game.data.mapItems[mapIndex].offset -= float2(Float(event.deltaX) * 5.0, -Float(event.deltaY) * 5.0)
+                    game.mapRender.update()
+                }
+            }
+        }
     }
     
     override public func flagsChanged(with event: NSEvent) {
@@ -410,6 +451,9 @@ struct MetalView: NSViewRepresentable {
         } else
         if viewType == .CPU {
             game.cpuRender.setupView(mtkView)
+        } else
+        if viewType == .Map {
+            game.mapRender.setupView(mtkView)
         }
         
         return mtkView
@@ -448,6 +492,9 @@ struct MetalView: NSViewRepresentable {
             } else
             if parent.viewType == .CPU {
                 parent.game.drawCPU()
+            } else
+            if parent.viewType == .Map {
+                parent.game.drawMap()
             }
         }
     }

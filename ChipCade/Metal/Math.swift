@@ -20,6 +20,9 @@ extension Float {
     var degreesToRadians: Float {
         (self / 180) * π
     }
+    func clamped(to range: ClosedRange<Float>) -> Float {
+        return min(max(self, range.lowerBound), range.upperBound)
+    }
 }
 
 extension Double {
