@@ -12,7 +12,19 @@ import MetalKit
 import Combine
 
 enum MapEditTool {
+    case select
+    case vertex
     case linedefs
+    case sector
+
+    var iconName: String {
+        switch self {
+        case .select: return "cursorarrow"
+        case .vertex: return "circle"
+        case .linedefs: return "line.diagonal"
+        case .sector: return "square.stack.3d.up"
+        }
+    }
 }
 
 public class MapWidget
@@ -33,7 +45,7 @@ public class MapWidget
                     addLinedef(from: currGridPos, to: gridPos, mapItem: mapItem, undoManager: undoManager)
                     if let (loopVertices, loopLinedefs) = findClosedLoop(mapItem: mapItem) {
                         if isValidPolygon(vertices: loopVertices, mapItem: mapItem) {
-                            createSector(from: loopVertices, loopLinedefs: loopLinedefs, mapItem: &mapItem, undoManager: undoManager)
+                            createSector(from: loopVertices, loopLinedefs: loopLinedefs, mapItem: mapItem, undoManager: undoManager)
                             updateSectorNeighbors(mapItem: &mapItem)
                             update()
 
@@ -71,6 +83,24 @@ public class MapWidget
 //        draw2D.drawBox(position: float2(10, 10), size: float2(200, 100), rounding: 10.0, borderSize: 4, onion: 0.0, fillColor: float4(1, 0.5, 0.2, 1), borderColor: float4(0.5, 1, 0.2, 1))
         draw2D.drawGrid(offset: mapItem.offset, gridSize: mapItem.gridSize, backgroundColor: float4(1, 0, 0, 1))
         
+        // Draw sectors
+        for (_, sector) in mapItem.sectors {
+            let vertexCount = sector.vertices.count
+            guard vertexCount >= 3 else { continue }
+            
+            draw2D.startShape(type: .triangleStrip)
+            for vertexIndex in sector.vertices {
+                guard let vertex = mapItem.vertices[vertexIndex] else { continue }
+                let pos = gridToScreen(gridPos: vertex.float2D(), mapItem: mapItem)
+                
+                let gridPos = vertex.float2D()
+                let texCoord = (gridPos - mapItem.offset) / (mapItem.gridSize * float2(mapItem.gridSize, mapItem.gridSize))
+
+                draw2D.addVertex(pos, texCoord, float4(1, 0, 0, 1))
+            }
+            draw2D.endShape()
+        }
+        
         // Draw linedefs
         for (_, line) in mapItem.linedefs {
             let startVertex = mapItem.vertices[line.startVertex]!
@@ -95,30 +125,30 @@ public class MapWidget
     
     /// Add a new linedef
     func addLinedef(from startGridPos: float2, to endGridPos: float2, mapItem: MapItem, undoManager: UndoManager?) {
-        // Function to find an existing vertex based on position
+
         func findExistingVertex(at position: float2, in vertices: [Int: Vertex]) -> Int? {
             return vertices.first(where: { $0.value.x == position.x && $0.value.y == position.y })?.key
         }
 
         // Check for existing vertices
-        let startVertexID = findExistingVertex(at: startGridPos, in: mapItem.vertices) ?? mapItem.vertices.count
-        let endVertexID = findExistingVertex(at: endGridPos, in: mapItem.vertices) ?? mapItem.vertices.count + 1
+        var startVertexID = findExistingVertex(at: startGridPos, in: mapItem.vertices)
+        var endVertexID = findExistingVertex(at: endGridPos, in: mapItem.vertices)
 
-        // Add vertices to the map if they don't already exist
-        if mapItem.vertices[startVertexID] == nil {
-            let startVertex = Vertex(id: startVertexID, x: startGridPos.x, y: startGridPos.y)
-            mapItem.vertices[startVertexID] = startVertex
+        if startVertexID == nil {
+            startVertexID = mapItem.vertices.count
+            let startVertex = Vertex(id: startVertexID!, x: startGridPos.x, y: startGridPos.y)
+            mapItem.vertices[startVertexID!] = startVertex
         }
-        if mapItem.vertices[endVertexID] == nil {
-            let endVertex = Vertex(id: endVertexID, x: endGridPos.x, y: endGridPos.y)
-            mapItem.vertices[endVertexID] = endVertex
+        if endVertexID == nil {
+            endVertexID = mapItem.vertices.count
+            let endVertex = Vertex(id: endVertexID!, x: endGridPos.x, y: endGridPos.y)
+            mapItem.vertices[endVertexID!] = endVertex
         }
 
-        // Create a new linedef
         let linedef = Linedef(
             id: mapItem.linedefs.count,
-            startVertex: startVertexID,
-            endVertex: endVertexID,
+            startVertex: startVertexID!,
+            endVertex: endVertexID!,
             texture: nil,
             isPortal: false,
             frontSector: -1,
@@ -128,16 +158,28 @@ public class MapWidget
         // Add linedef to the map
         mapItem.linedefs[linedef.id] = linedef
 
-        // Undo support
+        // Undo and Redo Support
         undoManager?.registerUndo(withTarget: mapItem) { targetMap in
             targetMap.linedefs.removeValue(forKey: linedef.id)
-            if mapItem.vertices.values.contains(where: { $0.id == startVertexID }) {
-                targetMap.vertices.removeValue(forKey: startVertexID)
+
+            if !targetMap.linedefs.values.contains(where: { $0.startVertex == startVertexID || $0.endVertex == startVertexID }) {
+                targetMap.vertices.removeValue(forKey: startVertexID!)
             }
-            if mapItem.vertices.values.contains(where: { $0.id == endVertexID }) {
-                targetMap.vertices.removeValue(forKey: endVertexID)
+
+            if !targetMap.linedefs.values.contains(where: { $0.startVertex == endVertexID || $0.endVertex == endVertexID }) {
+                targetMap.vertices.removeValue(forKey: endVertexID!)
             }
-            Game.shared.mapRender.update()
+
+            self.abortAction()
+            undoManager?.registerUndo(withTarget: targetMap) { redoTargetMap in
+                self.abortAction()
+                self.addLinedef(
+                    from: startGridPos,
+                    to: endGridPos,
+                    mapItem: redoTargetMap,
+                    undoManager: undoManager
+                )
+            }
         }
         undoManager?.setActionName("Add Linedef")
     }
@@ -192,9 +234,9 @@ public class MapWidget
         return uniqueVertices.count == processedVertices.count
     }
     
-    func createSector(from loopVertices: [Int], loopLinedefs: [Linedef], mapItem: inout MapItem, undoManager: UndoManager?) {
+    func createSector(from loopVertices: [Int], loopLinedefs: [Linedef], mapItem: MapItem, undoManager: UndoManager?) {
         let newSectorID = (mapItem.sectors.keys.max() ?? 0) + 1
-
+        
         let newSector = Sector(
             id: newSectorID,
             vertices: loopVertices,
@@ -221,14 +263,10 @@ public class MapWidget
             }
         }
 
-        print("Sector \(newSectorID) created with vertices: \(loopVertices) and \(loopLinedefs.count) linedefs.")
-
         // Undo support
         undoManager?.registerUndo(withTarget: mapItem) { targetMap in
-            // Undo: Remove the sector
             targetMap.sectors.removeValue(forKey: newSectorID)
 
-            // Undo: Revert changes to linedefs
             for (linedef, originalValue) in modifiedLinedefs {
                 if let originalValue = originalValue {
                     if linedef.frontSector == newSectorID {
@@ -239,8 +277,17 @@ public class MapWidget
                 }
             }
 
-            print("Sector \(newSectorID) removed via undo.")
-            Game.shared.mapRender.update()
+            self.abortAction()
+            // Register redo when undo is performed
+            undoManager?.registerUndo(withTarget: targetMap) { redoTargetMap in
+                self.abortAction()
+                self.createSector(
+                    from: loopVertices,
+                    loopLinedefs: loopLinedefs,
+                    mapItem: redoTargetMap,
+                    undoManager: undoManager
+                )
+            }
         }
         undoManager?.setActionName("Create Sector")
     }
@@ -281,6 +328,14 @@ public class MapWidget
         let gridSpacePos = gridPos * mapItem.gridSize
         let screenPos = gridSpacePos + float2(-mapItem.offset.x, mapItem.offset.y) + screenSize / 2.0
         return screenPos
+    }
+    
+    // User pressed Escape or an Undo occured. Escape the current action
+    func abortAction() {
+        currGridPos = nil
+        currMousePos = nil
+        
+        update()
     }
     
     func colorToFloat4(_ color: Color) -> simd_float4 {

@@ -273,8 +273,8 @@ class MetalDraw2D
     }
     
     func addVertex(_ vertex: float2,_ textureCoordinate: float2,_ color: float4) {
-        vertexData.append(-viewSize.x / 2.0 + vertex.x * scaleFactor)
-        vertexData.append(viewSize.y / 2.0 - vertex.y * scaleFactor)
+        vertexData.append(-viewSize.x / 2.0 + vertex.x * 1)
+        vertexData.append(viewSize.y / 2.0 - vertex.y * 1)
         vertexData.append(textureCoordinate.x)
         vertexData.append(textureCoordinate.y)
         vertexData.append(color.x)

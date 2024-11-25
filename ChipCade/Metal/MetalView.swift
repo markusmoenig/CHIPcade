@@ -101,6 +101,11 @@ public class ChipCadeView       : MTKView
             }
             Game.shared.cpuRender.update()
         }
+        
+        // Escape: Abort Action
+        if viewType == .Map && event.keyCode == 53 {
+            Game.shared.mapWidget.abortAction()
+        }
     }
     
     override public func keyUp(with event: NSEvent)
@@ -187,7 +192,6 @@ public class ChipCadeView       : MTKView
                 let screenSize = float2(Game.shared.mapRender.viewportSize)
                 let gridSpacePos = mousePos - screenSize / 2.0 - float2(-mapItem.offset.x, mapItem.offset.y)
                 let pos = round(gridSpacePos / game.data.mapItems[mapIndex].gridSize)
-                
                 game.mapWidget.screenSize = screenSize
                 game.mapWidget.mouseDown(pos: mousePos, gridPos: pos, mapItem: &mapItem, undoManager: undoManager)
             }
