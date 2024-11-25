@@ -11,12 +11,40 @@ import SwiftUI
 import MetalKit
 import Combine
 
-enum MapEditTool {
+enum MapEditorMode {
+    case mode2D
+    case mode3D
+
+    var displayName: String {
+        switch self {
+        case .mode2D: return "2D Mode"
+        case .mode3D: return "3D Mode"
+        }
+    }
+
+    var iconName: String {
+        switch self {
+        case .mode2D: return "square.grid.2x2"
+        case .mode3D: return "cube"
+        }
+    }
+}
+
+enum MapEditorTool {
     case select
     case vertex
     case linedefs
     case sector
 
+    var displayName: String {
+        switch self {
+        case .select: return "Select Tool"
+        case .vertex: return "Vertex Tool"
+        case .linedefs: return "Linedef Tool"
+        case .sector: return "Sector Tool"
+        }
+    }
+    
     var iconName: String {
         switch self {
         case .select: return "cursorarrow"
@@ -31,7 +59,8 @@ public class MapWidget
 {
     var screenSize: float2 = .zero
     
-    var currTool: MapEditTool = .linedefs
+    var currMode: MapEditorMode = .mode2D
+    var currTool: MapEditorTool = .linedefs
     
     var currGridPos: float2? = nil
     var currMousePos: float2? = nil

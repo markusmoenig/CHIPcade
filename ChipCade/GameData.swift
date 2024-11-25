@@ -245,7 +245,17 @@ class GameData: ObservableObject, Codable {
     
     // Method to add a new ImageGroup Item with undo/redo support
     func addImageGroupItem(named name: String, using undoManager: UndoManager?, setSelectedItem: @escaping (ImageGroupItem?) -> Void) {
-        let newItem = ImageGroupItem(name: name)
+        
+        // Generate a new, unique IntId
+        var intId = 0
+        for item in Game.shared.data.imageGroupItems {
+            if item.intId > intId {
+                intId = item.intId
+            }
+        }
+        intId += 1
+        
+        let newItem = ImageGroupItem(name: name, intId: intId)
         imageGroupItems.append(newItem)
 
         // Set the newly created DataItem as selected

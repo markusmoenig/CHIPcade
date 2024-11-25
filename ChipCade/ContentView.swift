@@ -70,6 +70,11 @@ struct ContentView: View {
     @AppStorage("mathLibLine") private var mathLibLine: Int = 0
     @AppStorage("chipRefLine") private var chipRefLine: Int = 0
 
+    @AppStorage("imageGroupGridView") private var imageGroupGridView: Bool = false
+
+    @State private var selectedMapTool: MapEditorTool = .linedefs
+    @State private var mapEditorMode: MapEditorMode = .mode2D
+
     @State private var currError: ChipCadeError = .none
     
     //@StateObject private var controllerManager = GameControllerManager()
@@ -659,11 +664,20 @@ struct ContentView: View {
             Game.shared.stepped = false
         }
         
-        // Error state has changed
         .onReceive(document.game.breakpoint) { _ in
             playIcon = "play"
             pauseIcon = "playpause.fill"
             stopIcon = "stop"
+        }
+        
+        .onChange(of: selectedMapTool) {
+            Game.shared.mapWidget.currTool = selectedMapTool
+            Game.shared.mapRender.update()
+        }
+        
+        .onChange(of: mapEditorMode) {
+            Game.shared.mapWidget.currMode = mapEditorMode
+            Game.shared.mapRender.update()
         }
         
         .onChange(of: appState.showHelpReference) {
@@ -759,6 +773,8 @@ struct ContentView: View {
                 isMathLibrarySelected = false
                 isReferenceSelected = false
                 Game.shared.currMapIndex = Game.shared.getMapItemIndex(byItem: selectedMapItem)
+                Game.shared.mapWidget.screenSize = float2(Game.shared.mapRender.viewportSize)
+                Game.shared.mapRender.update()
             } else {
                 Game.shared.currMapIndex = nil
             }
@@ -810,10 +826,51 @@ struct ContentView: View {
         @ViewBuilder
         var view: some View {
             
-            if let selectedMapItem = selectedMapItem {
+            if selectedMapItem != nil {
                 
                 if !rightPanel {
-                    MetalView(document.game, .Map)
+                    ZStack(alignment: .topLeading) {
+                        MetalView(document.game, .Map)
+                        
+                        HStack {
+                            MapToolBar(selectedTool: $selectedMapTool)
+                            Spacer()
+                        }
+                        .padding(4)
+                        
+                        VStack {
+                            Spacer()
+                            HStack {
+                                Text(selectedMapTool.displayName)
+                                    .font(.caption)
+                                    //.padding(4)
+//                                    .background(Color.secondary.opacity(0.6))
+//                                    .cornerRadius(6)
+//                                    .shadow(radius: 2)
+                                Spacer()
+                            }
+                            .padding([.leading], 4)
+                        }
+                        
+                        // Top-Right 2D/3D Mode Switch
+                        HStack {
+                            Spacer()
+                            Button(action: {
+                                mapEditorMode = (mapEditorMode == .mode2D) ? .mode3D : .mode2D
+                            }) {
+                                Image(systemName: mapEditorMode.iconName)
+                                    .resizable()
+                                    .frame(width: 14, height: 14) // Adjust size
+                                    .padding(4)
+//                                    .background(Color.secondary.opacity(0.8))
+                                    .cornerRadius(6)
+//                                    .shadow(radius: 2)
+//                                    .foregroundColor(.white)
+                            }
+                            .padding(.top, 4)
+                            .padding(.trailing, 4)
+                        }
+                    }
                 }
                 
             } else            
@@ -826,7 +883,7 @@ struct ContentView: View {
                     WebView(colorScheme)
                 } else if let imageGroupItem = selectedImageGroupItem {
                     // Display ImageGroupItemListView
-                    ImageGroupItemListView(imageGroupItem: imageGroupItem, selectedImageIndex: $selectedImageIndex)
+                    ImageGroupItemListView(imageGroupItem: imageGroupItem, selectedImageIndex: $selectedImageIndex, isGridView: $imageGroupGridView)
                 } else if let memoryItem = selectedMemoryItem {
                     // Display MemoryGridView
                     MemoryGridView(memoryItem: memoryItem)
