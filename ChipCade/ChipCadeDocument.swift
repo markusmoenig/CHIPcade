@@ -19,18 +19,18 @@ struct ChipCadeDocument: FileDocument {
     var game : Game
     
     init() {
-        game = Game.shared
-        game.data = .init()
-        game.loadDefaultSkin()
+        self.game = Game()
+        self.game.data = .init()
+        self.game.loadDefaultSkin()
     }
 
     static var readableContentTypes: [UTType] { [.ChipCadeDocument] }
     static var writableContentTypes: [UTType] { [.ChipCadeDocument] }
 
     init(configuration: ReadConfiguration) throws {
-        game = Game.shared
-        game.reset()
-        game.compileStandardModules()
+        self.game = Game()
+        self.game.reset()
+        self.game.compileStandardModules()
 
         // Load game data using a temporary variable
         guard let data = configuration.file.regularFileContents else {

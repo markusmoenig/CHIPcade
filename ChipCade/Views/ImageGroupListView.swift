@@ -128,7 +128,7 @@ struct ImageGroupItemListView: View {
     // MARK: - Grid View
     private var gridView: some View {
         let columns = [
-            GridItem(.adaptive(minimum: 24), spacing: 1)
+            GridItem(.adaptive(minimum: 48), spacing: 1)
         ]
 
         return ScrollView {
@@ -138,14 +138,14 @@ struct ImageGroupItemListView: View {
                         Image(nsImage: nsImage)
                             .resizable()
                             .aspectRatio(contentMode: .fit)
-                            .frame(width: 24, height: 24)
+                            .frame(width: 48, height: 48)
                             .onTapGesture {
                                 selectedImageIndex = index
                             }
                             .overlay(
                                 selectedImageIndex == index ?
-                                RoundedRectangle(cornerRadius: 0)
-                                    .stroke(Color.blue, lineWidth: 2)
+                                Rectangle()
+                                    .stroke(Color.accentColor, lineWidth: 2)
                                 : nil
                             )
                     }

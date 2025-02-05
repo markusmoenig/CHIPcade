@@ -108,6 +108,7 @@ public class MapWidget
     
     func draw(draw2D: MetalDraw2D, mapItem: MapItem, game: Game)
     {
+        screenSize = float2(Float(Game.shared.mapRender.metalView.frame.width), Float(Game.shared.mapRender.metalView.frame.height))
         draw2D.encodeStart(.clear)
 //        draw2D.drawBox(position: float2(10, 10), size: float2(200, 100), rounding: 10.0, borderSize: 4, onion: 0.0, fillColor: float4(1, 0.5, 0.2, 1), borderColor: float4(0.5, 1, 0.2, 1))
         draw2D.drawGrid(offset: mapItem.offset, gridSize: mapItem.gridSize, backgroundColor: float4(1, 0, 0, 1))
@@ -117,17 +118,43 @@ public class MapWidget
             let vertexCount = sector.vertices.count
             guard vertexCount >= 3 else { continue }
             
+            let options: [MTKTextureLoader.Option : Any] = [.generateMipmaps : false, .SRGB : false]
+
+            var texture : MTLTexture? = nil
+            
+            if let imageGroup = game.data.imageGroupItems.first {
+                if let tex = try? draw2D.textureLoader.newTexture(data: imageGroup.images[236], options: options) {
+                    texture = tex
+                }
+            }
+                        
+            // Sector bounding box
+            let sectorVertices = sector.vertices.compactMap { mapItem.vertices[$0]?.float2D() }
+            guard let minX = sectorVertices.map({ $0.x }).min(),
+                  let minY = sectorVertices.map({ $0.y }).min() else {
+                continue
+            }
+            
             draw2D.startShape(type: .triangleStrip)
             for vertexIndex in sector.vertices {
                 guard let vertex = mapItem.vertices[vertexIndex] else { continue }
                 let pos = gridToScreen(gridPos: vertex.float2D(), mapItem: mapItem)
+
+                let textureScale: Float = 1.0
                 
                 let gridPos = vertex.float2D()
-                let texCoord = (gridPos - mapItem.offset) / (mapItem.gridSize * float2(mapItem.gridSize, mapItem.gridSize))
-
+                let texCoord = float2(
+                    (gridPos.x - minX) / textureScale,
+                    1.0 - (gridPos.y - minY) / textureScale
+                )
+                
                 draw2D.addVertex(pos, texCoord, float4(1, 0, 0, 1))
             }
-            draw2D.endShape()
+            if let texture = texture {
+                draw2D.endShape(externalTexture: texture)
+            } else {
+                draw2D.endShape()
+            }
         }
         
         // Draw linedefs

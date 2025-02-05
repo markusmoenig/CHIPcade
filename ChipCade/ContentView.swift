@@ -92,7 +92,7 @@ struct ContentView: View {
                 MemorySectionView(title: "Data", gameData: $document.game.data, memoryItems: $document.game.data.dataItems, selectedMemoryItem: $selectedMemoryItem)
                 
                 // Map Section
-                MapSectionView(title: "Maps", gameData: $document.game.data, mapItems: $document.game.data.mapItems, selectedMapItem: $selectedMapItem)
+//                MapSectionView(title: "Maps", gameData: $document.game.data, mapItems: $document.game.data.mapItems, selectedMapItem: $selectedMapItem)
                 
                 // ImageGroup Section
                 ImageGroupSectionView(title: "Image Groups", gameData: $document.game.data, imageGroupItems: $document.game.data.imageGroupItems, selectedImageGroupItem: $selectedImageGroupItem)
@@ -445,11 +445,11 @@ struct ContentView: View {
                         }
                     })
                     
-                    Button("Add Map", action: {
-                        document.game.data.addMapItem(named: "New Map", using: undoManager) { newItem in
-                            selectedMapItem = newItem
-                        }
-                    })
+//                    Button("Add Map", action: {
+//                        document.game.data.addMapItem(named: "New Map", using: undoManager) { newItem in
+//                            selectedMapItem = newItem
+//                        }
+//                    })
                     
                     Button("Add Image Group", action: {
                         document.game.data.addImageGroupItem(named: "New Image Group", using: undoManager) { newItem in
@@ -773,7 +773,6 @@ struct ContentView: View {
                 isMathLibrarySelected = false
                 isReferenceSelected = false
                 Game.shared.currMapIndex = Game.shared.getMapItemIndex(byItem: selectedMapItem)
-                Game.shared.mapWidget.screenSize = float2(Game.shared.mapRender.viewportSize)
                 Game.shared.mapRender.update()
             } else {
                 Game.shared.currMapIndex = nil
@@ -826,6 +825,8 @@ struct ContentView: View {
         @ViewBuilder
         var view: some View {
             
+            // Map
+            
             if selectedMapItem != nil {
                 
                 if !rightPanel {
@@ -870,6 +871,10 @@ struct ContentView: View {
                             .padding(.top, 4)
                             .padding(.trailing, 4)
                         }
+                    }
+                } else {
+                    if selectedMapTool == .sector {
+                        TexturePicker(gameData: Game.shared.data)
                     }
                 }
                 

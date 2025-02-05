@@ -166,6 +166,8 @@ class MetalDraw2D
         let linearSamplerDescriptor = MTLSamplerDescriptor()
         linearSamplerDescriptor.minFilter = .linear
         linearSamplerDescriptor.magFilter = .linear
+        linearSamplerDescriptor.sAddressMode = .repeat
+        linearSamplerDescriptor.tAddressMode = .repeat
 
         linearSampler = device.makeSamplerState(descriptor: linearSamplerDescriptor)
 
