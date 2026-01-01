@@ -158,7 +158,7 @@ named!(
         space >>
         val: preceded!(
             tag!("#"),
-            alt!(parse_byte_hex | parse_byte_dec | parse_byte_char)
+            alt!(parse_byte_hex | parse_byte_bin | parse_byte_dec | parse_byte_char)
         ) >>
         ({ let (byte, sign) = val; AddressingMode::Immediate(byte, sign)})
     )
@@ -168,7 +168,7 @@ named!(
     am_abs<AddressingMode>,
     do_parse!(
         space >>
-        val: alt!(parse_word_hex | dec_u16) >>
+        val: alt!(parse_word_hex | parse_word_bin | dec_u16) >>
         (AddressingMode::Absolute(val))
     )
 );
@@ -177,7 +177,7 @@ named!(
     am_zp_or_relative<AddressingMode>,
     do_parse!(
         space >>
-        val: alt!(parse_byte_hex | parse_byte_dec) >>
+        val: alt!(parse_byte_hex | parse_byte_bin | parse_byte_dec) >>
         ({ let (byte, sign) = val; AddressingMode::ZeroPageOrRelative(byte, sign)})
     )
 );
@@ -186,7 +186,7 @@ named!(
     am_zp_x<AddressingMode>,
     do_parse!(
         space >>
-        val: terminated!(alt!(parse_byte_hex | parse_byte_dec), tag_no_case!(",X")) >>
+        val: terminated!(alt!(parse_byte_hex | parse_byte_bin | parse_byte_dec), tag_no_case!(",X")) >>
         ({ let (byte, _) = val; AddressingMode::ZeroPageX(byte)})
     )
 );
@@ -195,7 +195,7 @@ named!(
     am_zp_y<AddressingMode>,
     do_parse!(
         space >>
-        val: terminated!(alt!(parse_byte_hex | parse_byte_dec), tag_no_case!(",Y")) >>
+        val: terminated!(alt!(parse_byte_hex | parse_byte_bin | parse_byte_dec), tag_no_case!(",Y")) >>
         ({ let (byte, _) = val; AddressingMode::ZeroPageY(byte)})
     )
 );
@@ -204,7 +204,7 @@ named!(
     am_abs_x<AddressingMode>,
     do_parse!(
         space >>
-        val: terminated!(alt!(parse_word_hex | dec_u16), tag_no_case!(",X")) >>
+        val: terminated!(alt!(parse_word_hex | parse_word_bin | dec_u16), tag_no_case!(",X")) >>
         (AddressingMode::AbsoluteX(val))
     )
 );
@@ -213,7 +213,7 @@ named!(
     am_abs_y<AddressingMode>,
     do_parse!(
         space >>
-        val: terminated!(alt!(parse_word_hex | dec_u16), tag_no_case!(",Y")) >>
+        val: terminated!(alt!(parse_word_hex | parse_word_bin | dec_u16), tag_no_case!(",Y")) >>
         (AddressingMode::AbsoluteY(val))
     )
 );
@@ -227,11 +227,21 @@ named!(
 );
 
 named!(
+    parse_word_bin<u16>,
+    do_parse!(val: parse_word_bin_lit >> (val))
+);
+
+named!(
     parse_byte_hex<(u8, Sign)>,
     do_parse!(
         val: preceded!(tag!("$"), hex_u8) >>
         (val, Sign::Implied)
     )
+);
+
+named!(
+    parse_byte_bin<(u8, Sign)>,
+    do_parse!(val: parse_byte_bin_lit >> (val, Sign::Implied))
 );
 
 named!(
@@ -309,6 +319,12 @@ pub fn dec_u16(input: &[u8]) -> IResult<&[u8], u16> {
                 }
                 if res > u16::max_value() as u32 {
                     IResult::Error(ErrorKind::Custom(0))
+                } else if remaining
+                    .first()
+                    .map(|b| b.is_ascii_alphabetic())
+                    .unwrap_or(false)
+                {
+                    IResult::Error(ErrorKind::Custom(0))
                 } else {
                     IResult::Done(remaining, res as u16)
                 }
@@ -334,6 +350,12 @@ pub fn dec_u8(input: &[u8]) -> IResult<&[u8], u8> {
                     res = value + (res * 10);
                 }
                 if res > u8::max_value() as u16 {
+                    IResult::Error(ErrorKind::Custom(0))
+                } else if remaining
+                    .first()
+                    .map(|b| b.is_ascii_alphabetic())
+                    .unwrap_or(false)
+                {
                     IResult::Error(ErrorKind::Custom(0))
                 } else {
                     IResult::Done(remaining, res as u8)
@@ -363,4 +385,53 @@ fn hex_u8(input: &[u8]) -> IResult<&[u8], u8> {
             }
         }
     }
+}
+
+#[inline]
+fn parse_byte_bin_lit(input: &[u8]) -> IResult<&[u8], u8> {
+    match parse_bin_lit(input, 8) {
+        IResult::Done(rem, v) => IResult::Done(rem, v as u8),
+        IResult::Error(e) => IResult::Error(e),
+        IResult::Incomplete(e) => IResult::Incomplete(e),
+    }
+}
+
+fn parse_word_bin_lit(input: &[u8]) -> IResult<&[u8], u16> {
+    parse_bin_lit(input, 16)
+}
+
+fn parse_bin_lit(input: &[u8], max_bits: usize) -> IResult<&[u8], u16> {
+    let start_idx = if input.starts_with(b"%") {
+        1
+    } else if input.get(0).copied().map(|b| b == b'0').unwrap_or(false)
+        && input
+            .get(1)
+            .map(|b| *b == b'b' || *b == b'B')
+            .unwrap_or(false)
+    {
+        2
+    } else {
+        return IResult::Error(ErrorKind::Alt);
+    };
+
+    let mut idx = start_idx;
+    let mut res: u32 = 0;
+    while idx < input.len() {
+        match input[idx] {
+            b'0' | b'1' => {
+                res = (res << 1) + u32::from(input[idx] - b'0');
+                idx += 1;
+            }
+            _ => break,
+        }
+    }
+
+    if idx == start_idx {
+        return IResult::Error(ErrorKind::Alt);
+    }
+    if idx - start_idx > max_bits {
+        return IResult::Error(ErrorKind::Custom(0));
+    }
+
+    IResult::Done(&input[idx..], res as u16)
 }

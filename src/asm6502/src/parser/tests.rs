@@ -120,6 +120,21 @@ fn parse_immediate_hex() {
 }
 
 #[test]
+fn parse_immediate_binary() {
+    assert_am_parse!(" #%1010", AddressingMode::Immediate(0b1010, Sign::Implied));
+    assert_am_parse!(
+        " #0b11110000",
+        AddressingMode::Immediate(0b11110000, Sign::Implied)
+    );
+}
+
+#[test]
+fn parse_absolute_binary() {
+    assert_am_parse!(" %0000000011111111", AddressingMode::Absolute(0x00ff));
+    assert_am_parse!(" 0b0000000011111111", AddressingMode::Absolute(0x00ff));
+}
+
+#[test]
 fn parse_immediate_char() {
     assert_am_parse!(" #'A'", AddressingMode::Immediate(b'A', Sign::Implied));
     assert_am_parse!(" #'0'", AddressingMode::Immediate(b'0', Sign::Implied));

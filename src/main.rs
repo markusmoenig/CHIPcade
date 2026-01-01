@@ -79,15 +79,15 @@ fn main() {
     for _ in 0..1_000_000 {
         let pc = cpu.registers.program_counter;
         let opcode = cpu.memory.get_byte(pc);
-        println!(
-            "PC={:04X} A={:02X} X={:02X} Y={:02X} SP={:02X} FLAGS={:08b}",
-            pc,
-            cpu.registers.accumulator,
-            cpu.registers.index_x,
-            cpu.registers.index_y,
-            cpu.registers.stack_pointer.to_u16(),
-            cpu.registers.status
-        );
+        // println!(
+        //     "PC={:04X} A={:02X} X={:02X} Y={:02X} SP={:02X} FLAGS={:08b}",
+        //     pc,
+        //     cpu.registers.accumulator,
+        //     cpu.registers.index_x,
+        //     cpu.registers.index_y,
+        //     cpu.registers.stack_pointer.to_u16(),
+        //     cpu.registers.status
+        // );
         if opcode == 0x00 || opcode == 0xFF {
             break;
         }

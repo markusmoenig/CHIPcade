@@ -3,6 +3,7 @@ mod tests;
 
 use nom::IResult;
 use parser::parse_opcode_line;
+use std::collections::HashMap;
 use std::io::{Read, Write};
 use tokens::*;
 
@@ -53,83 +54,238 @@ pub fn assemble<R: Read, W: Write>(mut input: R, output: &mut W) -> AssembleResu
         .read_to_end(&mut buf)
         .map_err(|_| "Error reading input".to_owned())?;
     let buf = strip_comments(&buf);
-    let mut res: AssembleResult = Ok(());
+
+    let mut labels: HashMap<String, u16> = HashMap::new();
+    let mut instructions: Vec<(usize, String)> = Vec::new();
+
+    // First pass: gather labels and measure instruction sizes
+    let mut pc: u16 = 0;
     for (idx, line) in buf.split(|&b| b == b'\n').enumerate() {
-        if line.iter().all(|b| b.is_ascii_whitespace()) {
+        let raw = String::from_utf8_lossy(line);
+        let (label_opt, instr_raw) = split_label_and_instr(raw.as_ref());
+        let instr = instr_raw.trim().to_string();
+        if let Some(label) = label_opt {
+            if labels.insert(label.clone(), pc).is_some() {
+                return Err(format!("Duplicate label '{}' on line {}", label, idx + 1));
+            }
+        }
+        if instr.trim().is_empty() {
             continue;
         }
-        match parse_opcode_line(line) {
-            IResult::Done(rem, opcode) if rem.iter().all(|b| b.is_ascii_whitespace()) => {
-                let OpCode(mnemonic, am) = opcode;
-                res = match mnemonic {
-                    Mnemonic::Adc => adc(am, output),
-                    Mnemonic::And => and(am, output),
-                    Mnemonic::Asl => asl(am, output),
-                    Mnemonic::Bit => bit(am, output),
-                    Mnemonic::Bcc => relative(0x90, am, "BCC", output),
-                    Mnemonic::Bcs => relative(0xb0, am, "BCS", output),
-                    Mnemonic::Beq => relative(0xf0, am, "BEQ", output),
-                    Mnemonic::Bmi => relative(0x30, am, "BMI", output),
-                    Mnemonic::Bne => relative(0xd0, am, "BNE", output),
-                    Mnemonic::Bpl => relative(0x10, am, "BPL", output),
-                    Mnemonic::Bvc => relative(0x50, am, "BVC", output),
-                    Mnemonic::Bvs => relative(0x70, am, "BVS", output),
-                    Mnemonic::Brk => brk(am, output),
-                    Mnemonic::Cmp => cmp(am, output),
-                    Mnemonic::Cpx => cpx(am, output),
-                    Mnemonic::Cpy => cpy(am, output),
-                    Mnemonic::Dec => dec(am, output),
-                    Mnemonic::Eor => eor(am, output),
-                    Mnemonic::Clc => implied(0x18, am, "CLC", output),
-                    Mnemonic::Cld => implied(0xd8, am, "CLD", output),
-                    Mnemonic::Cli => implied(0x58, am, "CLI", output),
-                    Mnemonic::Clv => implied(0xb8, am, "CLV", output),
-                    Mnemonic::Sec => implied(0x38, am, "SEC", output),
-                    Mnemonic::Sed => implied(0xf8, am, "SED", output),
-                    Mnemonic::Sei => implied(0x78, am, "SEI", output),
-                    Mnemonic::Inc => inc(am, output),
-                    Mnemonic::Jmp => jmp(am, output),
-                    Mnemonic::Jsr => jsr(am, output),
-                    Mnemonic::Lda => lda(am, output),
-                    Mnemonic::Ldx => ldx(am, output),
-                    Mnemonic::Ldy => ldy(am, output),
-                    Mnemonic::Lsr => lsr(am, output),
-                    Mnemonic::Nop => implied(0xea, am, "NOP", output),
-                    Mnemonic::Ora => ora(am, output),
-                    Mnemonic::Tax => implied(0xaa, am, "TAX", output),
-                    Mnemonic::Txa => implied(0x8a, am, "TXA", output),
-                    Mnemonic::Dex => implied(0xca, am, "DEX", output),
-                    Mnemonic::Inx => implied(0xe8, am, "INX", output),
-                    Mnemonic::Tay => implied(0xa8, am, "TAY", output),
-                    Mnemonic::Tya => implied(0x98, am, "TYA", output),
-                    Mnemonic::Dey => implied(0x88, am, "DEY", output),
-                    Mnemonic::Iny => implied(0xc8, am, "INY", output),
-                    Mnemonic::Rol => rol(am, output),
-                    Mnemonic::Ror => ror(am, output),
-                    Mnemonic::Rti => implied(0x40, am, "RTI", output),
-                    Mnemonic::Rts => implied(0x60, am, "RTS", output),
-                    Mnemonic::Sbc => sbc(am, output),
-                    Mnemonic::Sta => sta(am, output),
-                    Mnemonic::Txs => implied(0x9a, am, "TXS", output),
-                    Mnemonic::Tsx => implied(0xba, am, "TSX", output),
-                    Mnemonic::Pha => implied(0x48, am, "PHA", output),
-                    Mnemonic::Pla => implied(0x68, am, "PLA", output),
-                    Mnemonic::Php => implied(0x08, am, "PHP", output),
-                    Mnemonic::Plp => implied(0x28, am, "PLP", output),
-                    Mnemonic::Stx => stx(am, output),
-                    Mnemonic::Sty => sty(am, output),
-                };
-                if res.is_err() {
-                    break;
+        let mnemonic = instr
+            .split_whitespace()
+            .next()
+            .map(|s| s.to_ascii_uppercase())
+            .unwrap_or_default();
+        let placeholder_repl = if is_branch(&mnemonic) { "0" } else { "$0000" };
+        let placeholder = replace_first_symbol(&instr, placeholder_repl);
+        let opcode = match parse_opcode_line(placeholder.as_bytes()) {
+            IResult::Done(rem, opcode) if rem.iter().all(|b| b.is_ascii_whitespace()) => opcode,
+            _ => return Err(format!("Parse error on line {}: {}", idx + 1, instr.trim())),
+        };
+        let mut scratch = Vec::new();
+        emit_opcode(opcode, &mut scratch)?;
+        pc = pc
+            .checked_add(scratch.len() as u16)
+            .ok_or_else(|| "Program too large".to_owned())?;
+        instructions.push((idx + 1, instr.trim().to_string()));
+    }
+
+    // Second pass: resolve labels and emit final bytes
+    let mut program: Vec<u8> = Vec::new();
+    pc = 0;
+    for (line_no, instr) in instructions {
+        if instr.is_empty() {
+            continue;
+        }
+        let resolved = if let Some((start, end, name)) = first_symbol_after_mnemonic(&instr) {
+            let target = *labels
+                .get(&name)
+                .ok_or_else(|| format!("Unknown label '{}' on line {}", name, line_no))?;
+            let mnemonic = instr
+                .split_whitespace()
+                .next()
+                .map(|s| s.to_ascii_uppercase())
+                .unwrap_or_default();
+            let replacement = if is_branch(&mnemonic) {
+                let offset = target as i32 - (pc as i32 + 2);
+                if !(i8::MIN as i32..=i8::MAX as i32).contains(&offset) {
+                    return Err(format!(
+                        "Branch out of range to '{}' on line {}",
+                        name, line_no
+                    ));
                 }
+                offset.to_string()
+            } else {
+                format!("${:04X}", target)
+            };
+
+            let mut out = instr.clone();
+            out.replace_range(start..end, &replacement);
+            out
+        } else {
+            instr.clone()
+        };
+
+        match parse_opcode_line(resolved.as_bytes()) {
+            IResult::Done(rem, opcode) if rem.iter().all(|b| b.is_ascii_whitespace()) => {
+                let before = program.len();
+                emit_opcode(opcode, &mut program)?;
+                pc = pc
+                    .checked_add((program.len() - before) as u16)
+                    .ok_or_else(|| "Program too large".to_owned())?;
             }
             _ => {
-                let snippet = String::from_utf8_lossy(line);
-                return Err(format!("Parse error on line {}: {}", idx + 1, snippet));
+                return Err(format!(
+                    "Parse error on line {}: {}",
+                    line_no,
+                    resolved.trim()
+                ))
             }
         }
     }
-    res
+
+    output
+        .write_all(&program)
+        .map_err(|_| "Failed to write output".to_owned())
+}
+
+fn split_label_and_instr(line: &str) -> (Option<String>, String) {
+    if let Some(colon_pos) = line.find(':') {
+        let (left, right) = line.split_at(colon_pos);
+        let label = left.trim();
+        if !label.is_empty() {
+            return (Some(label.to_string()), right[1..].to_string());
+        }
+    }
+    (None, line.to_string())
+}
+
+fn replace_first_symbol(line: &str, replacement: &str) -> String {
+    if let Some((start, end, _name)) = first_symbol_after_mnemonic(line) {
+        let mut out = line.to_string();
+        out.replace_range(start..end, replacement);
+        out
+    } else {
+        line.to_string()
+    }
+}
+
+fn first_symbol_after_mnemonic(line: &str) -> Option<(usize, usize, String)> {
+    // Skip the mnemonic (first token)
+    let mut iter = line.splitn(2, char::is_whitespace);
+    let _mnemonic = iter.next()?;
+    let rest = iter.next().unwrap_or("");
+    let offset = line.len() - rest.len();
+
+    let bytes = rest.as_bytes();
+    let mut in_quote = false;
+    let mut i = 0;
+    while i < bytes.len() {
+        let b = bytes[i];
+        if b == b'\'' {
+            in_quote = !in_quote;
+            i += 1;
+            continue;
+        }
+        if in_quote {
+            i += 1;
+            continue;
+        }
+        if b.is_ascii_alphabetic() || b == b'_' {
+            let start = i;
+            i += 1;
+            while i < bytes.len() && (bytes[i].is_ascii_alphanumeric() || bytes[i] == b'_') {
+                i += 1;
+            }
+            let end = i;
+            let name = &rest[start..end];
+            // Skip binary literal prefixes like 0bXXXX
+            if start > 0 && (bytes[start - 1] == b'0') && (b == b'b' || b == b'B') {
+                i = end;
+                continue;
+            }
+            // Skip register/index tokens
+            if name.eq_ignore_ascii_case("A")
+                || name.eq_ignore_ascii_case("X")
+                || name.eq_ignore_ascii_case("Y")
+            {
+                continue;
+            }
+            return Some((offset + start, offset + end, name.to_string()));
+        }
+        i += 1;
+    }
+    None
+}
+
+fn is_branch(mnemonic: &str) -> bool {
+    matches!(
+        mnemonic,
+        "BCC" | "BCS" | "BEQ" | "BMI" | "BNE" | "BPL" | "BVC" | "BVS"
+    )
+}
+
+fn emit_opcode<T: Write>(opcode: OpCode, output: &mut T) -> AssembleResult {
+    let OpCode(mnemonic, am) = opcode;
+    match mnemonic {
+        Mnemonic::Adc => adc(am, output),
+        Mnemonic::And => and(am, output),
+        Mnemonic::Asl => asl(am, output),
+        Mnemonic::Bit => bit(am, output),
+        Mnemonic::Bcc => relative(0x90, am, "BCC", output),
+        Mnemonic::Bcs => relative(0xb0, am, "BCS", output),
+        Mnemonic::Beq => relative(0xf0, am, "BEQ", output),
+        Mnemonic::Bmi => relative(0x30, am, "BMI", output),
+        Mnemonic::Bne => relative(0xd0, am, "BNE", output),
+        Mnemonic::Bpl => relative(0x10, am, "BPL", output),
+        Mnemonic::Bvc => relative(0x50, am, "BVC", output),
+        Mnemonic::Bvs => relative(0x70, am, "BVS", output),
+        Mnemonic::Brk => brk(am, output),
+        Mnemonic::Cmp => cmp(am, output),
+        Mnemonic::Cpx => cpx(am, output),
+        Mnemonic::Cpy => cpy(am, output),
+        Mnemonic::Dec => dec(am, output),
+        Mnemonic::Eor => eor(am, output),
+        Mnemonic::Clc => implied(0x18, am, "CLC", output),
+        Mnemonic::Cld => implied(0xd8, am, "CLD", output),
+        Mnemonic::Cli => implied(0x58, am, "CLI", output),
+        Mnemonic::Clv => implied(0xb8, am, "CLV", output),
+        Mnemonic::Sec => implied(0x38, am, "SEC", output),
+        Mnemonic::Sed => implied(0xf8, am, "SED", output),
+        Mnemonic::Sei => implied(0x78, am, "SEI", output),
+        Mnemonic::Inc => inc(am, output),
+        Mnemonic::Jmp => jmp(am, output),
+        Mnemonic::Jsr => jsr(am, output),
+        Mnemonic::Lda => lda(am, output),
+        Mnemonic::Ldx => ldx(am, output),
+        Mnemonic::Ldy => ldy(am, output),
+        Mnemonic::Lsr => lsr(am, output),
+        Mnemonic::Nop => implied(0xea, am, "NOP", output),
+        Mnemonic::Ora => ora(am, output),
+        Mnemonic::Tax => implied(0xaa, am, "TAX", output),
+        Mnemonic::Txa => implied(0x8a, am, "TXA", output),
+        Mnemonic::Dex => implied(0xca, am, "DEX", output),
+        Mnemonic::Inx => implied(0xe8, am, "INX", output),
+        Mnemonic::Tay => implied(0xa8, am, "TAY", output),
+        Mnemonic::Tya => implied(0x98, am, "TYA", output),
+        Mnemonic::Dey => implied(0x88, am, "DEY", output),
+        Mnemonic::Iny => implied(0xc8, am, "INY", output),
+        Mnemonic::Rol => rol(am, output),
+        Mnemonic::Ror => ror(am, output),
+        Mnemonic::Rti => implied(0x40, am, "RTI", output),
+        Mnemonic::Rts => implied(0x60, am, "RTS", output),
+        Mnemonic::Sbc => sbc(am, output),
+        Mnemonic::Sta => sta(am, output),
+        Mnemonic::Txs => implied(0x9a, am, "TXS", output),
+        Mnemonic::Tsx => implied(0xba, am, "TSX", output),
+        Mnemonic::Pha => implied(0x48, am, "PHA", output),
+        Mnemonic::Pla => implied(0x68, am, "PLA", output),
+        Mnemonic::Php => implied(0x08, am, "PHP", output),
+        Mnemonic::Plp => implied(0x28, am, "PLP", output),
+        Mnemonic::Stx => stx(am, output),
+        Mnemonic::Sty => sty(am, output),
+    }
 }
 
 #[inline]

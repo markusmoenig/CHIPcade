@@ -12,15 +12,17 @@ STA $01
 LDA $02       ; fill byte from zero-page color (low nibble used)
 LDX #$20      ; high byte loop start
 
+ClearPage:
 LDY #$00
+ClearLoop:
 STA ($00),Y
 INY
-BNE -5       ; back to STA ($00),Y
+BNE ClearLoop
 
 INX           ; next page
 STX $01
 CPX #$80      ; run until high byte reaches 0x80 (0x7F is last page)
-BNE -14       ; back to LDY #$00
+BNE ClearPage
 
 ; Reset pointer to start of VRAM for the pattern
 LDA #$20
@@ -31,6 +33,7 @@ STA $00
 ; Now write a simple pattern at the start of VRAM
 LDY #$00
 LDX #$80      ; 128 bytes -> 256 pixels on first line
+PatternLoop:
 LDA #$20      ; hi nibble = clear color (from clear), lo nibble = background(0)
 STA ($00),Y
 INY
@@ -38,6 +41,6 @@ LDA #$02      ; hi nibble = 0, lo nibble = clear color
 STA ($00),Y
 INY
 DEX
-BNE -13        ; jump back to LDA #$20
+BNE PatternLoop
 
 BRK

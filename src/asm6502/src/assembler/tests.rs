@@ -94,6 +94,36 @@ fn invalid_opcode_errors() {
 }
 
 #[test]
+fn binary_literals() {
+    // Immediate
+    assert_assemble!("LDA #%1010", &[0xa9, 0x0a]);
+    assert_assemble!("LDA #0b11110000", &[0xa9, 0xf0]);
+
+    // Zero page / relative
+    assert_assemble!("ADC %1111", &[0x65, 0x0f]);
+    assert_assemble!("ADC 0b11110000", &[0x65, 0xf0]);
+
+    // Absolute
+    assert_assemble!("JMP %0001001000110100", &[0x4c, 0x34, 0x12]);
+    assert_assemble!("JMP 0b0000000011111111", &[0x4c, 0xff, 0x00]);
+}
+
+#[test]
+fn labels_forward_and_backward() {
+    // Forward branch then backward branch and absolute jump using labels.
+    assert_assemble!(
+        "    BNE Skip\n    NOP\nSkip: LDA #$01\n      BNE Skip\n      JMP Skip",
+        &[0xd0, 0x01, 0xea, 0xa9, 0x01, 0xd0, 0xfc, 0x4c, 0x03, 0x00]
+    );
+
+    // Simple self-loop with backward branch and jump
+    assert_assemble!(
+        "Start: LDA #$01\n       BNE Start\n       JMP Start",
+        &[0xa9, 0x01, 0xd0, 0xfc, 0x4c, 0x00, 0x00]
+    );
+}
+
+#[test]
 fn and() {
     // Absolute
     assert_assemble!("AND $4400", &[0x2d, 0x00, 0x44]);
