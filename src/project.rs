@@ -20,10 +20,19 @@ struct ExpandedAsm {
     line_map: Vec<LineOrigin>,
 }
 
-struct SystemConst {
-    name: &'static str,
-    value: u32,
-    is_hex: bool,
+pub struct RunArtifacts {
+    pub config: config::Config,
+    pub sys_consts: Vec<SystemConst>,
+    pub program: Vec<u8>,
+    pub vram_rgba: Vec<u8>,
+    pub steps: u64,
+    pub reason: String,
+}
+
+pub struct SystemConst {
+    pub name: &'static str,
+    pub value: u32,
+    pub is_hex: bool,
 }
 
 pub struct ProjectPaths {
@@ -52,150 +61,51 @@ impl ProjectPaths {
 
 pub fn run_project(project_root: PathBuf) {
     let paths = ProjectPaths::new(&project_root);
-    if let Err(e) = ensure_project_files(&paths) {
-        eprintln!("{e}");
-        return;
-    }
+    match assemble_and_run(&paths) {
+        Ok(artifacts) => {
+            // Ensure build dir exists for output artifacts
+            if let Err(e) = fs::create_dir_all(&paths.build_dir) {
+                eprintln!(
+                    "Warning: failed to create build dir {}: {e}",
+                    paths.build_dir.display()
+                );
+            }
 
-    // Load machine configuration
-    let config = match config::load_config(
-        paths
-            .config
-            .to_str()
-            .expect("config path is not valid UTF-8"),
-    ) {
-        Ok(cfg) => cfg,
-        Err(e) => {
-            eprintln!("{e}");
-            return;
-        }
-    };
-    // Static memory map for the machine (auto-laid out from config)
-    let mem_map = config::MemoryMap::from_config(&config);
+            println!("System constants:");
+            for c in &artifacts.sys_consts {
+                if c.is_hex {
+                    println!("  {:<18}= ${:04X}", c.name, c.value);
+                } else {
+                    println!("  {:<18}= {}", c.name, c.value);
+                }
+            }
 
-    // Derive system constants from config/memory map and show them
-    let sys_consts = system_constants(&mem_map, &config);
-    println!("System constants:");
-    for c in &sys_consts {
-        if c.is_hex {
-            println!("  {:<18}= ${:04X}", c.name, c.value);
-        } else {
-            println!("  {:<18}= {}", c.name, c.value);
-        }
-    }
-
-    let prologue = build_system_prologue(&sys_consts);
-
-    // Load assembly source (required: asm/main.asm), expanding includes
-    let asm_path = &paths.asm_main;
-    let expanded = match expand_asm(asm_path, &mut HashSet::new()) {
-        Ok(a) => a,
-        Err(e) => {
-            eprintln!("{e}");
-            return;
-        }
-    };
-    let mut asm = prologue.bytes.clone();
-    asm.extend_from_slice(&expanded.bytes);
-    let mut line_map = prologue.line_map.clone();
-    line_map.extend_from_slice(&expanded.line_map);
-
-    let mut program = Vec::<u8>::new();
-    let result = assemble(&mut Cursor::new(asm), &mut program);
-    if let Err(msg) = &result {
-        if let Some((file, line)) = map_error_to_origin(msg, &line_map) {
-            eprintln!(
-                "Assembly error: {}:{} -> {}",
-                file.to_string_lossy(),
-                line,
-                msg
+            println!(
+                "Run finished: steps={}, reason={}",
+                artifacts.steps, artifacts.reason
             );
-        } else {
-            eprintln!("Assembly error: {}", msg);
+
+            if let Err(e) = fs::write(&paths.program_bin, &artifacts.program) {
+                eprintln!(
+                    "Warning: failed to write program.bin to {}: {e}",
+                    paths.program_bin.display()
+                );
+            } else {
+                println!("Wrote program to {}", paths.program_bin.display());
+            }
+
+            if let Err(e) = save_rgba_png(
+                artifacts.config.video.width,
+                artifacts.config.video.height,
+                &artifacts.vram_rgba,
+                &paths.vram_dump,
+            ) {
+                eprintln!("failed to save vram_dump.png: {e}");
+            } else {
+                println!("Saved VRAM to {}", paths.vram_dump.display());
+            }
         }
-        return;
-    }
-
-    let mut cpu = cpu::CPU::new(ChipcadeBus::from_config(&config), Nmos6502);
-
-    // Zero page: $00/$01 used as VRAM pointer, $02 used as clear color (both nibbles)
-    let clear_nibble = 0x02u8;
-    let clear_byte = (clear_nibble << 4) | clear_nibble;
-    let zero_page_data = [
-        (mem_map.video_ram & 0x00FF) as u8,
-        (mem_map.video_ram >> 8) as u8,
-        clear_byte,
-    ];
-
-    // Place an invalid opcode as a stop sentinel so cpu.run() exits
-    program.push(0xff);
-
-    // Clear VRAM to color stored at $02 (low nibble)
-    cpu.memory.set_bytes(0x00, &zero_page_data);
-    let clear_color = cpu.memory.get_byte(0x02) & 0x0F;
-    cpu.memory.vram.clear(clear_color);
-
-    cpu.memory.set_bytes(0x00, &zero_page_data);
-    cpu.memory.set_bytes(0x10, &program);
-    cpu.registers.program_counter = 0x10;
-
-    // Ensure build dir exists for output artifacts
-    if let Err(e) = fs::create_dir_all(&paths.build_dir) {
-        eprintln!(
-            "Warning: failed to create build dir {}: {e}",
-            paths.build_dir.display()
-        );
-    }
-
-    // Run until BRK (0x00) or invalid (0xFF) with optional debug output
-    let mut steps: u64 = 0;
-    #[allow(unused_assignments)]
-    let mut stop_reason = "unknown".to_string();
-    loop {
-        if steps >= 1_000_000 {
-            stop_reason = "step limit reached".to_string();
-            break;
-        }
-        let pc = cpu.registers.program_counter;
-        let opcode = cpu.memory.get_byte(pc);
-        // Uncomment for verbose CPU trace
-        // println!(
-        //     "PC={:04X} A={:02X} X={:02X} Y={:02X} SP={:02X} FLAGS={:08b}",
-        //     pc,
-        //     cpu.registers.accumulator,
-        //     cpu.registers.index_x,
-        //     cpu.registers.index_y,
-        //     cpu.registers.stack_pointer.to_u16(),
-        //     cpu.registers.status
-        // );
-        if opcode == 0x00 {
-            stop_reason = "BRK".to_string();
-            break;
-        }
-        if opcode == 0xFF {
-            stop_reason = "HALT".to_string();
-            break;
-        }
-        cpu.single_step();
-        steps += 1;
-    }
-    println!("Run finished: steps={}, reason={}", steps, stop_reason);
-
-    // Persist assembled program for debugging / external consumption
-    if let Err(e) = fs::write(&paths.program_bin, &program) {
-        eprintln!(
-            "Warning: failed to write program.bin to {}: {e}",
-            paths.program_bin.display()
-        );
-    } else {
-        println!("Wrote program to {}", paths.program_bin.display());
-    }
-
-    // Dump VRAM to PNG (bitmap 4bpp: 2 pixels per byte, palette index 0..15 -> grayscale)
-    if let Err(e) = cpu.memory.save_bitmap_png(&paths.vram_dump) {
-        eprintln!("failed to save vram_dump.png: {e}");
-    } else {
-        println!("Saved VRAM to {}", paths.vram_dump.display());
+        Err(e) => eprintln!("{e}"),
     }
 }
 
@@ -392,6 +302,105 @@ fn build_system_prologue(constants: &[SystemConst]) -> ExpandedAsm {
         });
     }
     ExpandedAsm { bytes, line_map }
+}
+
+pub fn assemble_and_run(paths: &ProjectPaths) -> Result<RunArtifacts, String> {
+    ensure_project_files(paths)?;
+
+    let config = config::load_config(
+        paths
+            .config
+            .to_str()
+            .expect("config path is not valid UTF-8"),
+    )
+    .map_err(|e| e)?;
+    let mem_map = config::MemoryMap::from_config(&config);
+    let sys_consts = system_constants(&mem_map, &config);
+    let prologue = build_system_prologue(&sys_consts);
+
+    let expanded = expand_asm(&paths.asm_main, &mut HashSet::new())?;
+    let mut asm = prologue.bytes.clone();
+    asm.extend_from_slice(&expanded.bytes);
+    let mut line_map = prologue.line_map.clone();
+    line_map.extend_from_slice(&expanded.line_map);
+
+    let mut program = Vec::<u8>::new();
+    assemble(&mut Cursor::new(asm), &mut program).map_err(|msg| {
+        if let Some((file, line)) = map_error_to_origin(&msg, &line_map) {
+            format!(
+                "Assembly error: {}:{} -> {}",
+                file.to_string_lossy(),
+                line,
+                msg
+            )
+        } else {
+            format!("Assembly error: {}", msg)
+        }
+    })?;
+
+    let mut cpu = cpu::CPU::new(ChipcadeBus::from_config(&config), Nmos6502);
+
+    // Zero page: $00/$01 used as VRAM pointer, $02 used as clear color (both nibbles)
+    let clear_nibble = 0x02u8;
+    let clear_byte = (clear_nibble << 4) | clear_nibble;
+    let zero_page_data = [
+        (mem_map.video_ram & 0x00FF) as u8,
+        (mem_map.video_ram >> 8) as u8,
+        clear_byte,
+    ];
+
+    // Place an invalid opcode as a stop sentinel so cpu.run() exits
+    program.push(0xff);
+
+    // Clear VRAM to color stored at $02 (low nibble)
+    cpu.memory.set_bytes(0x00, &zero_page_data);
+    let clear_color = cpu.memory.get_byte(0x02) & 0x0F;
+    cpu.memory.vram.clear(clear_color);
+
+    cpu.memory.set_bytes(0x00, &zero_page_data);
+    cpu.memory.set_bytes(0x10, &program);
+    cpu.registers.program_counter = 0x10;
+
+    // Run until BRK (0x00) or invalid (0xFF)
+    let mut steps: u64 = 0;
+    #[allow(unused_assignments)]
+    let mut stop_reason = "unknown".to_string();
+    loop {
+        if steps >= 1_000_000 {
+            stop_reason = "step limit reached".to_string();
+            break;
+        }
+        let pc = cpu.registers.program_counter;
+        let opcode = cpu.memory.get_byte(pc);
+        if opcode == 0x00 {
+            stop_reason = "BRK".to_string();
+            break;
+        }
+        if opcode == 0xFF {
+            stop_reason = "HALT".to_string();
+            break;
+        }
+        cpu.single_step();
+        steps += 1;
+    }
+
+    let vram_rgba = cpu.memory.render_bitmap_rgba();
+
+    Ok(RunArtifacts {
+        config,
+        sys_consts,
+        program,
+        vram_rgba,
+        steps,
+        reason: stop_reason,
+    })
+}
+
+fn save_rgba_png(width: u32, height: u32, rgba: &[u8], path: &Path) -> Result<(), String> {
+    let img = image::ImageBuffer::<image::Rgba<u8>, _>::from_raw(width, height, rgba.to_vec())
+        .ok_or_else(|| "failed to build image buffer".to_owned())?;
+    img.save(path)
+        .map_err(|e| format!("failed to save image: {e}"))
 }
 
 pub fn scaffold_project(name: PathBuf) {

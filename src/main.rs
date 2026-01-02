@@ -1,6 +1,7 @@
 mod bus;
 mod config;
 mod project;
+mod tui;
 
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
@@ -33,6 +34,12 @@ enum Commands {
         #[arg(default_value = ".")]
         project: PathBuf,
     },
+    /// Launch TUI to view/run a project
+    Tui {
+        /// Project root (contains chipcade.toml)
+        #[arg(default_value = ".")]
+        project: PathBuf,
+    },
 }
 
 fn main() {
@@ -45,5 +52,10 @@ fn main() {
         Commands::Run { project } => run_project(project),
         Commands::New { name } => scaffold_project(name),
         Commands::Info { project } => project::info_project(project),
+        Commands::Tui { project } => {
+            if let Err(e) = tui::launch_tui(project) {
+                eprintln!("{e}");
+            }
+        }
     }
 }
