@@ -1,6 +1,8 @@
-.include "asm/include/chipcade.inc"
+; Entry point
+    .include "include/chipcade.inc"
 
-; Clear VRAM then write a small pattern (bitmap mode)
+Start:
+; Clear VRAM then write a small pattern (bitmap mode, VRAM base 0x2000)
 
 ; Zero page pointers
 ; $00 -> low byte of VRAM address (always 0)

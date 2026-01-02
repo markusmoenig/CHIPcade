@@ -126,6 +126,7 @@ fn parse_immediate_binary() {
         " #0b11110000",
         AddressingMode::Immediate(0b11110000, Sign::Implied)
     );
+    assert_am_parse!(" #>VALUE", AddressingMode::Immediate(0, Sign::Implied));
 }
 
 #[test]

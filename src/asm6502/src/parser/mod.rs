@@ -158,7 +158,7 @@ named!(
         space >>
         val: preceded!(
             tag!("#"),
-            alt!(parse_byte_hex | parse_byte_bin | parse_byte_dec | parse_byte_char)
+            alt!(am_symbol_hi | parse_byte_hex | parse_byte_bin | parse_byte_dec | parse_byte_char)
         ) >>
         ({ let (byte, sign) = val; AddressingMode::Immediate(byte, sign)})
     )
@@ -168,7 +168,7 @@ named!(
     am_abs<AddressingMode>,
     do_parse!(
         space >>
-        val: alt!(parse_word_hex | parse_word_bin | dec_u16) >>
+        val: alt!(am_symbol_abs | parse_word_hex | parse_word_bin | dec_u16) >>
         (AddressingMode::Absolute(val))
     )
 );
@@ -177,7 +177,7 @@ named!(
     am_zp_or_relative<AddressingMode>,
     do_parse!(
         space >>
-        val: alt!(parse_byte_hex | parse_byte_bin | parse_byte_dec) >>
+        val: alt!(am_symbol_zp | parse_byte_hex | parse_byte_bin | parse_byte_dec) >>
         ({ let (byte, sign) = val; AddressingMode::ZeroPageOrRelative(byte, sign)})
     )
 );
@@ -227,6 +227,31 @@ named!(
 );
 
 named!(
+    am_symbol_abs<u16>,
+    do_parse!(
+        val: parse_symbol_placeholder >>
+        (val)
+    )
+);
+
+named!(
+    am_symbol_zp<(u8, Sign)>,
+    do_parse!(
+        val: parse_symbol_placeholder >>
+        (val as u8, Sign::Implied)
+    )
+);
+
+named!(
+    am_symbol_hi<(u8, Sign)>,
+    do_parse!(
+        tag!(">") >>
+        val: parse_symbol_placeholder >>
+        ((val >> 8) as u8, Sign::Implied)
+    )
+);
+
+named!(
     parse_word_bin<u16>,
     do_parse!(val: parse_word_bin_lit >> (val))
 );
@@ -262,6 +287,27 @@ named!(
         (val, sign)
     )
 );
+
+// Placeholder parser that accepts symbol-like tokens; resolution happens in assembler pass.
+fn parse_symbol_placeholder(input: &[u8]) -> IResult<&[u8], u16> {
+    if input.is_empty() {
+        return IResult::Error(ErrorKind::Alt);
+    }
+    let first = input[0];
+    if !(first.is_ascii_alphabetic() || first == b'_') {
+        return IResult::Error(ErrorKind::Alt);
+    }
+    let mut idx = 1;
+    while idx < input.len() {
+        let b = input[idx];
+        if b.is_ascii_alphanumeric() || b == b'_' {
+            idx += 1;
+        } else {
+            break;
+        }
+    }
+    IResult::Done(&input[idx..], 0)
+}
 
 named!(
     parse_sign<Sign>,

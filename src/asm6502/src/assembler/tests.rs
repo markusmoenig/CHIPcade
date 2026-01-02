@@ -94,6 +94,19 @@ fn invalid_opcode_errors() {
 }
 
 #[test]
+fn const_definitions() {
+    // Absolute using const
+    assert_assemble!(".const START $1234\nJMP START", &[0x4c, 0x34, 0x12]);
+    // Branch using const target
+    assert_assemble!(
+        ".const LOOP 6\nBNE LOOP\nNOP\nNOP\nNOP",
+        &[0xd0, 0x04, 0xea, 0xea, 0xea]
+    );
+    // High-byte immediate from const
+    assert_assemble!(".const VAL $1234\nLDA #>VAL", &[0xa9, 0x12]);
+}
+
+#[test]
 fn binary_literals() {
     // Immediate
     assert_assemble!("LDA #%1010", &[0xa9, 0x0a]);

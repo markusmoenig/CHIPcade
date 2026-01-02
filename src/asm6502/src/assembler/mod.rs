@@ -72,12 +72,35 @@ pub fn assemble<R: Read, W: Write>(mut input: R, output: &mut W) -> AssembleResu
         if instr.trim().is_empty() {
             continue;
         }
+        if let Some((name, value)) = parse_const(&instr) {
+            if labels.insert(name.clone(), value).is_some() {
+                return Err(format!(
+                    "Duplicate label/const '{}' on line {}",
+                    name,
+                    idx + 1
+                ));
+            }
+            continue;
+        }
         let mnemonic = instr
             .split_whitespace()
             .next()
             .map(|s| s.to_ascii_uppercase())
             .unwrap_or_default();
-        let placeholder_repl = if is_branch(&mnemonic) { "0" } else { "$0000" };
+        let placeholder_repl = if let Some((start, _, _)) = first_symbol_after_mnemonic(&instr) {
+            let bytes = instr.as_bytes();
+            if is_branch(&mnemonic) {
+                "0"
+            } else if start > 0 && (bytes[start - 1] == b'>' || bytes[start - 1] == b'<') {
+                "$00"
+            } else {
+                "$0000"
+            }
+        } else if is_branch(&mnemonic) {
+            "0"
+        } else {
+            "$0000"
+        };
         let placeholder = replace_first_symbol(&instr, placeholder_repl);
         let opcode = match parse_opcode_line(placeholder.as_bytes()) {
             IResult::Done(rem, opcode) if rem.iter().all(|b| b.is_ascii_whitespace()) => opcode,
@@ -107,6 +130,8 @@ pub fn assemble<R: Read, W: Write>(mut input: R, output: &mut W) -> AssembleResu
                 .next()
                 .map(|s| s.to_ascii_uppercase())
                 .unwrap_or_default();
+            let bytes = instr.as_bytes();
+            let mut replace_start = start;
             let replacement = if is_branch(&mnemonic) {
                 let offset = target as i32 - (pc as i32 + 2);
                 if !(i8::MIN as i32..=i8::MAX as i32).contains(&offset) {
@@ -116,12 +141,18 @@ pub fn assemble<R: Read, W: Write>(mut input: R, output: &mut W) -> AssembleResu
                     ));
                 }
                 offset.to_string()
+            } else if start > 0 && bytes[start - 1] == b'>' {
+                replace_start -= 1;
+                format!("${:02X}", (target >> 8) as u8)
+            } else if start > 0 && bytes[start - 1] == b'<' {
+                replace_start -= 1;
+                format!("${:02X}", target as u8)
             } else {
                 format!("${:04X}", target)
             };
 
             let mut out = instr.clone();
-            out.replace_range(start..end, &replacement);
+            out.replace_range(replace_start..end, &replacement);
             out
         } else {
             instr.clone()
@@ -164,7 +195,12 @@ fn split_label_and_instr(line: &str) -> (Option<String>, String) {
 fn replace_first_symbol(line: &str, replacement: &str) -> String {
     if let Some((start, end, _name)) = first_symbol_after_mnemonic(line) {
         let mut out = line.to_string();
-        out.replace_range(start..end, replacement);
+        let mut replace_start = start;
+        let bytes = line.as_bytes();
+        if start > 0 && (bytes[start - 1] == b'>' || bytes[start - 1] == b'<') {
+            replace_start -= 1;
+        }
+        out.replace_range(replace_start..end, replacement);
         out
     } else {
         line.to_string()
@@ -224,6 +260,31 @@ fn is_branch(mnemonic: &str) -> bool {
         mnemonic,
         "BCC" | "BCS" | "BEQ" | "BMI" | "BNE" | "BPL" | "BVC" | "BVS"
     )
+}
+
+fn parse_const(line: &str) -> Option<(String, u16)> {
+    let trimmed = line.trim();
+    if !trimmed.to_ascii_lowercase().starts_with(".const") {
+        return None;
+    }
+    let mut parts = trimmed.split_whitespace();
+    let _kw = parts.next()?;
+    let name = parts.next()?.to_string();
+    let value_str = parts.next()?;
+    let value = parse_const_value(value_str)?;
+    Some((name, value))
+}
+
+fn parse_const_value(s: &str) -> Option<u16> {
+    if let Some(hex) = s.strip_prefix('$') {
+        u16::from_str_radix(hex, 16).ok()
+    } else if let Some(bin) = s.strip_prefix('%') {
+        u16::from_str_radix(bin, 2).ok()
+    } else if let Some(bin) = s.strip_prefix("0b").or_else(|| s.strip_prefix("0B")) {
+        u16::from_str_radix(bin, 2).ok()
+    } else {
+        s.parse::<u16>().ok()
+    }
 }
 
 fn emit_opcode<T: Write>(opcode: OpCode, output: &mut T) -> AssembleResult {

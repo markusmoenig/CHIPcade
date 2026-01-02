@@ -1,0 +1,530 @@
+use crate::bus::ChipcadeBus;
+use crate::config;
+use chipcade_asm::assemble;
+use mos6502::cpu;
+use mos6502::instruction::Nmos6502;
+use mos6502::memory::Bus;
+use std::collections::HashSet;
+use std::fs;
+use std::io::Cursor;
+use std::path::{Path, PathBuf};
+
+#[derive(Clone)]
+struct LineOrigin {
+    file: PathBuf,
+    line: usize,
+}
+
+struct ExpandedAsm {
+    bytes: Vec<u8>,
+    line_map: Vec<LineOrigin>,
+}
+
+struct SystemConst {
+    name: &'static str,
+    value: u32,
+    is_hex: bool,
+}
+
+pub struct ProjectPaths {
+    pub config: PathBuf,
+    pub asm_main: PathBuf,
+    pub build_dir: PathBuf,
+    pub program_bin: PathBuf,
+    pub vram_dump: PathBuf,
+}
+
+impl ProjectPaths {
+    pub fn new(root: impl AsRef<Path>) -> Self {
+        let root = root.as_ref().to_path_buf();
+        let asm_dir = root.join("asm");
+        let build_dir = root.join("build");
+
+        Self {
+            config: root.join("chipcade.toml"),
+            asm_main: asm_dir.join("main.asm"),
+            program_bin: build_dir.join("program.bin"),
+            vram_dump: build_dir.join("vram_dump.png"),
+            build_dir,
+        }
+    }
+}
+
+pub fn run_project(project_root: PathBuf) {
+    let paths = ProjectPaths::new(&project_root);
+    if let Err(e) = ensure_project_files(&paths) {
+        eprintln!("{e}");
+        return;
+    }
+
+    // Load machine configuration
+    let config = match config::load_config(
+        paths
+            .config
+            .to_str()
+            .expect("config path is not valid UTF-8"),
+    ) {
+        Ok(cfg) => cfg,
+        Err(e) => {
+            eprintln!("{e}");
+            return;
+        }
+    };
+    // Static memory map for the machine (auto-laid out from config)
+    let mem_map = config::MemoryMap::from_config(&config);
+
+    // Derive system constants from config/memory map and show them
+    let sys_consts = system_constants(&mem_map, &config);
+    println!("System constants:");
+    for c in &sys_consts {
+        if c.is_hex {
+            println!("  {:<18}= ${:04X}", c.name, c.value);
+        } else {
+            println!("  {:<18}= {}", c.name, c.value);
+        }
+    }
+
+    let prologue = build_system_prologue(&sys_consts);
+
+    // Load assembly source (required: asm/main.asm), expanding includes
+    let asm_path = &paths.asm_main;
+    let expanded = match expand_asm(asm_path, &mut HashSet::new()) {
+        Ok(a) => a,
+        Err(e) => {
+            eprintln!("{e}");
+            return;
+        }
+    };
+    let mut asm = prologue.bytes.clone();
+    asm.extend_from_slice(&expanded.bytes);
+    let mut line_map = prologue.line_map.clone();
+    line_map.extend_from_slice(&expanded.line_map);
+
+    let mut program = Vec::<u8>::new();
+    let result = assemble(&mut Cursor::new(asm), &mut program);
+    if let Err(msg) = &result {
+        if let Some((file, line)) = map_error_to_origin(msg, &line_map) {
+            eprintln!(
+                "Assembly error: {}:{} -> {}",
+                file.to_string_lossy(),
+                line,
+                msg
+            );
+        } else {
+            eprintln!("Assembly error: {}", msg);
+        }
+        return;
+    }
+
+    let mut cpu = cpu::CPU::new(ChipcadeBus::from_config(&config), Nmos6502);
+
+    // Zero page: $00/$01 used as VRAM pointer, $02 used as clear color (both nibbles)
+    let clear_nibble = 0x02u8;
+    let clear_byte = (clear_nibble << 4) | clear_nibble;
+    let zero_page_data = [
+        (mem_map.video_ram & 0x00FF) as u8,
+        (mem_map.video_ram >> 8) as u8,
+        clear_byte,
+    ];
+
+    // Place an invalid opcode as a stop sentinel so cpu.run() exits
+    program.push(0xff);
+
+    // Clear VRAM to color stored at $02 (low nibble)
+    cpu.memory.set_bytes(0x00, &zero_page_data);
+    let clear_color = cpu.memory.get_byte(0x02) & 0x0F;
+    cpu.memory.vram.clear(clear_color);
+
+    cpu.memory.set_bytes(0x00, &zero_page_data);
+    cpu.memory.set_bytes(0x10, &program);
+    cpu.registers.program_counter = 0x10;
+
+    // Ensure build dir exists for output artifacts
+    if let Err(e) = fs::create_dir_all(&paths.build_dir) {
+        eprintln!(
+            "Warning: failed to create build dir {}: {e}",
+            paths.build_dir.display()
+        );
+    }
+
+    // Run until BRK (0x00) or invalid (0xFF) with optional debug output
+    let mut steps: u64 = 0;
+    #[allow(unused_assignments)]
+    let mut stop_reason = "unknown".to_string();
+    loop {
+        if steps >= 1_000_000 {
+            stop_reason = "step limit reached".to_string();
+            break;
+        }
+        let pc = cpu.registers.program_counter;
+        let opcode = cpu.memory.get_byte(pc);
+        // Uncomment for verbose CPU trace
+        // println!(
+        //     "PC={:04X} A={:02X} X={:02X} Y={:02X} SP={:02X} FLAGS={:08b}",
+        //     pc,
+        //     cpu.registers.accumulator,
+        //     cpu.registers.index_x,
+        //     cpu.registers.index_y,
+        //     cpu.registers.stack_pointer.to_u16(),
+        //     cpu.registers.status
+        // );
+        if opcode == 0x00 {
+            stop_reason = "BRK".to_string();
+            break;
+        }
+        if opcode == 0xFF {
+            stop_reason = "HALT".to_string();
+            break;
+        }
+        cpu.single_step();
+        steps += 1;
+    }
+    println!("Run finished: steps={}, reason={}", steps, stop_reason);
+
+    // Persist assembled program for debugging / external consumption
+    if let Err(e) = fs::write(&paths.program_bin, &program) {
+        eprintln!(
+            "Warning: failed to write program.bin to {}: {e}",
+            paths.program_bin.display()
+        );
+    } else {
+        println!("Wrote program to {}", paths.program_bin.display());
+    }
+
+    // Dump VRAM to PNG (bitmap 4bpp: 2 pixels per byte, palette index 0..15 -> grayscale)
+    if let Err(e) = cpu.memory.save_bitmap_png(&paths.vram_dump) {
+        eprintln!("failed to save vram_dump.png: {e}");
+    } else {
+        println!("Saved VRAM to {}", paths.vram_dump.display());
+    }
+}
+
+pub fn info_project(project_root: PathBuf) {
+    let paths = ProjectPaths::new(&project_root);
+    if let Err(e) = ensure_project_files(&paths) {
+        eprintln!("{e}");
+        return;
+    }
+    let config = match config::load_config(
+        paths
+            .config
+            .to_str()
+            .expect("config path is not valid UTF-8"),
+    ) {
+        Ok(cfg) => cfg,
+        Err(e) => {
+            eprintln!("{e}");
+            return;
+        }
+    };
+    let mem_map = config::MemoryMap::from_config(&config);
+    let sys_consts = system_constants(&mem_map, &config);
+
+    println!("Config:");
+    println!("  cpu           = {}", config.machine.cpu);
+    println!("  clock_hz      = {}", config.machine.clock_hz);
+    println!("  refresh_hz    = {}", config.machine.refresh_hz);
+    println!(
+        "  video         = {}x{} {}",
+        config.video.width, config.video.height, config.video.mode
+    );
+    println!(
+        "  palette       = globals {}, sprite_palettes {}, colors_per_sprite {}",
+        config.palette.global_colors,
+        config.palette.sprite_palettes,
+        config.palette.colors_per_sprite
+    );
+
+    println!("\nMemory map:");
+    println!("  zero_page     = ${:04X}", mem_map.zero_page);
+    println!("  stack         = ${:04X}", mem_map.stack);
+    println!("  ram           = ${:04X}", mem_map.ram);
+    println!("  video_ram     = ${:04X}", mem_map.video_ram);
+    println!("  palette       = ${:04X}", mem_map.palette_ram);
+    println!("  palette_map   = ${:04X}", mem_map.palette_map);
+    println!("  sprite_ram    = ${:04X}", mem_map.sprite_ram);
+    println!("  io            = ${:04X}", mem_map.io);
+    println!("  rom           = ${:04X}", mem_map.rom);
+
+    println!("\nSystem constants:");
+    for c in &sys_consts {
+        if c.is_hex {
+            println!("  {:<18}= ${:04X}", c.name, c.value);
+        } else {
+            println!("  {:<18}= {}", c.name, c.value);
+        }
+    }
+}
+
+fn ensure_project_files(paths: &ProjectPaths) -> Result<(), String> {
+    if !paths.config.exists() {
+        return Err(format!(
+            "Missing chipcade.toml at {}",
+            paths.config.display()
+        ));
+    }
+    if !paths.asm_main.exists() {
+        return Err(format!(
+            "Missing asm/main.asm at {}",
+            paths.asm_main.display()
+        ));
+    }
+    Ok(())
+}
+
+fn expand_asm(path: &Path, visited: &mut HashSet<PathBuf>) -> Result<ExpandedAsm, String> {
+    let canonical = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
+    if !visited.insert(canonical.clone()) {
+        return Err(format!("Include cycle detected at {}", canonical.display()));
+    }
+
+    let content = fs::read_to_string(path)
+        .map_err(|e| format!("failed to read asm file {}: {e}", path.display()))?;
+    let base_dir = path.parent().unwrap_or_else(|| Path::new("."));
+    let mut bytes = Vec::new();
+    let mut line_map = Vec::new();
+
+    for (idx, line) in content.lines().enumerate() {
+        let trimmed = line.trim_start();
+        if let Some(rest) = trimmed.strip_prefix(".include") {
+            let rest = rest.trim_start();
+            if let Some(stripped) = rest.strip_prefix('"') {
+                if let Some(end_quote) = stripped.find('"') {
+                    let include_path = &stripped[..end_quote];
+                    let include_full = base_dir.join(include_path);
+                    let included = expand_asm(&include_full, visited)?;
+                    bytes.extend_from_slice(&included.bytes);
+                    line_map.extend_from_slice(&included.line_map);
+                    continue;
+                }
+            }
+            return Err(format!("Malformed include directive in {}", path.display()));
+        }
+        bytes.extend_from_slice(line.as_bytes());
+        bytes.push(b'\n');
+        line_map.push(LineOrigin {
+            file: canonical.clone(),
+            line: idx + 1,
+        });
+    }
+
+    visited.remove(&canonical);
+    Ok(ExpandedAsm { bytes, line_map })
+}
+
+fn map_error_to_origin(msg: &str, map: &[LineOrigin]) -> Option<(PathBuf, usize)> {
+    // Expect format: "Parse error on line X: ..."
+    let needle = "Parse error on line ";
+    let idx = msg.find(needle)?;
+    let rest = &msg[idx + needle.len()..];
+    let line_str = rest.split(':').next()?.trim();
+    let line_num: usize = line_str.parse().ok()?;
+    let origin = map.get(line_num.saturating_sub(1))?;
+    Some((origin.file.clone(), origin.line))
+}
+
+fn system_constants(map: &config::MemoryMap, cfg: &config::Config) -> Vec<SystemConst> {
+    let pixels = cfg.video.width.saturating_mul(cfg.video.height);
+    let vram_bytes = ((pixels + 1) / 2) as u32; // 4bpp bitmap
+    vec![
+        SystemConst {
+            name: "VRAM",
+            value: map.video_ram as u32,
+            is_hex: true,
+        },
+        SystemConst {
+            name: "VRAM_SIZE",
+            value: vram_bytes,
+            is_hex: true,
+        },
+        SystemConst {
+            name: "PALETTE",
+            value: map.palette_ram as u32,
+            is_hex: true,
+        },
+        SystemConst {
+            name: "PALETTE_MAP",
+            value: map.palette_map as u32,
+            is_hex: true,
+        },
+        SystemConst {
+            name: "SPRITE_RAM",
+            value: map.sprite_ram as u32,
+            is_hex: true,
+        },
+        SystemConst {
+            name: "IO",
+            value: map.io as u32,
+            is_hex: true,
+        },
+        SystemConst {
+            name: "ROM",
+            value: map.rom as u32,
+            is_hex: true,
+        },
+        SystemConst {
+            name: "VIDEO_WIDTH",
+            value: cfg.video.width,
+            is_hex: false,
+        },
+        SystemConst {
+            name: "VIDEO_HEIGHT",
+            value: cfg.video.height,
+            is_hex: false,
+        },
+    ]
+}
+
+fn build_system_prologue(constants: &[SystemConst]) -> ExpandedAsm {
+    let mut bytes = Vec::new();
+    let mut line_map = Vec::new();
+    let sys_path = PathBuf::from("<system>");
+    for (idx, c) in constants.iter().enumerate() {
+        let line = if c.is_hex {
+            format!(".const {} ${:04X}\n", c.name, c.value)
+        } else {
+            format!(".const {} {}\n", c.name, c.value)
+        };
+        bytes.extend_from_slice(line.as_bytes());
+        line_map.push(LineOrigin {
+            file: sys_path.clone(),
+            line: idx + 1,
+        });
+    }
+    ExpandedAsm { bytes, line_map }
+}
+
+pub fn scaffold_project(name: PathBuf) {
+    let root = name;
+    if root.exists() {
+        eprintln!("Refusing to overwrite existing path: {}", root.display());
+        return;
+    }
+
+    let paths = ProjectPaths::new(&root);
+    // Create directory tree
+    let dirs = [
+        root.clone(),
+        root.join("asm/include"),
+        root.join("build"),
+        root.join("assets/palettes"),
+        root.join("assets/bitmaps"),
+        root.join("assets/tiles"),
+        root.join("assets/sprites"),
+        root.join("data"),
+        root.join("scripts"),
+    ];
+    for dir in dirs {
+        if let Err(e) = fs::create_dir_all(&dir) {
+            eprintln!("Failed to create {}: {e}", dir.display());
+            return;
+        }
+    }
+
+    // chipcade.toml
+    let toml = r#"[machine]
+cpu = "6502"
+clock_hz = 1000000
+refresh_hz = 50
+
+[video]
+width = 256
+height = 192
+mode = "bitmap"
+
+[palette]
+global_colors = 32
+sprite_palettes = 4
+colors_per_sprite = 4
+"#;
+
+    // asm/main.asm
+    let main_asm = r#"; Entry point
+    .include "include/chipcade.inc"
+
+Start:
+    LDA #$00
+    STA $2000       ; example: write a byte to VRAM base
+    BRK
+"#;
+
+    // asm/include/chipcade.inc
+    let include_inc = r#"; Chipcade hardware constants
+.const VRAM_BASE $2000
+.const PALETTE_BASE $2C00
+.const PALETTE_MAP $2C60
+"#;
+
+    // assets/palettes/default.pal (Endesga 32)
+    let palette_txt = r#";paint.net Palette File
+;Palette Name: Endesga 32
+FFbe4a2f
+FFd77643
+FFead4aa
+FFe4a672
+FFb86f50
+FF733e39
+FF3e2731
+FFa22633
+FFe43b44
+FFf77622
+FFfeae34
+FFfee761
+FF63c74d
+FF3e8948
+FF265c42
+FF193c3e
+FF124e89
+FF0099db
+FF2ce8f5
+FFffffff
+FFc0cbdc
+FF8b9bb4
+FF5a6988
+FF3a4466
+FF262b44
+FF181425
+FFff0044
+FF68386c
+FFb55088
+FFf6757a
+FFe8b796
+FFc28569
+"#;
+
+    // scripts (placeholders)
+    let build_sh = "#!/usr/bin/env bash\nset -e\ncargo run --quiet -- run ${1:-.}\n";
+    let run_sh = "#!/usr/bin/env bash\nset -e\ncargo run --quiet -- run ${1:-.}\n";
+
+    // .gitignore
+    let gitignore = r#"/build
+/target
+*.png
+*.bin
+"#;
+
+    let writes = [
+        (paths.config.clone(), toml),
+        (paths.asm_main.clone(), main_asm),
+        (root.join("asm/irq.asm"), "; IRQ handler (stub)\nBRK\n"),
+        (root.join("asm/gfx.asm"), "; Graphics helpers (stub)\nRTS\n"),
+        (root.join("asm/include/chipcade.inc"), include_inc),
+        (root.join("assets/palettes/default.pal"), palette_txt),
+        (root.join("scripts/build.sh"), build_sh),
+        (root.join("scripts/run.sh"), run_sh),
+        (root.join(".gitignore"), gitignore),
+        (root.join("README.md"), "# New Chipcade project\n"),
+    ];
+
+    for (path, content) in writes {
+        if path.exists() {
+            eprintln!("Refusing to overwrite existing file {}", path.display());
+            continue;
+        }
+        if let Err(e) = fs::write(&path, content) {
+            eprintln!("Failed to write {}: {e}", path.display());
+        }
+    }
+
+    println!("Created new Chipcade project at {}", root.display());
+}
