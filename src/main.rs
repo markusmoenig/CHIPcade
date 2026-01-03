@@ -1,5 +1,6 @@
 mod bus;
 mod config;
+mod editor;
 mod machine;
 mod player;
 
@@ -15,6 +16,8 @@ pub mod prelude {
         config::Config,
         machine::Machine,
     };
+
+    pub use crate::editor::prelude::*;
 }
 
 #[derive(Parser)]
@@ -34,6 +37,12 @@ enum Commands {
         /// Scale factor for rendering/output (default: 3)
         #[arg(long, default_value_t = 3)]
         scale: u32,
+    },
+    /// Launch the UI-based editor (future)
+    Edit {
+        /// Project root (contains chipcade.toml)
+        #[arg(default_value = ".")]
+        project: PathBuf,
     },
     /// Scaffold a new Chipcade project
     New {
@@ -71,6 +80,22 @@ fn main() {
         Commands::New { name } => scaffold_project(name),
         Commands::Info { project } => match Machine::new(project) {
             Ok(machine) => machine.print_info(),
+            Err(e) => eprintln!("{e}"),
+        },
+        Commands::Edit { project } => match Machine::new(project) {
+            Ok(machine) => {
+                println!("Launching editor (preview)…");
+                match machine.assemble() {
+                    Ok(_bytes) => {
+                        let mut editor = crate::editor::editor::Editor::new();
+                        editor.set_machine(machine);
+                        editor.set_integer_scale(false);
+                        let app = TheApp::new();
+                        () = app.run(Box::new(editor));
+                    }
+                    Err(e) => eprintln!("{e}"),
+                }
+            }
             Err(e) => eprintln!("{e}"),
         },
     }

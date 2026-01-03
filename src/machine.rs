@@ -8,7 +8,7 @@ use rust_embed::RustEmbed;
 use std::collections::HashSet;
 use std::fs;
 use std::io::Cursor;
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 
 #[derive(Clone)]
 struct LineOrigin {
@@ -48,7 +48,7 @@ pub struct ProjectPaths {
 
 #[derive(RustEmbed)]
 #[folder = "embedded"]
-struct EmbeddedAssets;
+pub(crate) struct EmbeddedAssets;
 
 impl ProjectPaths {
     pub fn new(root: impl AsRef<Path>) -> Self {
@@ -275,6 +275,156 @@ impl Machine {
             }
         }
     }
+
+    fn asm_root(&self) -> Result<PathBuf, String> {
+        self.paths
+            .asm_main
+            .parent()
+            .map(|p| p.to_path_buf())
+            .ok_or_else(|| "asm directory missing".to_string())
+    }
+
+    /// List ASM sources (non-include), returning file name and contents. `main.asm` is first.
+    pub fn list_asm_sources(&self) -> Result<Vec<(String, String)>, String> {
+        let root = self.asm_root()?;
+        let main = self.paths.asm_main.clone();
+        let mut paths = Vec::new();
+        collect_asm_paths(&root, &root, &mut paths)?;
+
+        let mut out = Vec::new();
+        if main.exists() {
+            let content = read_file(&main)?;
+            out.push((file_name(&main)?, content));
+        }
+
+        for path in paths {
+            if path == main {
+                continue;
+            }
+            if is_include_path(&root, &path) {
+                continue;
+            }
+            let content = read_file(&path)?;
+            out.push((file_name(&path)?, content));
+        }
+        Ok(out)
+    }
+
+    /// List include files (under asm/include), returning file name and contents.
+    pub fn list_include_sources(&self) -> Result<Vec<(String, String)>, String> {
+        let root = self.asm_root()?;
+        let mut paths = Vec::new();
+        collect_asm_paths(&root, &root, &mut paths)?;
+        let mut out = Vec::new();
+        for path in paths {
+            if is_include_path(&root, &path) {
+                let content = read_file(&path)?;
+                out.push((file_name(&path)?, content));
+            }
+        }
+        Ok(out)
+    }
+
+    pub fn write_asm_source(&self, relative: &Path, content: &str) -> Result<PathBuf, String> {
+        let root = self.asm_root()?;
+        if relative.components().any(|c| {
+            matches!(
+                c,
+                Component::ParentDir | Component::RootDir | Component::Prefix(_)
+            )
+        }) {
+            return Err("Refusing to write outside asm directory".to_string());
+        }
+        let full = root.join(relative);
+        if !full.starts_with(&root) {
+            return Err("Refusing to write outside asm directory".to_string());
+        }
+        if let Some(parent) = full.parent() {
+            fs::create_dir_all(parent)
+                .map_err(|e| format!("Failed to create directories for {}: {e}", full.display()))?;
+        }
+        fs::write(&full, content)
+            .map_err(|e| format!("Failed to write {}: {e}", full.display()))?;
+        Ok(full)
+    }
+
+    /// Write an ASM source (e.g., "level.asm") into the asm root (not include/).
+    pub fn write_asm_file(&self, name: &str, content: &str) -> Result<PathBuf, String> {
+        let root = self.asm_root()?;
+        let file = validate_file_name(name)?;
+        let target = root.join(file);
+        write_file(&target, content)
+    }
+
+    /// Write an include file (e.g., "macros.inc") into asm/include.
+    pub fn write_include_file(&self, name: &str, content: &str) -> Result<PathBuf, String> {
+        let root = self.asm_root()?;
+        let file = validate_file_name(name)?;
+        let target = root.join("include").join(file);
+        write_file(&target, content)
+    }
+}
+
+fn is_asm_source(path: &Path) -> bool {
+    matches!(
+        path.extension()
+            .and_then(|e| e.to_str())
+            .unwrap_or("")
+            .to_ascii_lowercase()
+            .as_str(),
+        "asm" | "inc"
+    )
+}
+
+fn is_include_path(root: &Path, path: &Path) -> bool {
+    if let Ok(rel) = path.strip_prefix(root) {
+        rel.components()
+            .next()
+            .is_some_and(|c| c.as_os_str() == "include")
+    } else {
+        false
+    }
+}
+
+fn file_name(path: &Path) -> Result<String, String> {
+    path.file_name()
+        .and_then(|s| s.to_str())
+        .map(|s| s.to_string())
+        .ok_or_else(|| format!("Invalid file name for {}", path.display()))
+}
+
+fn read_file(path: &Path) -> Result<String, String> {
+    fs::read_to_string(path).map_err(|e| format!("Failed to read {}: {e}", path.display()))
+}
+
+fn validate_file_name(name: &str) -> Result<&str, String> {
+    let path = Path::new(name);
+    if path.components().count() != 1 || path.is_absolute() {
+        return Err("File name must not contain path separators or be absolute".to_string());
+    }
+    Ok(name)
+}
+
+fn write_file(path: &Path, content: &str) -> Result<PathBuf, String> {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)
+            .map_err(|e| format!("Failed to create directories for {}: {e}", path.display()))?;
+    }
+    fs::write(path, content).map_err(|e| format!("Failed to write {}: {e}", path.display()))?;
+    Ok(path.to_path_buf())
+}
+
+fn collect_asm_paths(root: &Path, dir: &Path, out: &mut Vec<PathBuf>) -> Result<(), String> {
+    for entry in fs::read_dir(dir).map_err(|e| format!("Failed to read {}: {e}", dir.display()))? {
+        let entry = entry.map_err(|e| format!("Failed to read entry in {}: {e}", dir.display()))?;
+        let path = entry.path();
+        if path.is_dir() {
+            collect_asm_paths(root, &path, out)?;
+        } else if is_asm_source(&path) {
+            out.push(path);
+        }
+    }
+    Ok(())
 }
 
 impl Default for Machine {
