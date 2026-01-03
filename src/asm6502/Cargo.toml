@@ -6,6 +6,7 @@ description = "Fork of asm6502 bundled into CHIPcade."
 license = "MIT"
 readme = "README.md"
 keywords = ["6502", "assembler", "chipcade"]
+edition = "2024"
 
 [dependencies]
-nom = "^2.0"
+nom = "8"

@@ -1,11 +1,10 @@
 #[cfg(test)]
 mod tests;
-
-use nom::IResult;
-use parser::parse_opcode_line;
 use std::collections::HashMap;
 use std::io::{Read, Write};
-use tokens::*;
+
+use crate::parser::parse_opcode_line;
+use crate::tokens::*;
 
 type AssembleResult = Result<(), String>;
 
@@ -103,7 +102,13 @@ pub fn assemble<R: Read, W: Write>(mut input: R, output: &mut W) -> AssembleResu
         };
         let placeholder = replace_first_symbol(&instr, placeholder_repl);
         let opcode = match parse_opcode_line(placeholder.as_bytes()) {
-            IResult::Done(rem, opcode) if rem.iter().all(|b| b.is_ascii_whitespace()) => opcode,
+            Ok((rem, opcode)) => {
+                if rem.iter().all(|b| b.is_ascii_whitespace()) {
+                    opcode
+                } else {
+                    return Err(format!("Parse error on line {}: {}", idx + 1, instr.trim()));
+                }
+            }
             _ => return Err(format!("Parse error on line {}: {}", idx + 1, instr.trim())),
         };
         let mut scratch = Vec::new();
@@ -159,12 +164,20 @@ pub fn assemble<R: Read, W: Write>(mut input: R, output: &mut W) -> AssembleResu
         };
 
         match parse_opcode_line(resolved.as_bytes()) {
-            IResult::Done(rem, opcode) if rem.iter().all(|b| b.is_ascii_whitespace()) => {
-                let before = program.len();
-                emit_opcode(opcode, &mut program)?;
-                pc = pc
-                    .checked_add((program.len() - before) as u16)
-                    .ok_or_else(|| "Program too large".to_owned())?;
+            Ok((rem, opcode)) => {
+                if rem.iter().all(|b| b.is_ascii_whitespace()) {
+                    let before = program.len();
+                    emit_opcode(opcode, &mut program)?;
+                    pc = pc
+                        .checked_add((program.len() - before) as u16)
+                        .ok_or_else(|| "Program too large".to_owned())?;
+                } else {
+                    return Err(format!(
+                        "Parse error on line {}: {}",
+                        line_no,
+                        resolved.trim()
+                    ));
+                }
             }
             _ => {
                 return Err(format!(

@@ -1,7 +1,7 @@
 # chipcade_asm (fork of asm6502 v0.1.2)
-[Upstream](https://github.com/bgourlie/asm6502) (MIT). Bundled into CHIPcade with a small parser fix.
+[Upstream](https://github.com/bgourlie/asm6502) (MIT). 
 
-Work-in-progress 6502 assembler used by CHIPcade. No labels; relative addresses must be numeric offsets.
+Bundled into CHIPcade with fixes and improvements (labels, constants and more).
 
 ### Usage
 
@@ -21,7 +21,3 @@ The the input and output parameters of the `assemble` function are generic over 
 [`Read`](https://doc.rust-lang.org/stable/std/io/trait.Read.html) and 
 [`Write`](https://doc.rust-lang.org/stable/std/io/trait.Write.html) traits, 
 respectively. A more typical usage of this function would accept an input file and an output file.
-
-### Known Issues
-
-Parser fix: implied instructions no longer require an extra trailing newline.

@@ -213,6 +213,7 @@ impl ChipcadeBus {
         out
     }
 
+    #[allow(dead_code)]
     pub fn save_bitmap_png<P: AsRef<Path>>(&self, path: P) -> Result<(), String> {
         let rgba = self.render_bitmap_rgba();
         let img = image::ImageBuffer::<image::Rgba<u8>, _>::from_raw(

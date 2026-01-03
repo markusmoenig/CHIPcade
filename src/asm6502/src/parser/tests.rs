@@ -1,10 +1,9 @@
-use nom::IResult;
-use parser::*;
-use tokens::*;
+use super::*;
+use crate::tokens::*;
 
 macro_rules! assert_parse {
     ( $ left : expr , $ right : expr ) => {
-        if let IResult::Done(_, actual) = $right {
+        if let Ok((_, actual)) = $right {
             assert_eq!($left, actual)
         } else {
             panic!(
@@ -37,7 +36,7 @@ macro_rules! assert_mnemonic_parse {
 
 macro_rules! assert_parse_fail {
     ( $ result : expr ) => {
-        if let IResult::Done(_, actual) = $result {
+        if let Ok((_, actual)) = $result {
             panic!(
                 "Expected parsing to fail, but it succeeded with: {:?}",
                 actual
@@ -308,7 +307,7 @@ fn parse_opcode() {
 #[test]
 fn parse_lines() {
     match super::parse_lines("ADC #1\nSBC $FFFF\nJMP ($ff00)\n".as_bytes()) {
-        IResult::Done(_, opcodes) => {
+        Ok((_, opcodes)) => {
             println!("{:?}", opcodes);
             assert_eq!(3, opcodes.len());
             assert_eq!(
@@ -324,7 +323,6 @@ fn parse_lines() {
                 opcodes[2]
             );
         }
-        IResult::Error(e) => panic!("Parse lines failed with: {:?}", e),
-        IResult::Incomplete(e) => panic!("Parse lines failed with: {:?}", e),
+        Err(e) => panic!("Parse lines failed with: {:?}", e),
     }
 }

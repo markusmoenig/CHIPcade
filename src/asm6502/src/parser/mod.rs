@@ -1,483 +1,446 @@
+#![allow(mismatched_lifetime_syntaxes)]
+
 #[cfg(test)]
 mod tests;
 
-use nom::{line_ending, space, ErrorKind, IResult};
-use tokens::*;
+use nom::bytes::complete::{tag, tag_no_case, take_while1};
+use nom::character::complete::{multispace0, multispace1};
+use nom::combinator::{map, opt};
+use nom::sequence::preceded;
+use nom::{branch::alt, IResult, Parser};
 
-named!(pub parse_lines <Vec<OpCode> >, separated_list!(line_ending, opcode));
+use crate::tokens::*;
 
-pub fn parse_opcode_line(input: &[u8]) -> IResult<&[u8], OpCode> {
-    opcode(input)
+type Res<'a, T> = IResult<&'a [u8], T>;
+
+#[allow(dead_code)]
+pub fn parse_lines<'a>(input: &'a [u8]) -> Res<'a, Vec<OpCode>> {
+    let mut codes = Vec::new();
+    let mut rest = input;
+    while !rest.is_empty() {
+        let (r, _) = multispace0.parse(rest)?;
+        rest = r;
+        if rest.is_empty() {
+            break;
+        }
+        let (r, op) = opcode.parse(rest)?;
+        codes.push(op);
+        let (r, _) = multispace0.parse(r)?;
+        rest = r;
+    }
+    Ok((rest, codes))
 }
 
-named!(
-    opcode<OpCode>,
-    do_parse!(
-        mnemonic: mnemonic >>
-        am: addressing_mode >>
-        (OpCode(mnemonic, am))
-    )
-);
-
-named!(
-    mnemonic<Mnemonic>,
-    alt!(
-    tag_no_case!("ADC") => { |_| Mnemonic::Adc } |
-    tag_no_case!("AND") => { |_| Mnemonic::And } |
-    tag_no_case!("ASL") => { |_| Mnemonic::Asl } |
-    tag_no_case!("BCC") => { |_| Mnemonic::Bcc } |
-    tag_no_case!("BCS") => { |_| Mnemonic::Bcs } |
-    tag_no_case!("BEQ") => { |_| Mnemonic::Beq } |
-    tag_no_case!("BIT") => { |_| Mnemonic::Bit } |
-    tag_no_case!("BMI") => { |_| Mnemonic::Bmi } |
-    tag_no_case!("BNE") => { |_| Mnemonic::Bne } |
-    tag_no_case!("BPL") => { |_| Mnemonic::Bpl } |
-    tag_no_case!("BRK") => { |_| Mnemonic::Brk } |
-    tag_no_case!("BVC") => { |_| Mnemonic::Bvc } |
-    tag_no_case!("BVS") => { |_| Mnemonic::Bvs } |
-    tag_no_case!("CLC") => { |_| Mnemonic::Clc } |
-    tag_no_case!("CLD") => { |_| Mnemonic::Cld } |
-    tag_no_case!("CLI") => { |_| Mnemonic::Cli } |
-    tag_no_case!("CLV") => { |_| Mnemonic::Clv } |
-    tag_no_case!("CMP") => { |_| Mnemonic::Cmp } |
-    tag_no_case!("CPX") => { |_| Mnemonic::Cpx } |
-    tag_no_case!("CPY") => { |_| Mnemonic::Cpy } |
-    tag_no_case!("DEC") => { |_| Mnemonic::Dec } |
-    tag_no_case!("DEX") => { |_| Mnemonic::Dex } |
-    tag_no_case!("DEY") => { |_| Mnemonic::Dey } |
-    tag_no_case!("EOR") => { |_| Mnemonic::Eor } |
-    tag_no_case!("INC") => { |_| Mnemonic::Inc } |
-    tag_no_case!("INX") => { |_| Mnemonic::Inx } |
-    tag_no_case!("INY") => { |_| Mnemonic::Iny } |
-    tag_no_case!("JMP") => { |_| Mnemonic::Jmp } |
-    tag_no_case!("JSR") => { |_| Mnemonic::Jsr } |
-    tag_no_case!("LDA") => { |_| Mnemonic::Lda } |
-    tag_no_case!("LDX") => { |_| Mnemonic::Ldx } |
-    tag_no_case!("LDY") => { |_| Mnemonic::Ldy } |
-    tag_no_case!("LSR") => { |_| Mnemonic::Lsr } |
-    tag_no_case!("NOP") => { |_| Mnemonic::Nop } |
-    tag_no_case!("ORA") => { |_| Mnemonic::Ora } |
-    tag_no_case!("PHA") => { |_| Mnemonic::Pha } |
-    tag_no_case!("PHP") => { |_| Mnemonic::Php } |
-    tag_no_case!("PLA") => { |_| Mnemonic::Pla } |
-    tag_no_case!("PLP") => { |_| Mnemonic::Plp } |
-    tag_no_case!("ROL") => { |_| Mnemonic::Rol } |
-    tag_no_case!("ROR") => { |_| Mnemonic::Ror } |
-    tag_no_case!("RTI") => { |_| Mnemonic::Rti } |
-    tag_no_case!("RTS") => { |_| Mnemonic::Rts } |
-    tag_no_case!("SBC") => { |_| Mnemonic::Sbc } |
-    tag_no_case!("SEC") => { |_| Mnemonic::Sec } |
-    tag_no_case!("SED") => { |_| Mnemonic::Sed } |
-    tag_no_case!("SEI") => { |_| Mnemonic::Sei } |
-    tag_no_case!("STA") => { |_| Mnemonic::Sta } |
-    tag_no_case!("STX") => { |_| Mnemonic::Stx } |
-    tag_no_case!("STY") => { |_| Mnemonic::Sty } |
-    tag_no_case!("TAX") => { |_| Mnemonic::Tax } |
-    tag_no_case!("TAY") => { |_| Mnemonic::Tay } |
-    tag_no_case!("TSX") => { |_| Mnemonic::Tsx } |
-    tag_no_case!("TXA") => { |_| Mnemonic::Txa } |
-    tag_no_case!("TXS") => { |_| Mnemonic::Txs } |
-    tag_no_case!("TYA") => { |_| Mnemonic::Tya }
-    )
-);
-
-named!(
-    addressing_mode<AddressingMode>,
-    alt_complete!(
-        am_accumulator
-            | am_immediate
-            | am_indirect
-            | am_indexed_indirect
-            | am_indirect_indexed
-            | am_zp_x
-            | am_zp_y
-            | am_zp_or_relative
-            | am_abs_x
-            | am_abs_y
-            | am_abs
-            | am_implied
-    )
-);
-
-named!(
-    am_implied<AddressingMode>,
-    map!(parse_implied_marker, |_| AddressingMode::Implied)
-);
-
-fn parse_implied_marker(input: &[u8]) -> IResult<&[u8], ()> {
-    if input.is_empty() {
-        return IResult::Done(input, ());
-    }
-
-    match input[0] {
-        b'\n' | b'\r' => IResult::Done(input, ()),
-        _ => IResult::Error(ErrorKind::Alt),
-    }
+pub fn parse_opcode_line<'a>(input: &'a [u8]) -> Res<'a, OpCode> {
+    opcode.parse(input)
 }
 
-named!(
-    am_indirect<AddressingMode>,
-    do_parse!(
-        space >>
-        word: delimited!(tag!("("), alt!(parse_word_hex | dec_u16), tag!(")")) >>
-        not!(tag!(",")) >>
-        (AddressingMode::Indirect(word))
-    )
-);
+fn opcode<'a>(input: &'a [u8]) -> Res<'a, OpCode> {
+    let (input, _) = multispace0.parse(input)?;
+    let (input, mnemonic) = mnemonic(input)?;
+    let (input, mode_opt) = opt(preceded(multispace1, addressing_mode)).parse(input)?;
+    let mode = mode_opt.unwrap_or(AddressingMode::Implied);
+    let (input, _) = multispace0.parse(input)?;
+    Ok((input, OpCode(mnemonic, mode)))
+}
 
-named!(
-    am_indexed_indirect<AddressingMode>,
-    do_parse!(
-        space >>
-        byte: delimited!(
-            tag!("("),
-            alt!(parse_byte_hex | parse_byte_dec),
-            alt_complete!(tag_no_case!(",X)") | tag_no_case!(",X"))
-        ) >>
-        ({ let (addr, _) = byte; AddressingMode::IndexedIndirect(addr) })
-    )
-);
+fn mnemonic<'a>(input: &'a [u8]) -> Res<'a, Mnemonic> {
+    let (rest, token) = take_while1(is_alpha).parse(input)?;
+    let name = std::str::from_utf8(token)
+        .unwrap_or("")
+        .to_ascii_uppercase();
+    let mnem = match name.as_str() {
+        "ADC" => Mnemonic::Adc,
+        "AND" => Mnemonic::And,
+        "ASL" => Mnemonic::Asl,
+        "BCC" => Mnemonic::Bcc,
+        "BCS" => Mnemonic::Bcs,
+        "BEQ" => Mnemonic::Beq,
+        "BIT" => Mnemonic::Bit,
+        "BMI" => Mnemonic::Bmi,
+        "BNE" => Mnemonic::Bne,
+        "BPL" => Mnemonic::Bpl,
+        "BRK" => Mnemonic::Brk,
+        "BVC" => Mnemonic::Bvc,
+        "BVS" => Mnemonic::Bvs,
+        "CLC" => Mnemonic::Clc,
+        "CLD" => Mnemonic::Cld,
+        "CLI" => Mnemonic::Cli,
+        "CLV" => Mnemonic::Clv,
+        "CMP" => Mnemonic::Cmp,
+        "CPX" => Mnemonic::Cpx,
+        "CPY" => Mnemonic::Cpy,
+        "DEC" => Mnemonic::Dec,
+        "DEX" => Mnemonic::Dex,
+        "DEY" => Mnemonic::Dey,
+        "EOR" => Mnemonic::Eor,
+        "INC" => Mnemonic::Inc,
+        "INX" => Mnemonic::Inx,
+        "INY" => Mnemonic::Iny,
+        "JMP" => Mnemonic::Jmp,
+        "JSR" => Mnemonic::Jsr,
+        "LDA" => Mnemonic::Lda,
+        "LDX" => Mnemonic::Ldx,
+        "LDY" => Mnemonic::Ldy,
+        "LSR" => Mnemonic::Lsr,
+        "NOP" => Mnemonic::Nop,
+        "ORA" => Mnemonic::Ora,
+        "PHA" => Mnemonic::Pha,
+        "PHP" => Mnemonic::Php,
+        "PLA" => Mnemonic::Pla,
+        "PLP" => Mnemonic::Plp,
+        "ROL" => Mnemonic::Rol,
+        "ROR" => Mnemonic::Ror,
+        "RTI" => Mnemonic::Rti,
+        "RTS" => Mnemonic::Rts,
+        "SBC" => Mnemonic::Sbc,
+        "SEC" => Mnemonic::Sec,
+        "SED" => Mnemonic::Sed,
+        "SEI" => Mnemonic::Sei,
+        "STA" => Mnemonic::Sta,
+        "STX" => Mnemonic::Stx,
+        "STY" => Mnemonic::Sty,
+        "TAX" => Mnemonic::Tax,
+        "TAY" => Mnemonic::Tay,
+        "TSX" => Mnemonic::Tsx,
+        "TXA" => Mnemonic::Txa,
+        "TXS" => Mnemonic::Txs,
+        "TYA" => Mnemonic::Tya,
+        _ => {
+            return Err(nom::Err::Error(nom::error::Error::new(
+                input,
+                nom::error::ErrorKind::Fail,
+            )))
+        }
+    };
+    Ok((rest, mnem))
+}
 
-named!(
-    am_indirect_indexed<AddressingMode>,
-    do_parse!(
-        space >>
-        byte: delimited!(tag!("("), alt!(parse_byte_hex | parse_byte_dec), tag_no_case!("),Y")) >>
-        ({ let (addr, _) = byte; AddressingMode::IndirectIndexed(addr) })
-    )
-);
-
-named!(
-    am_accumulator<AddressingMode>,
-    do_parse!(space >> tag_no_case!("A") >> (AddressingMode::Accumulator))
-);
-
-named!(
-    am_immediate<AddressingMode>,
-    do_parse!(
-        space >>
-        val: preceded!(
-            tag!("#"),
-            alt!(am_symbol_hi | parse_byte_hex | parse_byte_bin | parse_byte_dec | parse_byte_char)
-        ) >>
-        ({ let (byte, sign) = val; AddressingMode::Immediate(byte, sign)})
-    )
-);
-
-named!(
-    am_abs<AddressingMode>,
-    do_parse!(
-        space >>
-        val: alt!(am_symbol_abs | parse_word_hex | parse_word_bin | dec_u16) >>
-        (AddressingMode::Absolute(val))
-    )
-);
-
-named!(
-    am_zp_or_relative<AddressingMode>,
-    do_parse!(
-        space >>
-        val: alt!(am_symbol_zp | parse_byte_hex | parse_byte_bin | parse_byte_dec) >>
-        ({ let (byte, sign) = val; AddressingMode::ZeroPageOrRelative(byte, sign)})
-    )
-);
-
-named!(
-    am_zp_x<AddressingMode>,
-    do_parse!(
-        space >>
-        val: terminated!(alt!(parse_byte_hex | parse_byte_bin | parse_byte_dec), tag_no_case!(",X")) >>
-        ({ let (byte, _) = val; AddressingMode::ZeroPageX(byte)})
-    )
-);
-
-named!(
-    am_zp_y<AddressingMode>,
-    do_parse!(
-        space >>
-        val: terminated!(alt!(parse_byte_hex | parse_byte_bin | parse_byte_dec), tag_no_case!(",Y")) >>
-        ({ let (byte, _) = val; AddressingMode::ZeroPageY(byte)})
-    )
-);
-
-named!(
-    am_abs_x<AddressingMode>,
-    do_parse!(
-        space >>
-        val: terminated!(alt!(parse_word_hex | parse_word_bin | dec_u16), tag_no_case!(",X")) >>
-        (AddressingMode::AbsoluteX(val))
-    )
-);
-
-named!(
-    am_abs_y<AddressingMode>,
-    do_parse!(
-        space >>
-        val: terminated!(alt!(parse_word_hex | parse_word_bin | dec_u16), tag_no_case!(",Y")) >>
-        (AddressingMode::AbsoluteY(val))
-    )
-);
-
-named!(
-    parse_word_hex<u16>,
-    do_parse!(
-        val: preceded!(tag!("$"), hex_u16) >>
-        (val)
-    )
-);
-
-named!(
-    am_symbol_abs<u16>,
-    do_parse!(
-        val: parse_symbol_placeholder >>
-        (val)
-    )
-);
-
-named!(
-    am_symbol_zp<(u8, Sign)>,
-    do_parse!(
-        val: parse_symbol_placeholder >>
-        (val as u8, Sign::Implied)
-    )
-);
-
-named!(
-    am_symbol_hi<(u8, Sign)>,
-    do_parse!(
-        tag!(">") >>
-        val: parse_symbol_placeholder >>
-        ((val >> 8) as u8, Sign::Implied)
-    )
-);
-
-named!(
-    parse_word_bin<u16>,
-    do_parse!(val: parse_word_bin_lit >> (val))
-);
-
-named!(
-    parse_byte_hex<(u8, Sign)>,
-    do_parse!(
-        val: preceded!(tag!("$"), hex_u8) >>
-        (val, Sign::Implied)
-    )
-);
-
-named!(
-    parse_byte_bin<(u8, Sign)>,
-    do_parse!(val: parse_byte_bin_lit >> (val, Sign::Implied))
-);
-
-named!(
-    parse_byte_char<(u8, Sign)>,
-    do_parse!(
-        tag!("'") >>
-        ch: take!(1) >>
-        tag!("'") >>
-        (ch[0], Sign::Implied)
-    )
-);
-
-named!(
-    parse_byte_dec<(u8, Sign)>,
-    do_parse!(
-        sign: parse_sign >>
-        val: dec_u8 >>
-        (val, sign)
-    )
-);
-
-// Placeholder parser that accepts symbol-like tokens; resolution happens in assembler pass.
-fn parse_symbol_placeholder(input: &[u8]) -> IResult<&[u8], u16> {
-    if input.is_empty() {
-        return IResult::Error(ErrorKind::Alt);
+fn addressing_mode<'a>(input: &'a [u8]) -> Res<'a, AddressingMode> {
+    let (input, _) = multispace0.parse(input)?;
+    if input.is_empty() || input.starts_with(b"\n") || input.starts_with(b"\r") {
+        return Ok((input, AddressingMode::Implied));
     }
-    let first = input[0];
-    if !(first.is_ascii_alphabetic() || first == b'_') {
-        return IResult::Error(ErrorKind::Alt);
+    alt((
+        accumulator,
+        immediate,
+        indirect_indexed,
+        indexed_indirect,
+        indirect,
+        abs_x,
+        abs_y,
+        absolute,
+        zp_x,
+        zp_y,
+        zp_or_relative,
+    ))
+    .parse(input)
+}
+
+fn accumulator(input: &[u8]) -> Res<AddressingMode> {
+    map(tag_no_case("A"), |_| AddressingMode::Accumulator).parse(input)
+}
+
+fn immediate(input: &[u8]) -> Res<AddressingMode> {
+    let (input, _) = tag("#")(input)?;
+    let (input, (byte, sign)) = alt((
+        map(preceded(tag(">"), symbol), |_| (0u8, Sign::Implied)),
+        map(preceded(tag("<"), symbol), |_| (0u8, Sign::Implied)),
+        parse_byte_hex,
+        parse_byte_bin,
+        parse_byte_char,
+        parse_byte_dec,
+        map(symbol, |_| (0u8, Sign::Implied)),
+    ))
+    .parse(input)?;
+    Ok((input, AddressingMode::Immediate(byte, sign)))
+}
+
+fn indirect(input: &[u8]) -> Res<AddressingMode> {
+    (
+        tag("("),
+        multispace0,
+        parse_word_value_loose,
+        multispace0,
+        tag(")"),
+    )
+        .map(|(_, _, word, _, _)| AddressingMode::Indirect(word))
+        .parse(input)
+}
+
+fn indexed_indirect(input: &[u8]) -> Res<AddressingMode> {
+    (
+        tag("("),
+        multispace0,
+        parse_byte_value,
+        multispace0,
+        tag_no_case(",X"),
+        multispace0,
+        tag(")"),
+    )
+        .map(|(_, _, (b, _), _, _, _, _)| AddressingMode::IndexedIndirect(b))
+        .parse(input)
+}
+
+fn indirect_indexed(input: &[u8]) -> Res<AddressingMode> {
+    (
+        tag("("),
+        multispace0,
+        parse_byte_value,
+        multispace0,
+        tag(")"),
+        multispace0,
+        tag_no_case(",Y"),
+    )
+        .map(|(_, _, (b, _), _, _, _, _)| AddressingMode::IndirectIndexed(b))
+        .parse(input)
+}
+
+fn zp_x(input: &[u8]) -> Res<AddressingMode> {
+    (parse_byte_value, multispace0, tag_no_case(",X"))
+        .map(|((b, _), _, _)| AddressingMode::ZeroPageX(b))
+        .parse(input)
+}
+
+fn zp_y(input: &[u8]) -> Res<AddressingMode> {
+    (parse_byte_value, multispace0, tag_no_case(",Y"))
+        .map(|((b, _), _, _)| AddressingMode::ZeroPageY(b))
+        .parse(input)
+}
+
+fn abs_x(input: &[u8]) -> Res<AddressingMode> {
+    (parse_word_value, multispace0, tag_no_case(",X"))
+        .map(|(w, _, _)| AddressingMode::AbsoluteX(w))
+        .parse(input)
+}
+
+fn abs_y(input: &[u8]) -> Res<AddressingMode> {
+    (parse_word_value, multispace0, tag_no_case(",Y"))
+        .map(|(w, _, _)| AddressingMode::AbsoluteY(w))
+        .parse(input)
+}
+
+fn absolute(input: &[u8]) -> Res<AddressingMode> {
+    map(parse_word_value, AddressingMode::Absolute).parse(input)
+}
+
+fn zp_or_relative(input: &[u8]) -> Res<AddressingMode> {
+    map(parse_byte_value, |(b, sign)| {
+        AddressingMode::ZeroPageOrRelative(b, sign)
+    })
+    .parse(input)
+}
+
+fn parse_word_value(input: &[u8]) -> Res<u16> {
+    alt((
+        parse_word_hex,
+        parse_word_bin,
+        parse_word_dec,
+        map(symbol, |_| 0u16),
+    ))
+    .parse(input)
+}
+
+fn parse_word_value_loose(input: &[u8]) -> Res<u16> {
+    alt((
+        parse_word_hex_loose,
+        parse_word_bin_loose,
+        parse_word_dec_loose,
+        map(symbol, |_| 0u16),
+    ))
+    .parse(input)
+}
+
+fn parse_byte_value(input: &[u8]) -> Res<(u8, Sign)> {
+    alt((
+        parse_byte_hex,
+        parse_byte_bin,
+        parse_byte_dec,
+        parse_byte_char,
+        map(symbol, |_| (0u8, Sign::Implied)),
+    ))
+    .parse(input)
+}
+
+fn parse_byte_hex(input: &[u8]) -> Res<(u8, Sign)> {
+    let (input, _) = tag("$")(input)?;
+    let (input, digits) = take_while1(is_hex_digit)(input)?;
+    if digits.len() > 2 {
+        return Err(nom::Err::Error(nom::error::Error::new(
+            input,
+            nom::error::ErrorKind::Fail,
+        )));
+    }
+    let val = u16::from_str_radix(std::str::from_utf8(digits).unwrap_or(""), 16)
+        .map_err(|_| nom::Err::Error(nom::error::Error::new(input, nom::error::ErrorKind::Fail)))?;
+    if val > u8::MAX as u16 {
+        return Err(nom::Err::Error(nom::error::Error::new(
+            input,
+            nom::error::ErrorKind::Fail,
+        )));
+    }
+    Ok((input, (val as u8, Sign::Implied)))
+}
+
+fn parse_word_hex(input: &[u8]) -> Res<u16> {
+    let (input, _) = tag("$")(input)?;
+    let (input, digits) = take_while1(is_hex_digit)(input)?;
+    if digits.len() <= 2 {
+        return Err(nom::Err::Error(nom::error::Error::new(
+            input,
+            nom::error::ErrorKind::Fail,
+        )));
+    }
+    let val = u16::from_str_radix(std::str::from_utf8(digits).unwrap_or(""), 16)
+        .map_err(|_| nom::Err::Error(nom::error::Error::new(input, nom::error::ErrorKind::Fail)))?;
+    Ok((input, val))
+}
+
+fn parse_word_hex_loose(input: &[u8]) -> Res<u16> {
+    let (input, _) = tag("$")(input)?;
+    let (input, digits) = take_while1(is_hex_digit)(input)?;
+    let val = u16::from_str_radix(std::str::from_utf8(digits).unwrap_or(""), 16)
+        .map_err(|_| nom::Err::Error(nom::error::Error::new(input, nom::error::ErrorKind::Fail)))?;
+    Ok((input, val))
+}
+
+fn parse_byte_bin(input: &[u8]) -> Res<(u8, Sign)> {
+    let (input, _) = alt((tag("%"), tag("0b"), tag("0B"))).parse(input)?;
+    let (input, digits) = take_while1(is_bin_digit)(input)?;
+    if digits.len() > 8 {
+        return Err(nom::Err::Error(nom::error::Error::new(
+            input,
+            nom::error::ErrorKind::Fail,
+        )));
+    }
+    let val = u16::from_str_radix(std::str::from_utf8(digits).unwrap_or(""), 2)
+        .map_err(|_| nom::Err::Error(nom::error::Error::new(input, nom::error::ErrorKind::Fail)))?;
+    if val > u8::MAX as u16 {
+        return Err(nom::Err::Error(nom::error::Error::new(
+            input,
+            nom::error::ErrorKind::Fail,
+        )));
+    }
+    Ok((input, (val as u8, Sign::Implied)))
+}
+
+fn parse_word_bin(input: &[u8]) -> Res<u16> {
+    let (input, _) = alt((tag("%"), tag("0b"), tag("0B"))).parse(input)?;
+    let (input, digits) = take_while1(is_bin_digit)(input)?;
+    if digits.len() <= 8 {
+        return Err(nom::Err::Error(nom::error::Error::new(
+            input,
+            nom::error::ErrorKind::Fail,
+        )));
+    }
+    let val = u32::from_str_radix(std::str::from_utf8(digits).unwrap_or(""), 2)
+        .map_err(|_| nom::Err::Error(nom::error::Error::new(input, nom::error::ErrorKind::Fail)))?;
+    if val > u16::MAX as u32 {
+        return Err(nom::Err::Error(nom::error::Error::new(
+            input,
+            nom::error::ErrorKind::Fail,
+        )));
+    }
+    Ok((input, val as u16))
+}
+
+fn parse_word_bin_loose(input: &[u8]) -> Res<u16> {
+    let (input, _) = alt((tag("%"), tag("0b"), tag("0B"))).parse(input)?;
+    let (input, digits) = take_while1(is_bin_digit)(input)?;
+    let val = u32::from_str_radix(std::str::from_utf8(digits).unwrap_or(""), 2)
+        .map_err(|_| nom::Err::Error(nom::error::Error::new(input, nom::error::ErrorKind::Fail)))?;
+    Ok((input, val as u16))
+}
+
+fn parse_byte_char(input: &[u8]) -> Res<(u8, Sign)> {
+    let (input, _) = tag("'")(input)?;
+    let (input, ch) = take_while1(|b| b != b'\'')(input)?;
+    let (input, _) = tag("'")(input)?;
+    Ok((input, (ch[0], Sign::Implied)))
+}
+
+fn parse_byte_dec(input: &[u8]) -> Res<(u8, Sign)> {
+    let (input, sign) = opt(tag("-")).parse(input)?;
+    let (input, digits) = take_while1(is_dec_digit)(input)?;
+    if digits.len() > 3 {
+        return Err(nom::Err::Error(nom::error::Error::new(
+            input,
+            nom::error::ErrorKind::Fail,
+        )));
+    }
+    let val = u16::from_str_radix(std::str::from_utf8(digits).unwrap_or(""), 10)
+        .map_err(|_| nom::Err::Error(nom::error::Error::new(input, nom::error::ErrorKind::Fail)))?;
+    if val > u8::MAX as u16 {
+        return Err(nom::Err::Error(nom::error::Error::new(
+            input,
+            nom::error::ErrorKind::Fail,
+        )));
+    }
+    let sign_flag: Sign = if sign.is_some() {
+        Sign::Negative
+    } else {
+        Sign::Implied
+    };
+    Ok((input, (val as u8, sign_flag)))
+}
+
+fn parse_word_dec(input: &[u8]) -> Res<u16> {
+    let (input, digits) = take_while1(is_dec_digit)(input)?;
+    let val = u32::from_str_radix(std::str::from_utf8(digits).unwrap_or(""), 10)
+        .map_err(|_| nom::Err::Error(nom::error::Error::new(input, nom::error::ErrorKind::Fail)))?;
+    if val <= u8::MAX as u32 {
+        return Err(nom::Err::Error(nom::error::Error::new(
+            input,
+            nom::error::ErrorKind::Fail,
+        )));
+    }
+    if val > u16::MAX as u32 {
+        return Err(nom::Err::Error(nom::error::Error::new(
+            input,
+            nom::error::ErrorKind::Fail,
+        )));
+    }
+    Ok((input, val as u16))
+}
+
+fn parse_word_dec_loose(input: &[u8]) -> Res<u16> {
+    let (input, digits) = take_while1(is_dec_digit)(input)?;
+    let val = u32::from_str_radix(std::str::from_utf8(digits).unwrap_or(""), 10)
+        .map_err(|_| nom::Err::Error(nom::error::Error::new(input, nom::error::ErrorKind::Fail)))?;
+    Ok((input, val as u16))
+}
+
+fn symbol(input: &[u8]) -> Res<&[u8]> {
+    if input.is_empty() || !(is_alpha(input[0]) || input[0] == b'_') {
+        return Err(nom::Err::Error(nom::error::Error::new(
+            input,
+            nom::error::ErrorKind::Fail,
+        )));
     }
     let mut idx = 1;
     while idx < input.len() {
         let b = input[idx];
-        if b.is_ascii_alphanumeric() || b == b'_' {
+        if is_alpha(b) || is_dec_digit(b) || b == b'_' {
             idx += 1;
         } else {
             break;
         }
     }
-    IResult::Done(&input[idx..], 0)
+    Ok((&input[idx..], &input[..idx]))
 }
 
-named!(
-    parse_sign<Sign>,
-    do_parse!(
-        sign: opt!(tag!("-")) >>
-        (if let Some(_) = sign {
-            Sign::Negative
-        } else {
-            Sign::Implied
-        })
-    )
-);
-
-#[inline]
-pub fn hex_u16(input: &[u8]) -> IResult<&[u8], u16> {
-    match is_a!(input, &b"0123456789abcdefABCDEF"[..]) {
-        IResult::Error(e) => IResult::Error(e),
-        IResult::Incomplete(e) => IResult::Incomplete(e),
-        IResult::Done(i, o) => {
-            let mut res = 0u16;
-
-            // Do not parse more than 4 characters for a u16
-            let mut remaining = i;
-            let mut parsed = o;
-            if o.len() > 4 {
-                remaining = &input[4..];
-                parsed = &input[..4];
-            }
-
-            for &e in parsed {
-                let digit = e as char;
-                let value = digit.to_digit(16).unwrap_or(0) as u16;
-                res = value + (res << 4);
-            }
-            IResult::Done(remaining, res)
-        }
-    }
+fn is_hex_digit(b: u8) -> bool {
+    (b'0'..=b'9').contains(&b) || (b'a'..=b'f').contains(&b) || (b'A'..=b'F').contains(&b)
 }
 
-#[inline]
-pub fn dec_u16(input: &[u8]) -> IResult<&[u8], u16> {
-    match is_a!(input, &b"0123456789"[..]) {
-        IResult::Error(e) => IResult::Error(e),
-        IResult::Incomplete(e) => IResult::Incomplete(e),
-        IResult::Done(remaining, parsed) => {
-            // Do not parse more than 5 characters for a u16
-            if parsed.len() > 5 {
-                IResult::Error(ErrorKind::Custom(0))
-            } else {
-                let mut res = 0u32;
-                for &e in parsed {
-                    let digit = e as char;
-                    let value = digit.to_digit(10).unwrap_or(0) as u32;
-                    res = value + (res * 10);
-                }
-                if res > u16::max_value() as u32 {
-                    IResult::Error(ErrorKind::Custom(0))
-                } else if remaining
-                    .first()
-                    .map(|b| b.is_ascii_alphabetic())
-                    .unwrap_or(false)
-                {
-                    IResult::Error(ErrorKind::Custom(0))
-                } else {
-                    IResult::Done(remaining, res as u16)
-                }
-            }
-        }
-    }
+fn is_dec_digit(b: u8) -> bool {
+    (b'0'..=b'9').contains(&b)
 }
 
-#[inline]
-pub fn dec_u8(input: &[u8]) -> IResult<&[u8], u8> {
-    match is_a!(input, &b"0123456789"[..]) {
-        IResult::Error(e) => IResult::Error(e),
-        IResult::Incomplete(e) => IResult::Incomplete(e),
-        IResult::Done(remaining, parsed) => {
-            // Do not parse more than 3 characters for a u16
-            if parsed.len() > 3 {
-                IResult::Error(ErrorKind::Custom(0))
-            } else {
-                let mut res = 0u16;
-                for &e in parsed {
-                    let digit = e as char;
-                    let value = digit.to_digit(10).unwrap_or(0) as u16;
-                    res = value + (res * 10);
-                }
-                if res > u8::max_value() as u16 {
-                    IResult::Error(ErrorKind::Custom(0))
-                } else if remaining
-                    .first()
-                    .map(|b| b.is_ascii_alphabetic())
-                    .unwrap_or(false)
-                {
-                    IResult::Error(ErrorKind::Custom(0))
-                } else {
-                    IResult::Done(remaining, res as u8)
-                }
-            }
-        }
-    }
+fn is_bin_digit(b: u8) -> bool {
+    b == b'0' || b == b'1'
 }
 
-#[inline]
-fn hex_u8(input: &[u8]) -> IResult<&[u8], u8> {
-    match is_a!(input, &b"0123456789abcdefABCDEF"[..]) {
-        IResult::Error(e) => IResult::Error(e),
-        IResult::Incomplete(e) => IResult::Incomplete(e),
-        IResult::Done(remaining, parsed) => {
-            // Not valid if exceeds 2 characters
-            if parsed.len() > 2 {
-                IResult::Error(ErrorKind::Custom(0))
-            } else {
-                let mut res = 0u8;
-                for &e in parsed {
-                    let digit = e as char;
-                    let value = digit.to_digit(16).unwrap_or(0) as u8;
-                    res = value + (res << 4);
-                }
-                IResult::Done(remaining, res)
-            }
-        }
-    }
-}
-
-#[inline]
-fn parse_byte_bin_lit(input: &[u8]) -> IResult<&[u8], u8> {
-    match parse_bin_lit(input, 8) {
-        IResult::Done(rem, v) => IResult::Done(rem, v as u8),
-        IResult::Error(e) => IResult::Error(e),
-        IResult::Incomplete(e) => IResult::Incomplete(e),
-    }
-}
-
-fn parse_word_bin_lit(input: &[u8]) -> IResult<&[u8], u16> {
-    parse_bin_lit(input, 16)
-}
-
-fn parse_bin_lit(input: &[u8], max_bits: usize) -> IResult<&[u8], u16> {
-    let start_idx = if input.starts_with(b"%") {
-        1
-    } else if input.get(0).copied().map(|b| b == b'0').unwrap_or(false)
-        && input
-            .get(1)
-            .map(|b| *b == b'b' || *b == b'B')
-            .unwrap_or(false)
-    {
-        2
-    } else {
-        return IResult::Error(ErrorKind::Alt);
-    };
-
-    let mut idx = start_idx;
-    let mut res: u32 = 0;
-    while idx < input.len() {
-        match input[idx] {
-            b'0' | b'1' => {
-                res = (res << 1) + u32::from(input[idx] - b'0');
-                idx += 1;
-            }
-            _ => break,
-        }
-    }
-
-    if idx == start_idx {
-        return IResult::Error(ErrorKind::Alt);
-    }
-    if idx - start_idx > max_bits {
-        return IResult::Error(ErrorKind::Custom(0));
-    }
-
-    IResult::Done(&input[idx..], res as u16)
+fn is_alpha(b: u8) -> bool {
+    (b'a'..=b'z').contains(&b) || (b'A'..=b'Z').contains(&b)
 }
