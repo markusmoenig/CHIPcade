@@ -10,6 +10,7 @@ dependencies = [
  "clap",
  "image 0.24.9",
  "mos6502",
+ "rust-embed",
  "serde",
  "theframework",
  "toml",

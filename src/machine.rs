@@ -4,6 +4,7 @@ use chipcade_asm::assemble;
 use mos6502::cpu;
 use mos6502::instruction::Nmos6502;
 use mos6502::memory::Bus;
+use rust_embed::RustEmbed;
 use std::collections::HashSet;
 use std::fs;
 use std::io::Cursor;
@@ -44,6 +45,10 @@ pub struct ProjectPaths {
     pub program_bin: PathBuf,
     pub vram_dump: PathBuf,
 }
+
+#[derive(RustEmbed)]
+#[folder = "embedded"]
+struct EmbeddedAssets;
 
 impl ProjectPaths {
     pub fn new(root: impl AsRef<Path>) -> Self {
@@ -433,6 +438,14 @@ fn save_rgba_png(width: u32, height: u32, rgba: &[u8], path: &Path) -> Result<()
         .map_err(|e| format!("failed to save image: {e}"))
 }
 
+fn write_embedded_file(asset_path: &str, dest: &Path) -> Result<(), String> {
+    let Some(data) = EmbeddedAssets::get(asset_path) else {
+        return Err(format!("Missing embedded asset {asset_path}"));
+    };
+    fs::write(dest, data.data.as_ref())
+        .map_err(|e| format!("Failed to write {}: {e}", dest.display()))
+}
+
 pub fn scaffold_project(name: PathBuf) {
     let root = name;
     if root.exists() {
@@ -451,7 +464,6 @@ pub fn scaffold_project(name: PathBuf) {
         root.join("assets/tiles"),
         root.join("assets/sprites"),
         root.join("data"),
-        root.join("scripts"),
     ];
     for dir in dirs {
         if let Err(e) = fs::create_dir_all(&dir) {
@@ -460,108 +472,30 @@ pub fn scaffold_project(name: PathBuf) {
         }
     }
 
-    // chipcade.toml
-    let toml = r#"[machine]
-cpu = "6502"
-clock_hz = 1000000
-refresh_hz = 50
-
-[video]
-width = 256
-height = 192
-mode = "bitmap"
-
-[palette]
-global_colors = 32
-sprite_palettes = 4
-colors_per_sprite = 4
-"#;
-
-    // asm/main.asm
-    let main_asm = r#"; Entry point
-    .include "include/chipcade.inc"
-
-Start:
-    LDA #$00
-    STA $2000       ; example: write a byte to VRAM base
-    BRK
-"#;
-
-    // asm/include/chipcade.inc
-    let include_inc = r#"; Chipcade hardware constants
-.const VRAM_BASE $2000
-.const PALETTE_BASE $2C00
-.const PALETTE_MAP $2C60
-"#;
-
-    // assets/palettes/default.pal (Endesga 32)
-    let palette_txt = r#";paint.net Palette File
-;Palette Name: Endesga 32
-FFbe4a2f
-FFd77643
-FFead4aa
-FFe4a672
-FFb86f50
-FF733e39
-FF3e2731
-FFa22633
-FFe43b44
-FFf77622
-FFfeae34
-FFfee761
-FF63c74d
-FF3e8948
-FF265c42
-FF193c3e
-FF124e89
-FF0099db
-FF2ce8f5
-FFffffff
-FFc0cbdc
-FF8b9bb4
-FF5a6988
-FF3a4466
-FF262b44
-FF181425
-FFff0044
-FF68386c
-FFb55088
-FFf6757a
-FFe8b796
-FFc28569
-"#;
-
-    // scripts (placeholders)
-    let build_sh = "#!/usr/bin/env bash\nset -e\ncargo run --quiet -- run ${1:-.}\n";
-    let run_sh = "#!/usr/bin/env bash\nset -e\ncargo run --quiet -- run ${1:-.}\n";
-
-    // .gitignore
-    let gitignore = r#"/build
-/target
-*.png
-*.bin
-"#;
-
     let writes = [
-        (paths.config.clone(), toml),
-        (paths.asm_main.clone(), main_asm),
-        (root.join("asm/irq.asm"), "; IRQ handler (stub)\nBRK\n"),
-        (root.join("asm/gfx.asm"), "; Graphics helpers (stub)\nRTS\n"),
-        (root.join("asm/include/chipcade.inc"), include_inc),
-        (root.join("assets/palettes/default.pal"), palette_txt),
-        (root.join("scripts/build.sh"), build_sh),
-        (root.join("scripts/run.sh"), run_sh),
-        (root.join(".gitignore"), gitignore),
-        (root.join("README.md"), "# New Chipcade project\n"),
+        ("chipcade.toml", paths.config.clone()),
+        ("asm/main.asm", paths.asm_main.clone()),
+        ("asm/irq.asm", root.join("asm/irq.asm")),
+        ("asm/gfx.asm", root.join("asm/gfx.asm")),
+        (
+            "asm/include/chipcade.inc",
+            root.join("asm/include/chipcade.inc"),
+        ),
+        (
+            "assets/palettes/default.pal",
+            root.join("assets/palettes/default.pal"),
+        ),
+        (".gitignore", root.join(".gitignore")),
+        ("README.md", root.join("README.md")),
     ];
 
-    for (path, content) in writes {
+    for (asset_path, path) in writes {
         if path.exists() {
             eprintln!("Refusing to overwrite existing file {}", path.display());
             continue;
         }
-        if let Err(e) = fs::write(&path, content) {
-            eprintln!("Failed to write {}: {e}", path.display());
+        if let Err(e) = write_embedded_file(asset_path, &path) {
+            eprintln!("{e}");
         }
     }
 

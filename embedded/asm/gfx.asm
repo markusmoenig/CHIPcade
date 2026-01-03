@@ -1,0 +1,2 @@
+; Graphics helpers (stub)
+RTS
