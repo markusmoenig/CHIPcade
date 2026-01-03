@@ -35,18 +35,20 @@ impl Player {
         let sw = w as usize;
         let cw = ctx.width as u32;
         let ch = ctx.height as u32;
-        let scale = if self.scale > 0 { self.scale } else { 1 };
-        let fit_scale: u32 = ((cw / w.max(1)).min(ch / h.max(1))).max(1);
-        let scale = scale.max(fit_scale);
+        // Pick the largest integer scale that fits the current window.
+        let scale: u32 = ((cw / w.max(1)).min(ch / h.max(1))).max(1);
         let dw = (w * scale) as i32;
         let dh = (h * scale) as i32;
-        let ox = ((ctx.width as i32 - dw) / 2).max(0);
-        let oy = ((ctx.height as i32 - dh) / 2).max(0);
+        let ox = ((cw as i32 - dw) / 2).max(0);
+        let oy = ((ch as i32 - dh) / 2).max(0);
 
         for y in 0..ctx.height as i32 {
             for x in 0..ctx.width as i32 {
-                let src_x = ((x - ox).clamp(0, dw - 1) / scale as i32).clamp(0, w as i32 - 1);
-                let src_y = ((y - oy).clamp(0, dh - 1) / scale as i32).clamp(0, h as i32 - 1);
+                if x < ox || x >= ox + dw || y < oy || y >= oy + dh {
+                    continue;
+                }
+                let src_x = ((x - ox) / scale as i32).clamp(0, w as i32 - 1);
+                let src_y = ((y - oy) / scale as i32).clamp(0, h as i32 - 1);
                 let si = (src_y as usize * sw + src_x as usize) * 4;
                 let di = ((y as usize * ctx.width as usize) + x as usize) * 4;
                 if si + 3 < src.len() && di + 3 < pixels.len() {

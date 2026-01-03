@@ -57,29 +57,15 @@ fn main() {
 
     match command {
         Commands::Run { project, scale } => match Machine::new(project) {
-            Ok(machine) => {
-                // match machine.run() {
-                //     Ok(artifacts) => {
-                //         machine.print_sys_constants();
-                //         machine.print_run_summary(&artifacts);
-                //         machine.persist_artifacts(&artifacts);
-                //     }
-                //     Err(e) => eprintln!("{e}"),
-                // }
-                //
-
-                match machine.assemble() {
-                    Ok(_bytes) => {
-                        let mut player = crate::player::player::Player::new();
-                        player.set_machine(machine, scale);
-                        let app = TheApp::new();
-                        () = app.run(Box::new(player));
-                    }
-                    Err(e) => eprintln!("{e}"),
+            Ok(machine) => match machine.assemble() {
+                Ok(_bytes) => {
+                    let mut player = crate::player::player::Player::new();
+                    player.set_machine(machine, scale);
+                    let app = TheApp::new();
+                    () = app.run(Box::new(player));
                 }
-
-                // run_project(project);
-            }
+                Err(e) => eprintln!("{e}"),
+            },
             Err(e) => eprintln!("{e}"),
         },
         Commands::New { name } => scaffold_project(name),
