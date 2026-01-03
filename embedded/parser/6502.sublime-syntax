@@ -1,0 +1,91 @@
+%YAML 1.2
+---
+name: 6502 Assembly
+file_extensions:
+  - asm
+  - s
+scope: source.6502
+
+contexts:
+  main:
+    - meta_scope: source.6502
+    - include: comments
+    - include: strings
+    - include: immediates
+    - include: numbers
+    - include: labels
+    - include: directives
+    - include: instructions
+    - include: registers
+
+  comments:
+    - match: ;.*
+      scope: comment.line.semicolon.6502
+
+  strings:
+    - match: '"'
+      scope: punctuation.definition.string.begin.6502
+      push:
+        - meta_scope: string.quoted.double.6502
+        - match: '\\.'
+          scope: constant.character.escape.6502
+        - match: '"'
+          scope: punctuation.definition.string.end.6502
+          pop: true
+
+  immediates:
+    - match: '(#)([<>]?)(\$[0-9A-Fa-f]+)'
+      captures:
+        1: keyword.operator.immediate.6502
+        2: keyword.operator.immediate.6502
+        3: constant.numeric.hex.6502
+    - match: '(#)([<>]?)(%[01]+)'
+      captures:
+        1: keyword.operator.immediate.6502
+        2: keyword.operator.immediate.6502
+        3: constant.numeric.binary.6502
+    - match: '(#)([<>]?)(0x[0-9A-Fa-f]+\b)'
+      captures:
+        1: keyword.operator.immediate.6502
+        2: keyword.operator.immediate.6502
+        3: constant.numeric.hex.6502
+    - match: '(#)([<>]?)(-?[0-9]+)'
+      captures:
+        1: keyword.operator.immediate.6502
+        2: keyword.operator.immediate.6502
+        3: constant.numeric.decimal.6502
+    - match: '(#)([<>]?)([A-Za-z_.][\\w.]*)'
+      captures:
+        1: keyword.operator.immediate.6502
+        2: keyword.operator.immediate.6502
+        3: variable.other.constant.6502
+
+  numbers:
+    - match: '\b0x[0-9A-Fa-f]+\b'
+      scope: constant.numeric.hex.6502
+    - match: '\$[0-9A-Fa-f]+'
+      scope: constant.numeric.hex.6502
+    - match: '%[01]+'
+      scope: constant.numeric.binary.6502
+    - match: '\b[0-9]+\b'
+      scope: constant.numeric.decimal.6502
+
+  labels:
+    - match: '^\s*([A-Za-z_.][\w.]*)(:|\s+(?==))'
+      captures:
+        1: entity.name.function.label.6502
+        2: punctuation.separator.colon.6502
+    - match: '\b[A-Za-z_][\w]*(?=:)'
+      scope: entity.name.function.label.6502
+
+  directives:
+    - match: '^\s*\.(org|byte|word|db|dw|ascii|asc|incbin|include|align)\b'
+      scope: keyword.directive.6502
+
+  registers:
+    - match: '\b([XxYy])\b'
+      scope: variable.language.register.6502
+
+  instructions:
+    - match: (?i)\b(ADC|AND|ASL|BCC|BCS|BEQ|BIT|BMI|BNE|BPL|BRK|BVC|BVS|CLC|CLD|CLI|CLV|CMP|CPX|CPY|DEC|DEX|DEY|EOR|INC|INX|INY|JMP|JSR|LDA|LDX|LDY|LSR|NOP|ORA|PHA|PHP|PLA|PLP|ROL|ROR|RTI|RTS|SBC|SEC|SED|SEI|STA|STX|STY|TAX|TAY|TSX|TXA|TXS|TYA)\b
+      scope: keyword.instruction.6502

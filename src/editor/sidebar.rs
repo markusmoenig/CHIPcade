@@ -17,7 +17,7 @@ impl Sidebar {
         }
     }
 
-    pub fn init_ui(&mut self, ui: &mut TheUI, ctx: &mut TheContext) {
+    pub fn init_ui(&mut self, ui: &mut TheUI, ctx: &mut TheContext, machine: &Machine) {
         // Tree View
 
         let mut canvas: TheCanvas = TheCanvas::new();
@@ -26,11 +26,20 @@ impl Sidebar {
         let mut project_tree_layout = TheTreeLayout::new(TheId::named("Project Tree"));
         let root = project_tree_layout.get_root();
 
-        let mut regions_node: TheTreeNode =
+        let mut asm_node: TheTreeNode =
             TheTreeNode::new(TheId::named_with_id("Assembler", Uuid::new_v4()));
-        regions_node.set_open(true);
+        asm_node.set_open(true);
+        asm_node.set_root_mode(false);
 
-        root.add_child(regions_node);
+        if let Ok(list) = machine.list_asm_sources() {
+            for item in list {
+                let mut widget = TheTreeItem::new(TheId::named(&item.0));
+                widget.set_text(item.0);
+                asm_node.add_widget(Box::new(widget));
+            }
+        }
+
+        root.add_child(asm_node);
 
         /*
         let characters_node: TheTreeNode = TheTreeNode::new(TheId::named_with_id(

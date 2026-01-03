@@ -90,6 +90,7 @@ fn main() {
                         let mut editor = crate::editor::editor::Editor::new();
                         editor.set_machine(machine);
                         editor.set_integer_scale(false);
+                        editor.set_vertical_margin(10);
                         let app = TheApp::new();
                         () = app.run(Box::new(editor));
                     }

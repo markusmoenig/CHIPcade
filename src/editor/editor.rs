@@ -9,6 +9,7 @@ pub struct Editor {
     machine: Machine,
     frame: Option<(Vec<u8>, u32, u32)>,
     integer_scale: bool,
+    vertical_margin: u32,
 
     event_receiver: Option<Receiver<TheEvent>>,
 
@@ -23,6 +24,10 @@ impl Editor {
 
     pub fn set_integer_scale(&mut self, integer_scale: bool) {
         self.integer_scale = integer_scale;
+    }
+
+    pub fn set_vertical_margin(&mut self, margin: u32) {
+        self.vertical_margin = margin;
     }
 
     fn ensure_frame(&mut self) {
@@ -49,6 +54,7 @@ impl TheTrait for Editor {
             machine: Machine::default(),
             frame: None,
             integer_scale: false,
+            vertical_margin: 2,
 
             event_receiver: None,
 
@@ -229,7 +235,7 @@ impl TheTrait for Editor {
         ui.canvas.set_top(top_canvas);
 
         // Sidebar
-        self.sidebar.init_ui(ui, ctx);
+        self.sidebar.init_ui(ui, ctx, &self.machine);
 
         let mut editor_canvas: TheCanvas = TheCanvas::new();
         let render_view = TheRenderView::new(TheId::named("RenderView"));
@@ -243,8 +249,22 @@ impl TheTrait for Editor {
         textedit.set_code_theme("base16-eighties.dark");
         textedit.use_global_statusbar(true);
         textedit.set_font_size(14.0);
+
+        if let Some(bytes) = crate::machine::EmbeddedAssets::get("parser/gruvbox-dark.tmTheme") {
+            if let Ok(source) = std::str::from_utf8(bytes.data.as_ref()) {
+                textedit.add_theme_from_string(source);
+                textedit.set_code_theme("Gruvbox Dark");
+            }
+        }
+
+        if let Some(bytes) = crate::machine::EmbeddedAssets::get("parser/6502.sublime-syntax") {
+            if let Ok(source) = std::str::from_utf8(bytes.data.as_ref()) {
+                textedit.add_syntax_from_string(source);
+                textedit.set_code_type("6502 Assembly");
+            }
+        }
         textedit.as_code_editor(
-            "TOML",
+            "6502",
             TheCodeEditorSettings {
                 indicate_space: false,
                 ..Default::default()
@@ -294,8 +314,10 @@ impl TheTrait for Editor {
 
             if let Some((ref src, w, h)) = self.frame {
                 let sw = w as usize;
-                let fit =
-                    ((width as f32) / (w.max(1) as f32)).min((height as f32) / (h.max(1) as f32));
+                let vpad = (self.vertical_margin * 2).min(height);
+                let available_height = height.saturating_sub(vpad);
+                let fit = ((width as f32) / (w.max(1) as f32))
+                    .min((available_height as f32) / (h.max(1) as f32));
                 let scale = if self.integer_scale {
                     fit.max(1.0).floor()
                 } else {
@@ -305,7 +327,8 @@ impl TheTrait for Editor {
                     let dw = (w as f32 * scale).round() as i32;
                     let dh = (h as f32 * scale).round() as i32;
                     let ox = ((width as i32 - dw) / 2).max(0);
-                    let oy = ((height as i32 - dh) / 2).max(0);
+                    let oy =
+                        ((available_height as i32 - dh) / 2 + self.vertical_margin as i32).max(0);
                     for y in 0..height as i32 {
                         for x in 0..width as i32 {
                             if x < ox || x >= ox + dw || y < oy || y >= oy + dh {
@@ -342,6 +365,11 @@ impl TheTrait for Editor {
                 //
 
                 match event {
+                    TheEvent::StateChanged(id, TheWidgetState::Selected) => {
+                        if id.name.ends_with(".asm") {
+                            if let Some(edit) = ui.get_text_area_edit("ASMEdit") {}
+                        }
+                    }
                     _ => {}
                 }
             }
