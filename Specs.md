@@ -124,24 +124,3 @@ SPR_BULLET = 2
 ```
 
 These constants are used when writing to `SPRITE_RAM + 2` (sprite image index).
-
----
-
-**Memory Map (default)**
-
-- Zero page: `0x0000..=0x00FF`
-- Stack: `0x0100..=0x01FF`
-- System RAM: `0x0200..=0x1FFF`
-- VRAM (bitmap 4bpp): `0x2000..=0x7FFF` (24,576 bytes)
-- Palette data (16×RGB): `0x8000..=0x802F` (48 bytes)
-- Sprite RAM: `0x8030..=0x822F` (0x200 bytes, 64 sprites × 8 bytes)
-- I/O: `0x8230..=0x832F` (0x100 bytes placeholder)
-- ROM: `0x8330..` upward
-
-**System Constants**
-
-- `VRAM` = `0x2000`, `VRAM_SIZE` = `24,576`
-- `PALETTE` = `0x8000`
-- `SPRITE_RAM` = `0x8030`
-- `IO` = `0x8130`
-- `ROM` = `0x8230`

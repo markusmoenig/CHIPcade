@@ -63,7 +63,7 @@ INY
 LDA #SPR_CHIPCADE ; image index 0 (SPR_CHIPCADE)
 STA ($00),Y
 INY
-LDA #%00010001    ; enable + size=16x16
+LDA #%00010000    ; enable + size=8x8
 STA ($00),Y
 INY
 LDA #12           ; Color 1

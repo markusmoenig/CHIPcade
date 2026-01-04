@@ -129,6 +129,10 @@ impl Machine {
 
     /// Assemble the current project and return artifacts (program + sprites).
     pub fn assemble(&self) -> Result<BuildArtifacts, String> {
+        self.assemble_impl(false)
+    }
+
+    fn assemble_impl(&self, silent: bool) -> Result<BuildArtifacts, String> {
         let project_root = self
             .paths
             .config
@@ -153,16 +157,20 @@ impl Machine {
                 }
             }
             sprite_pack = load_sprite_pack_from_embedded(embedded)?;
-            println!(
-                "Loaded {} sprite(s) from embedded assets.",
-                sprite_pack.images.len()
-            );
+            if !silent {
+                println!(
+                    "Loaded {} sprite(s) from embedded assets.",
+                    sprite_pack.images.len()
+                );
+            }
         } else {
-            println!(
-                "Loaded {} sprite(s) from {}.",
-                sprite_pack.images.len(),
-                project_root.join("assets/sprites").display()
-            );
+            if !silent {
+                println!(
+                    "Loaded {} sprite(s) from {}.",
+                    sprite_pack.images.len(),
+                    project_root.join("assets/sprites").display()
+                );
+            }
         }
         let sprite_consts = sprite_consts(&sprite_pack.images);
 
@@ -268,7 +276,7 @@ impl Machine {
 
     /// Assemble and run in one step (current CLI behavior).
     pub fn run(&self) -> Result<RunArtifacts, String> {
-        let build = self.assemble()?;
+        let build = self.assemble_impl(true)?; // silent=true to avoid duplicate output
         self.execute(build.program, build.sprites)
     }
 

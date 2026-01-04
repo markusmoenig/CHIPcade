@@ -25,22 +25,10 @@ pub mod prelude {
 }
 
 #[derive(Parser)]
-#[command(
-    name = "chipcade",
-    about = "CHIPcade toolchain driver",
-    version,
-    subcommand_precedence_over_arg = true
-)]
+#[command(name = "chipcade", about = "CHIPcade toolchain driver", version)]
 struct Cli {
-    /// Subcommands (default: run)
     #[command(subcommand)]
-    command: Option<Commands>,
-    /// Project root (used when no subcommand is provided; defaults to current dir)
-    #[arg(default_value = ".")]
-    project: PathBuf,
-    /// Scale factor for rendering/output when running (default subcommand)
-    #[arg(long, default_value_t = 3)]
-    scale: u32,
+    command: Commands,
 }
 
 #[derive(Subcommand)]
@@ -77,16 +65,39 @@ enum Commands {
         #[arg(num_args = 1..)]
         expr: Vec<String>,
     },
+    /// Sprite management commands
+    Sprites {
+        #[command(subcommand)]
+        command: SpriteCommands,
+    },
+}
+
+#[derive(Subcommand)]
+enum SpriteCommands {
+    /// Add a new sprite file
+    Add {
+        /// Sprite name (e.g., player, enemy)
+        name: String,
+        /// Sprite size (8 or 16)
+        size: u8,
+        /// Project root (contains assets/sprites/)
+        #[arg(long, default_value = ".")]
+        project: PathBuf,
+    },
+    /// Remove a sprite file
+    Remove {
+        /// Sprite name to remove
+        name: String,
+        /// Project root (contains assets/sprites/)
+        #[arg(long, default_value = ".")]
+        project: PathBuf,
+    },
 }
 
 fn main() {
     let cli = Cli::parse();
-    let command = cli.command.unwrap_or(Commands::Run {
-        project: cli.project.clone(),
-        scale: cli.scale,
-    });
 
-    match command {
+    match cli.command {
         Commands::Run { project, scale } => match Machine::new(project) {
             Ok(machine) => match machine.assemble() {
                 Ok(_) => {
@@ -106,7 +117,7 @@ fn main() {
         },
         Commands::Edit { project } => match Machine::new(project) {
             Ok(machine) => {
-                println!("Launching editor (preview)…");
+                println!("Launching editor …");
                 match machine.assemble() {
                     Ok(_) => {
                         let mut editor = crate::editor::editor::Editor::new();
@@ -134,5 +145,94 @@ fn main() {
                 Err(e) => eprintln!("Eval error: {e}"),
             }
         }
+        Commands::Sprites { command } => match command {
+            SpriteCommands::Add {
+                name,
+                size,
+                project,
+            } => {
+                if let Err(e) = create_sprite_file(&project, &name, size) {
+                    eprintln!("Error: {e}");
+                }
+            }
+            SpriteCommands::Remove { name, project } => {
+                if let Err(e) = remove_sprite_file(&project, &name) {
+                    eprintln!("Error: {e}");
+                }
+            }
+        },
     }
+}
+
+fn create_sprite_file(project: &PathBuf, name: &str, size: u8) -> Result<(), String> {
+    use std::fs;
+
+    if size != 8 && size != 16 {
+        return Err("Size must be 8 or 16".to_string());
+    }
+
+    if name.is_empty() {
+        return Err("Sprite name cannot be empty".to_string());
+    }
+
+    if !name
+        .chars()
+        .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
+    {
+        return Err(
+            "Sprite name must contain only alphanumeric characters, '_', or '-'".to_string(),
+        );
+    }
+
+    let sprites_dir = project.join("assets/sprites");
+    fs::create_dir_all(&sprites_dir)
+        .map_err(|e| format!("Failed to create sprites directory: {e}"))?;
+
+    let sprite_path = sprites_dir.join(format!("{}.spr", name));
+    if sprite_path.exists() {
+        return Err(format!("Sprite '{}' already exists", name));
+    }
+
+    let template = generate_sprite_template(size);
+    fs::write(&sprite_path, template).map_err(|e| format!("Failed to write sprite file: {e}"))?;
+
+    println!("Created sprite: {}", sprite_path.display());
+    Ok(())
+}
+
+fn remove_sprite_file(project: &PathBuf, name: &str) -> Result<(), String> {
+    use std::fs;
+
+    if name.is_empty() {
+        return Err("Sprite name cannot be empty".to_string());
+    }
+
+    let sprites_dir = project.join("assets/sprites");
+    if !sprites_dir.exists() {
+        return Err("Sprites directory does not exist".to_string());
+    }
+
+    let sprite_path = sprites_dir.join(format!("{}.spr", name));
+    if !sprite_path.exists() {
+        return Err(format!("Sprite '{}' does not exist", name));
+    }
+
+    fs::remove_file(&sprite_path).map_err(|e| format!("Failed to remove sprite file: {e}"))?;
+
+    println!("Removed sprite: {}", sprite_path.display());
+    Ok(())
+}
+
+fn generate_sprite_template(size: u8) -> String {
+    // Load templates from embedded assets
+    const TEMPLATE_8X8: &str = include_str!("../embedded/assets/sprites/template_8x8.spr");
+    const TEMPLATE_16X16: &str = include_str!("../embedded/assets/sprites/template_16x16.spr");
+
+    let template = match size {
+        8 => TEMPLATE_8X8,
+        16 => TEMPLATE_16X16,
+        _ => return String::new(),
+    };
+
+    template.to_string()
 }
