@@ -95,6 +95,10 @@ impl Machine {
         entry_point.unwrap_or(self.mem_map.ram)
     }
 
+    pub fn config(&self) -> &config::Config {
+        &self.config
+    }
+
     pub fn label_address(
         labels: &std::collections::HashMap<String, u16>,
         name: &str,

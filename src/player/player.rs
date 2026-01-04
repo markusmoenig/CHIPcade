@@ -132,7 +132,7 @@ impl TheTrait for Player {
         // Only advance simulation when a tick is due; always paint the last frame.
         if self.tick_due || self.frame.is_none() {
             self.ensure_frame();
-            self.tick_due = false;
+            // self.tick_due = false;
         }
         ctx.draw.rect(
             pixels,
@@ -154,12 +154,18 @@ impl TheTrait for Player {
     }
 
     /// Query if the widget needs a redraw
-    fn update(&mut self, _ctx: &mut TheContext) -> bool {
-        if self.machine.should_tick() {
-            self.tick_due = true;
-            true
-        } else {
-            false
-        }
+    // fn update(&mut self, _ctx: &mut TheContext) -> bool {
+    //     // Align to machine refresh rate; only advance when tick is due.
+    //     if true {
+    //         //self.machine.should_tick() {
+    //         self.tick_due = true;
+    //         true
+    //     } else {
+    //         false
+    //     }
+    // }
+
+    fn target_fps(&self) -> f64 {
+        self.machine.config().machine.refresh_hz as f64
     }
 }
