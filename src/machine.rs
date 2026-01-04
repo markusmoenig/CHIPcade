@@ -11,6 +11,7 @@ use std::collections::HashSet;
 use std::fs;
 use std::io::Cursor;
 use std::path::{Component, Path, PathBuf};
+use std::time::{Duration, Instant};
 
 #[derive(Clone)]
 struct LineOrigin {
@@ -34,10 +35,12 @@ pub struct RunArtifacts {
     pub reason: String,
 }
 
+#[derive(Clone)]
 pub struct BuildArtifacts {
     pub program: Vec<u8>,
     pub sprites: crate::sprites::SpritePack,
     pub entry_point: Option<u16>,
+    pub labels: std::collections::HashMap<String, u16>,
 }
 
 #[derive(Clone)]
@@ -83,9 +86,47 @@ pub struct Machine {
     config: config::Config,
     mem_map: config::MemoryMap,
     sys_consts: Vec<SystemConst>,
+    last_tick: Option<Instant>,
+    tick_accum: Duration,
 }
 
 impl Machine {
+    pub fn entry_address(&self, entry_point: Option<u16>) -> u16 {
+        entry_point.unwrap_or(self.mem_map.ram)
+    }
+
+    pub fn label_address(
+        labels: &std::collections::HashMap<String, u16>,
+        name: &str,
+    ) -> Option<u16> {
+        labels.get(name).copied()
+    }
+
+    /// Return true when a redraw/update should occur based on configured refresh_hz.
+    pub fn should_tick(&mut self) -> bool {
+        let hz = self.config.machine.refresh_hz.max(1) as f64;
+        let interval = Duration::from_secs_f64(1.0 / hz);
+        let now = Instant::now();
+        match self.last_tick {
+            None => {
+                self.last_tick = Some(now);
+                self.tick_accum = Duration::ZERO;
+                true
+            }
+            Some(last) => {
+                let elapsed = now.duration_since(last);
+                self.tick_accum = (self.tick_accum + elapsed).min(interval * 5);
+                self.last_tick = Some(now);
+                if self.tick_accum >= interval {
+                    self.tick_accum -= interval;
+                    true
+                } else {
+                    false
+                }
+            }
+        }
+    }
+
     pub fn video_size(&self) -> (u32, u32) {
         (self.config.video.width, self.config.video.height)
     }
@@ -108,6 +149,8 @@ impl Machine {
             config,
             mem_map,
             sys_consts,
+            last_tick: None,
+            tick_accum: Duration::ZERO,
         })
     }
 
@@ -132,6 +175,11 @@ impl Machine {
     /// Assemble the current project and return artifacts (program + sprites).
     pub fn assemble(&self) -> Result<BuildArtifacts, String> {
         self.assemble_impl(false)
+    }
+
+    /// Assemble silently (no console output for loaded assets).
+    pub fn assemble_silent(&self) -> Result<BuildArtifacts, String> {
+        self.assemble_impl(true)
     }
 
     fn assemble_impl(&self, silent: bool) -> Result<BuildArtifacts, String> {
@@ -198,11 +246,51 @@ impl Machine {
             }
         })?;
 
+        let entry_point = assembled
+            .labels
+            .get("Start")
+            .or_else(|| assembled.labels.get("Init"))
+            .or_else(|| assembled.labels.get("Update"))
+            .copied();
+
         Ok(BuildArtifacts {
-            entry_point: assembled.labels.get("Start").copied(),
+            entry_point,
             program: assembled.bytes,
             sprites: sprite_pack,
+            labels: assembled.labels,
         })
+    }
+
+    pub fn create_cpu(
+        &self,
+        program: &[u8],
+        sprites: &SpritePack,
+        entry_point: Option<u16>,
+    ) -> Result<cpu::CPU<ChipcadeBus, Nmos6502>, String> {
+        let palette_bytes = load_palette_file(
+            &self.paths.palette,
+            self.config.palette.global_colors as usize,
+        )?;
+        let mut cpu = cpu::CPU::new(
+            ChipcadeBus::from_config(&self.config, Some(&palette_bytes), sprites.clone()),
+            Nmos6502,
+        );
+
+        let load_addr: u16 = self.mem_map.ram;
+        let mut program = program.to_vec();
+        // Place an invalid opcode as a stop sentinel so cpu.run() exits
+        program.push(0xff);
+
+        cpu.memory.set_bytes(load_addr, &program);
+
+        if entry_point.is_none() {
+            println!("Warning: 'Start' label not found; starting at program base.");
+        }
+        let start_pc = self.entry_address(entry_point);
+        cpu.registers.program_counter = start_pc;
+        cpu.registers.stack_pointer = StackPointer(0xFF); // Initialize stack pointer to top of stack
+
+        Ok(cpu)
     }
 
     /// Run an already assembled program.
@@ -277,6 +365,34 @@ impl Machine {
             steps,
             reason: stop_reason,
         })
+    }
+
+    /// Run one frame starting at the given entry point on an existing CPU. Returns the rendered VRAM along with step count and stop reason.
+    pub fn run_frame(
+        &self,
+        cpu: &mut cpu::CPU<ChipcadeBus, Nmos6502>,
+        entry_point: u16,
+    ) -> (Vec<u8>, u64, String) {
+        cpu.registers.program_counter = entry_point;
+        let mut steps: u64 = 0;
+        let stop_reason: String = loop {
+            if steps >= 1_000_000 {
+                break "step limit reached".to_string();
+            }
+            let pc = cpu.registers.program_counter;
+            let opcode = cpu.memory.get_byte(pc);
+            if opcode == 0x00 {
+                break "BRK".to_string();
+            }
+            if opcode == 0xFF {
+                break "HALT".to_string();
+            }
+            cpu.single_step();
+            steps += 1;
+        };
+
+        let vram_rgba = cpu.memory.render_frame_rgba();
+        (vram_rgba, steps, stop_reason)
     }
 
     /// Assemble and run in one step (current CLI behavior).
@@ -605,6 +721,8 @@ impl Default for Machine {
             config,
             mem_map,
             sys_consts,
+            last_tick: None,
+            tick_accum: Duration::ZERO,
         }
     }
 }

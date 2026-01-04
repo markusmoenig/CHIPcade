@@ -1,10 +1,17 @@
-use crate::machine::Machine;
+use crate::bus::ChipcadeBus;
+use crate::machine::{BuildArtifacts, Machine};
+use mos6502::cpu;
+use mos6502::instruction::Nmos6502;
 use theframework::prelude::*;
 
 pub struct Player {
     machine: Machine,
     scale: u32,
     frame: Option<(Vec<u8>, u32, u32)>,
+    artifacts: Option<BuildArtifacts>,
+    cpu: Option<cpu::CPU<ChipcadeBus, Nmos6502>>,
+    did_init: bool,
+    tick_due: bool,
 }
 
 impl Player {
@@ -12,20 +19,54 @@ impl Player {
         self.machine = machine;
         self.scale = scale;
         self.frame = None;
+        self.artifacts = None;
+        self.cpu = None;
+        self.did_init = false;
+        self.tick_due = true;
     }
 
     fn ensure_frame(&mut self) {
-        if self.frame.is_some() {
-            return;
-        }
-        match self.machine.run() {
-            Ok(artifacts) => {
-                let w = artifacts.config.video.width;
-                let h = artifacts.config.video.height;
-                self.frame = Some((artifacts.vram_rgba, w, h));
+        // Assemble once, then run one frame each draw using a persistent CPU.
+        let artifacts = match self.artifacts.clone() {
+            Some(a) => a,
+            None => match self.machine.assemble_silent() {
+                Ok(a) => {
+                    self.artifacts = Some(a.clone());
+                    a
+                }
+                Err(e) => {
+                    eprintln!("{e}");
+                    return;
+                }
+            },
+        };
+
+        let cpu = self.cpu.get_or_insert_with(|| {
+            self.machine
+                .create_cpu(
+                    &artifacts.program,
+                    &artifacts.sprites,
+                    artifacts.entry_point,
+                )
+                .expect("failed to create CPU")
+        });
+
+        // Run Init once if present; otherwise fall back to Start/entry_point.
+        if !self.did_init {
+            let init = Machine::label_address(&artifacts.labels, "Init").or(artifacts.entry_point);
+            if let Some(addr) = init {
+                let init_entry = self.machine.entry_address(Some(addr));
+                let (_rgba, _steps, _reason) = self.machine.run_frame(cpu, init_entry);
             }
-            Err(e) => eprintln!("{e}"),
+            self.did_init = true;
         }
+
+        // Per-frame Update; fallback to Start/entry_point if missing.
+        let update = Machine::label_address(&artifacts.labels, "Update").or(artifacts.entry_point);
+        let update_entry = self.machine.entry_address(update);
+        let (rgba, _steps, _reason) = self.machine.run_frame(cpu, update_entry);
+        let (w, h) = self.machine.video_size();
+        self.frame = Some((rgba, w, h));
     }
 
     fn blit_scaled(&self, pixels: &mut [u8], ctx: &TheContext) {
@@ -68,7 +109,15 @@ impl TheTrait for Player {
             machine: Machine::default(),
             scale: 3,
             frame: None,
+            artifacts: None,
+            cpu: None,
+            did_init: false,
+            tick_due: true,
         }
+    }
+
+    fn window_title(&self) -> String {
+        "CHIPcade — 6502 Fantasy Console".into()
     }
 
     fn default_window_size(&self) -> (usize, usize) {
@@ -80,7 +129,11 @@ impl TheTrait for Player {
     }
 
     fn draw(&mut self, pixels: &mut [u8], ctx: &mut TheContext) {
-        self.ensure_frame();
+        // Only advance simulation when a tick is due; always paint the last frame.
+        if self.tick_due || self.frame.is_none() {
+            self.ensure_frame();
+            self.tick_due = false;
+        }
         ctx.draw.rect(
             pixels,
             &(0, 0, ctx.width, ctx.height),
@@ -102,6 +155,11 @@ impl TheTrait for Player {
 
     /// Query if the widget needs a redraw
     fn update(&mut self, _ctx: &mut TheContext) -> bool {
-        false
+        if self.machine.should_tick() {
+            self.tick_due = true;
+            true
+        } else {
+            false
+        }
     }
 }

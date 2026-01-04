@@ -332,6 +332,11 @@ fn first_symbol_or_expr_after_mnemonic(line: &str) -> Option<(usize, usize, Stri
                 i = end;
                 continue;
             }
+            // Skip hex literal with $ prefix (e.g., #$DC)
+            if start > 0 && bytes[start - 1] == b'$' {
+                i = end;
+                continue;
+            }
             // Skip hex literal prefixes like 0xXXXX
             if start > 0 && (bytes[start - 1] == b'0') && (b == b'x' || b == b'X') {
                 i = end;
