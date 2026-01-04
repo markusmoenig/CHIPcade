@@ -1,10 +1,11 @@
 use crate::bus::ChipcadeBus;
 use crate::config;
 use crate::sprites::{SpritePack, load_sprite_pack, load_sprite_pack_from_embedded, sprite_consts};
-use chipcade_asm::assemble;
+use chipcade_asm::assemble_with_labels_at;
 use mos6502::cpu;
 use mos6502::instruction::Nmos6502;
 use mos6502::memory::Bus;
+use mos6502::registers::StackPointer;
 use rust_embed::RustEmbed;
 use std::collections::HashSet;
 use std::fs;
@@ -36,6 +37,7 @@ pub struct RunArtifacts {
 pub struct BuildArtifacts {
     pub program: Vec<u8>,
     pub sprites: crate::sprites::SpritePack,
+    pub entry_point: Option<u16>,
 }
 
 #[derive(Clone)]
@@ -180,8 +182,8 @@ impl Machine {
         let asm = expanded.bytes.clone();
         let line_map = expanded.line_map.clone();
 
-        let mut program = Vec::<u8>::new();
-        assemble(&mut Cursor::new(asm), &mut program).map_err(|msg| {
+        let origin = self.mem_map.ram;
+        let assembled = assemble_with_labels_at(&mut Cursor::new(asm), origin).map_err(|msg| {
             if let Some((file, line)) = map_error_to_origin(&msg, &line_map) {
                 let project_root = self.paths.config.parent().unwrap_or_else(|| Path::new("."));
                 let rel = relative_path(project_root, &file);
@@ -197,7 +199,8 @@ impl Machine {
         })?;
 
         Ok(BuildArtifacts {
-            program,
+            entry_point: assembled.labels.get("Start").copied(),
+            program: assembled.bytes,
             sprites: sprite_pack,
         })
     }
@@ -207,6 +210,7 @@ impl Machine {
         &self,
         mut program: Vec<u8>,
         sprites: SpritePack,
+        entry_point: Option<u16>,
     ) -> Result<RunArtifacts, String> {
         let palette_bytes = load_palette_file(
             &self.paths.palette,
@@ -217,26 +221,18 @@ impl Machine {
             Nmos6502,
         );
 
-        // Zero page: $00/$01 used as VRAM pointer, $02 used as clear color (both nibbles)
-        let clear_nibble = 0x02u8;
-        let clear_byte = (clear_nibble << 4) | clear_nibble;
-        let zero_page_data = [
-            (self.mem_map.video_ram & 0x00FF) as u8,
-            (self.mem_map.video_ram >> 8) as u8,
-            clear_byte,
-        ];
-
+        let load_addr: u16 = self.mem_map.ram;
         // Place an invalid opcode as a stop sentinel so cpu.run() exits
         program.push(0xff);
 
-        // Clear VRAM to color stored at $02 (low nibble)
-        cpu.memory.set_bytes(0x00, &zero_page_data);
-        let clear_color = cpu.memory.get_byte(0x02) & 0x0F;
-        cpu.memory.vram.clear(clear_color);
+        cpu.memory.set_bytes(load_addr, &program);
 
-        cpu.memory.set_bytes(0x00, &zero_page_data);
-        cpu.memory.set_bytes(0x10, &program);
-        cpu.registers.program_counter = 0x10;
+        if entry_point.is_none() {
+            println!("Warning: 'Start' label not found; starting at program base.");
+        }
+        let start_pc = entry_point.unwrap_or(load_addr);
+        cpu.registers.program_counter = start_pc;
+        cpu.registers.stack_pointer = StackPointer(0xFF); // Initialize stack pointer to top of stack
 
         // Run until BRK (0x00) or invalid (0xFF)
         let mut steps: u64 = 0;
@@ -263,6 +259,15 @@ impl Machine {
 
         let vram_rgba = cpu.memory.render_frame_rgba();
 
+        println!(
+            "Execution stopped after {} steps, reason: {}",
+            steps, stop_reason
+        );
+        println!(
+            "Final PC: ${:04X}, SP: ${:02X}",
+            cpu.registers.program_counter, cpu.registers.stack_pointer.0
+        );
+
         Ok(RunArtifacts {
             config: self.config.clone(),
             sys_consts: self.sys_consts.clone(),
@@ -277,7 +282,7 @@ impl Machine {
     /// Assemble and run in one step (current CLI behavior).
     pub fn run(&self) -> Result<RunArtifacts, String> {
         let build = self.assemble_impl(true)?; // silent=true to avoid duplicate output
-        self.execute(build.program, build.sprites)
+        self.execute(build.program, build.sprites, build.entry_point)
     }
 
     pub fn persist_artifacts(&self, artifacts: &RunArtifacts) {
@@ -478,19 +483,29 @@ impl Machine {
 
         let mut asm = expanded.bytes.clone();
         let mut line_map = expanded.line_map.clone();
-        // Prepend include to ensure constants are seen first.
-        let include_line = b".include \"include/chipcade.inc\"\n";
-        asm.splice(0..0, include_line.iter().copied());
-        line_map.iter_mut().for_each(|l| l.line += 1);
-        line_map.insert(
-            0,
-            LineOrigin {
-                file: virtual_path.clone(),
-                line: 1,
-            },
-        );
+        // Prepend include to ensure constants are seen first unless the source already does.
+        let already_includes_chipcade = content.lines().any(|line| {
+            let trimmed = line.trim_start();
+            trimmed
+                .strip_prefix(".include")
+                .map(|rest| rest.contains("chipcade.inc"))
+                .unwrap_or(false)
+        });
+        if !already_includes_chipcade {
+            let include_line = b".include \"include/chipcade.inc\"\n";
+            asm.splice(0..0, include_line.iter().copied());
+            line_map.iter_mut().for_each(|l| l.line += 1);
+            line_map.insert(
+                0,
+                LineOrigin {
+                    file: virtual_path.clone(),
+                    line: 1,
+                },
+            );
+        }
 
-        if let Err(msg) = assemble(&mut Cursor::new(asm), &mut Vec::<u8>::new()) {
+        let origin = self.mem_map.ram;
+        if let Err(msg) = assemble_with_labels_at(&mut Cursor::new(asm), origin) {
             if let Some((file, line)) = map_error_to_origin(&msg, &line_map) {
                 let project_root = self.paths.config.parent().unwrap_or_else(|| Path::new("."));
                 let rel = relative_path(project_root, &file);
@@ -690,6 +705,7 @@ fn expand_asm_inline(
 
     let mut bytes = Vec::new();
     let mut line_map = Vec::new();
+    let includes: Vec<ExpandedAsm> = Vec::new();
 
     for (idx, line) in content.lines().enumerate() {
         let trimmed = line.trim_start();
@@ -700,6 +716,8 @@ fn expand_asm_inline(
                     let include_path = &stripped[..end_quote];
                     let include_full = base_dir.join(include_path);
                     let included = expand_asm(&include_full, visited)?;
+
+                    // Inline all includes at the point they're declared
                     bytes.extend_from_slice(&included.bytes);
                     line_map.extend_from_slice(&included.line_map);
                     continue;
@@ -716,6 +734,12 @@ fn expand_asm_inline(
             file: canonical.clone(),
             line: idx + 1,
         });
+    }
+
+    // Append all includes at the end
+    for included in includes {
+        bytes.extend_from_slice(&included.bytes);
+        line_map.extend_from_slice(&included.line_map);
     }
 
     visited.remove(&canonical);
@@ -874,7 +898,6 @@ pub fn scaffold_project(name: PathBuf) {
     let writes = [
         ("chipcade.toml", paths.config.clone()),
         ("asm/main.asm", paths.asm_main.clone()),
-        ("asm/irq.asm", root.join("asm/irq.asm")),
         ("asm/gfx.asm", root.join("asm/gfx.asm")),
         (
             "asm/include/chipcade.inc",

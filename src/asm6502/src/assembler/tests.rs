@@ -1,4 +1,4 @@
-use super::assemble;
+use super::{assemble, assemble_with_labels, assemble_with_labels_at};
 
 macro_rules! assert_assemble_err {
     ( $ asm : expr ) => {
@@ -9,6 +9,26 @@ macro_rules! assert_assemble_err {
             _ => (),
         }
     };
+}
+
+#[test]
+fn assemble_with_label_output() {
+    let asm = "Start: LDA #$01\nLoop: JMP Start";
+    let result = assemble_with_labels(asm.as_bytes()).expect("assembly should succeed");
+
+    assert_eq!(result.labels.get("Start"), Some(&0));
+    assert_eq!(result.labels.get("Loop"), Some(&2));
+    assert_eq!(result.bytes, vec![0xa9, 0x01, 0x4c, 0x00, 0x00]);
+}
+
+#[test]
+fn assemble_with_custom_origin_offsets_labels() {
+    let asm = "Start: JSR Routine\nBRK\nRoutine: RTS";
+    let result = assemble_with_labels_at(asm.as_bytes(), 0x0200).expect("assembly should succeed");
+
+    assert_eq!(result.labels.get("Start"), Some(&0x0200));
+    assert_eq!(result.labels.get("Routine"), Some(&0x0205));
+    assert_eq!(result.bytes, vec![0x20, 0x05, 0x02, 0x00, 0x00, 0x60]);
 }
 
 macro_rules! assert_assemble {
