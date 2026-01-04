@@ -4,76 +4,56 @@ use std::path::Path;
 
 pub struct Palette {
     data: Vec<u8>, // packed RGB bytes for global palette
-    map: [u8; 16], // 16 visible colors, each byte is index into global palette (0..global_colors-1)
     data_len: u16, // bytes of palette color data
     base: u16,
     end: u16,
-    map_base: u16,
-    map_end: u16,
 }
 
 impl Palette {
-    fn new(cfg: &PaletteConfig, map: &MemoryMap) -> Self {
+    fn new(cfg: &PaletteConfig, map: &MemoryMap, initial_data: Option<&[u8]>) -> Self {
         let color_count = cfg.global_colors as usize;
         let data_len = color_count.saturating_mul(3) as u16; // 3 bytes per color (RGB)
         let base = map.palette_ram;
-        let map_base = map.palette_map;
-        let map_end = map_base.saturating_add(16 - 1);
-        let end = map_end;
+        let end = base.saturating_add(data_len.saturating_sub(1));
 
         let mut palette = Palette {
             data: vec![0; data_len as usize],
-            map: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
             data_len,
             base,
             end,
-            map_base,
-            map_end,
         };
 
-        // https://lospec.com/palette-list/endesga-32
-        // Hardcoded default palette: Endesga 32 (RGB)
-        let endesga32: &[[u8; 3]] = &[
-            [0xbe, 0x4a, 0x2f],
-            [0xd7, 0x76, 0x43],
-            [0xea, 0xd4, 0xaa],
-            [0xe4, 0xa6, 0x72],
-            [0xb8, 0x6f, 0x50],
-            [0x73, 0x3e, 0x39],
-            [0x3e, 0x27, 0x31],
-            [0xa2, 0x26, 0x33],
-            [0xe4, 0x3b, 0x44],
-            [0xf7, 0x76, 0x22],
-            [0xfe, 0xae, 0x34],
-            [0xfe, 0xe7, 0x61],
-            [0x63, 0xc7, 0x4d],
-            [0x3e, 0x89, 0x48],
-            [0x26, 0x5c, 0x42],
-            [0x19, 0x3c, 0x3e],
-            [0x12, 0x4e, 0x89],
-            [0x00, 0x99, 0xdb],
-            [0x2c, 0xe8, 0xf5],
-            [0xff, 0xff, 0xff],
-            [0xc0, 0xcb, 0xdc],
-            [0x8b, 0x9b, 0xb4],
-            [0x5a, 0x69, 0x88],
-            [0x3a, 0x44, 0x66],
-            [0x26, 0x2b, 0x44],
-            [0x18, 0x14, 0x25],
-            [0xff, 0x00, 0x44],
-            [0x68, 0x38, 0x6c],
-            [0xb5, 0x50, 0x88],
-            [0xf6, 0x75, 0x7a],
-            [0xe8, 0xb7, 0x96],
-            [0xc2, 0x85, 0x69],
-        ];
+        if let Some(bytes) = initial_data {
+            let copy_len = bytes.len().min(palette.data.len());
+            palette.data[..copy_len].copy_from_slice(&bytes[..copy_len]);
+        } else {
+            // Default palette: Sweetie 16 (GrafxKid)
+            let default16: &[[u8; 3]] = &[
+                [0x1a, 0x1c, 0x2c],
+                [0x5d, 0x27, 0x5d],
+                [0xb1, 0x3e, 0x53],
+                [0xef, 0x7d, 0x57],
+                [0xff, 0xcd, 0x75],
+                [0xa7, 0xf0, 0x70],
+                [0x38, 0xb7, 0x64],
+                [0x25, 0x71, 0x79],
+                [0x29, 0x36, 0x6f],
+                [0x3b, 0x5d, 0xc9],
+                [0x41, 0xa6, 0xf6],
+                [0x73, 0xef, 0xf7],
+                [0xf4, 0xf4, 0xf4],
+                [0x94, 0xb0, 0xc2],
+                [0x56, 0x6c, 0x86],
+                [0x33, 0x3c, 0x57],
+            ];
 
-        for (i, rgb) in endesga32.iter().enumerate().take(color_count) {
-            let idx = i * 3;
-            if idx + 2 < palette.data.len() {
-                palette.data[idx] = rgb[0];
-                palette.data[idx + 1] = rgb[1];
-                palette.data[idx + 2] = rgb[2];
+            for (i, rgb) in default16.iter().enumerate().take(color_count) {
+                let idx = i * 3;
+                if idx + 2 < palette.data.len() {
+                    palette.data[idx] = rgb[0];
+                    palette.data[idx + 1] = rgb[1];
+                    palette.data[idx + 2] = rgb[2];
+                }
             }
         }
 
@@ -86,10 +66,6 @@ impl Palette {
                 let idx = (a - self.base) as usize;
                 self.data.get(idx).copied().unwrap_or(0)
             }
-            a if (self.map_base..=self.map_end).contains(&a) => {
-                let idx = (a - self.map_base) as usize;
-                self.map.get(idx).copied().unwrap_or(0)
-            }
             _ => 0,
         }
     }
@@ -100,12 +76,6 @@ impl Palette {
                 let idx = (a - self.base) as usize;
                 if let Some(slot) = self.data.get_mut(idx) {
                     *slot = value;
-                }
-            }
-            a if (self.map_base..=self.map_end).contains(&a) => {
-                let idx = (a - self.map_base) as usize;
-                if let Some(slot) = self.map.get_mut(idx) {
-                    *slot = value % (self.data_len / 3) as u8;
                 }
             }
             _ => {}
@@ -164,9 +134,9 @@ pub struct ChipcadeBus {
 }
 
 impl ChipcadeBus {
-    pub fn from_config(cfg: &Config) -> Self {
+    pub fn from_config(cfg: &Config, palette_data: Option<&[u8]>) -> Self {
         let map = MemoryMap::from_config(cfg);
-        let palette = Palette::new(&cfg.palette, &map);
+        let palette = Palette::new(&cfg.palette, &map, palette_data);
         let vram = VideoRam::new(cfg.video.width, cfg.video.height, map.video_ram);
 
         Self {
@@ -176,8 +146,8 @@ impl ChipcadeBus {
         }
     }
 
-    fn palette_rgb(&self, map_index: u8) -> (u8, u8, u8) {
-        let base_index = (map_index as usize).saturating_mul(3);
+    fn palette_rgb(&self, color_index: u8) -> (u8, u8, u8) {
+        let base_index = (color_index as usize).saturating_mul(3);
         if base_index + 2 >= self.palette.data.len() {
             return (0, 0, 0);
         }
@@ -197,16 +167,14 @@ impl ChipcadeBus {
             let lo = byte & 0x0F;
             let hi = (byte >> 4) & 0x0F;
 
-            let lo_map = self.palette.map[lo as usize];
-            let (r, g, b) = self.palette_rgb(lo_map);
+            let (r, g, b) = self.palette_rgb(lo);
             out.extend_from_slice(&[r, g, b, 0xFF]);
 
             if (i as u32) * 2 + 1 >= pixels {
                 break;
             }
 
-            let hi_map = self.palette.map[hi as usize];
-            let (r, g, b) = self.palette_rgb(hi_map);
+            let (r, g, b) = self.palette_rgb(hi);
             out.extend_from_slice(&[r, g, b, 0xFF]);
         }
 

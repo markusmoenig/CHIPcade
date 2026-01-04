@@ -1,10 +1,12 @@
 mod bus;
 mod config;
 mod editor;
+mod eval;
 mod machine;
 mod player;
 
 use clap::{Parser, Subcommand};
+use eval::{EvalResult, eval_expression};
 use machine::{Machine, scaffold_project};
 use std::path::PathBuf;
 use theframework::prelude::*;
@@ -14,6 +16,7 @@ pub mod prelude {
     pub use crate::{
         bus::{ChipcadeBus, Palette},
         config::Config,
+        eval::{EvalResult, eval_expression},
         machine::Machine,
     };
 
@@ -21,10 +24,22 @@ pub mod prelude {
 }
 
 #[derive(Parser)]
-#[command(name = "chipcade", about = "Chipcade toolchain driver", version)]
+#[command(
+    name = "chipcade",
+    about = "CHIPcade toolchain driver",
+    version,
+    subcommand_precedence_over_arg = true
+)]
 struct Cli {
+    /// Subcommands (default: run)
     #[command(subcommand)]
     command: Option<Commands>,
+    /// Project root (used when no subcommand is provided; defaults to current dir)
+    #[arg(default_value = ".")]
+    project: PathBuf,
+    /// Scale factor for rendering/output when running (default subcommand)
+    #[arg(long, default_value_t = 3)]
+    scale: u32,
 }
 
 #[derive(Subcommand)]
@@ -38,7 +53,7 @@ enum Commands {
         #[arg(long, default_value_t = 3)]
         scale: u32,
     },
-    /// Launch the UI-based editor (future)
+    /// Launch the UI-based editor
     Edit {
         /// Project root (contains chipcade.toml)
         #[arg(default_value = ".")]
@@ -55,13 +70,19 @@ enum Commands {
         #[arg(default_value = ".")]
         project: PathBuf,
     },
+    /// Evaluate a hex/dec/bin expression and print all representations
+    Eval {
+        /// Expression to evaluate (supports + - * / and parentheses; hex: 0x / $, bin: 0b / %)
+        #[arg(num_args = 1..)]
+        expr: Vec<String>,
+    },
 }
 
 fn main() {
     let cli = Cli::parse();
     let command = cli.command.unwrap_or(Commands::Run {
-        project: PathBuf::from("."),
-        scale: 3,
+        project: cli.project.clone(),
+        scale: cli.scale,
     });
 
     match command {
@@ -99,5 +120,18 @@ fn main() {
             }
             Err(e) => eprintln!("{e}"),
         },
+        Commands::Eval { expr } => {
+            let expression = expr.join(" ");
+            match eval_expression(&expression) {
+                Ok(EvalResult { value }) => {
+                    let abs = value.saturating_abs() as u64;
+                    let sign = if value < 0 { "-" } else { "" };
+                    let hex = format!("{sign}${:X}", abs);
+                    let bin = format!("{sign}%{:b}", abs);
+                    println!("dec = {value}, hex = {hex}, bin = {bin}");
+                }
+                Err(e) => eprintln!("Eval error: {e}"),
+            }
+        }
     }
 }

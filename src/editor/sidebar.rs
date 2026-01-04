@@ -17,7 +17,14 @@ impl Sidebar {
         }
     }
 
-    pub fn init_ui(&mut self, ui: &mut TheUI, ctx: &mut TheContext, machine: &Machine) {
+    pub fn init_ui(
+        &mut self,
+        ui: &mut TheUI,
+        _ctx: &mut TheContext,
+        machine: &Machine,
+        context: &mut Context,
+        stack_layout: &mut TheStackLayout,
+    ) {
         // Tree View
 
         let mut canvas: TheCanvas = TheCanvas::new();
@@ -27,15 +34,31 @@ impl Sidebar {
         let root = project_tree_layout.get_root();
 
         let mut asm_node: TheTreeNode =
-            TheTreeNode::new(TheId::named_with_id("Assembler", Uuid::new_v4()));
+            TheTreeNode::new(TheId::named_with_id("Assembler", context.asm_node_id));
         asm_node.set_open(true);
         asm_node.set_root_mode(false);
 
+        let mut stack_index: u16 = 0;
+
         if let Ok(list) = machine.list_asm_sources() {
             for item in list {
-                let mut widget = TheTreeItem::new(TheId::named(&item.0));
-                widget.set_text(item.0);
+                let id = Uuid::new_v4();
+                let mut widget = TheTreeItem::new(TheId::named_with_id(&item.0.clone(), id));
+                widget.set_text(item.0.clone());
                 asm_node.add_widget(Box::new(widget));
+
+                if stack_index == 0 {
+                    asm_node.new_item_selected(&TheId::named_with_id(&item.0.clone(), id));
+                    context.current = item.0.clone();
+                }
+
+                context.stack_indices.insert(item.0.clone(), stack_index);
+                context.tree_item_ids.insert(item.0.clone(), id);
+                context.content.insert(item.0.clone(), item.1.clone());
+                stack_index += 1;
+
+                let canvas = self.create_asm_editor(item.0, item.1);
+                stack_layout.add_canvas(canvas);
             }
         }
 
@@ -235,5 +258,61 @@ impl Sidebar {
         // --
 
         ui.canvas.set_right(right_canvas);
+    }
+
+    pub fn create_asm_editor(&self, name: String, content: String) -> TheCanvas {
+        let mut code_canvas: TheCanvas = TheCanvas::new();
+        let mut textedit = TheTextAreaEdit::new(TheId::named(&name));
+        textedit.set_continuous(true);
+        textedit.display_line_number(true);
+        textedit.as_code_editor("Python", TheCodeEditorSettings::default());
+        textedit.set_code_theme("base16-eighties.dark");
+        textedit.use_global_statusbar(true);
+        textedit.set_font_size(14.0);
+        textedit.set_text(content);
+
+        if let Some(bytes) = crate::machine::EmbeddedAssets::get("parser/gruvbox-dark.tmTheme") {
+            if let Ok(source) = std::str::from_utf8(bytes.data.as_ref()) {
+                textedit.add_theme_from_string(source);
+                textedit.set_code_theme("Gruvbox Dark");
+            }
+        }
+
+        if let Some(bytes) = crate::machine::EmbeddedAssets::get("parser/6502.sublime-syntax") {
+            if let Ok(source) = std::str::from_utf8(bytes.data.as_ref()) {
+                textedit.add_syntax_from_string(source);
+                textedit.set_code_type("6502 Assembly");
+            }
+        }
+        textedit.as_code_editor(
+            "6502",
+            TheCodeEditorSettings {
+                indicate_space: false,
+                ..Default::default()
+            },
+        );
+        code_canvas.set_widget(textedit);
+
+        code_canvas
+    }
+
+    /// Set the title for a tree item
+    pub fn set_tree_item_title(&self, title: String, ui: &mut TheUI, context: &mut Context) {
+        if context.current.ends_with(".asm") {
+            if let Some(tree_layout) = ui.get_tree_layout("Project Tree") {
+                if let Some(node) = tree_layout.get_node_by_id_mut(&context.asm_node_id) {
+                    if let Some(index) = context.stack_indices.get(&context.current) {
+                        node.widgets[*index as usize].set_value(TheValue::Text(title));
+                    }
+                }
+            }
+        }
+    }
+
+    /// Set the status bar text
+    pub fn set_status_text(&self, text: String, ui: &mut TheUI) {
+        if let Some(statusbar) = ui.get_widget("Statusbar") {
+            statusbar.as_statusbar().unwrap().set_text(text);
+        }
     }
 }

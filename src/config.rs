@@ -25,7 +25,6 @@ pub struct VideoConfig {
 #[derive(Deserialize, Clone)]
 pub struct PaletteConfig {
     pub global_colors: u32,
-    pub sprite_palettes: u32,
     pub colors_per_sprite: u32,
 }
 
@@ -36,7 +35,6 @@ pub struct MemoryMap {
     pub ram: u16,
     pub video_ram: u16,
     pub palette_ram: u16,
-    pub palette_map: u16,
     pub sprite_ram: u16,
     pub io: u16,
     pub rom: u16,
@@ -49,11 +47,10 @@ impl Default for MemoryMap {
             stack: 0x0100,
             ram: 0x0200,
             video_ram: 0x2000,
-            palette_ram: 0x2C00,
-            palette_map: 0x2C60, // palette_ram + (32 colors * 3 bytes)
-            sprite_ram: 0x2C70,
-            io: 0x3000,
-            rom: 0x8000,
+            palette_ram: 0x8000,
+            sprite_ram: 0x8030,
+            io: 0x8230,
+            rom: 0x8330,
         }
     }
 }
@@ -63,8 +60,7 @@ impl MemoryMap {
     ///
     /// - VRAM: fixed base 0x2000, sized to fit bitmap 4bpp (2 pixels per byte)
     /// - Palette data: immediately after VRAM (3 bytes per global color)
-    /// - Palette map: 16 visible entries after palette data
-    /// - Sprite RAM: 0x100 bytes after palette map (placeholder)
+    /// - Sprite RAM: 0x200 bytes after palette data (64 sprites × 8 bytes)
     /// - I/O: 0x100 bytes after sprite RAM (placeholder)
     /// - ROM: starts after I/O
     pub fn from_config(cfg: &Config) -> Self {
@@ -83,9 +79,8 @@ impl MemoryMap {
             .min(u16::MAX as u32);
 
         let palette_ram = video_ram.saturating_add(vram_bytes as u16);
-        let palette_map = palette_ram.saturating_add(palette_bytes as u16);
-        let sprite_ram = palette_map.saturating_add(16); // 16 entries of palette map
-        let io = sprite_ram.saturating_add(0x0100);
+        let sprite_ram = palette_ram.saturating_add(palette_bytes as u16);
+        let io = sprite_ram.saturating_add(0x0200); // 64 sprites * 8 bytes each
         let rom = io.saturating_add(0x0100);
 
         MemoryMap {
@@ -94,7 +89,6 @@ impl MemoryMap {
             ram,
             video_ram,
             palette_ram,
-            palette_map,
             sprite_ram,
             io,
             rom,
@@ -140,8 +134,7 @@ impl Default for VideoConfig {
 impl Default for PaletteConfig {
     fn default() -> Self {
         Self {
-            global_colors: 32,
-            sprite_palettes: 4,
+            global_colors: 16,
             colors_per_sprite: 4,
         }
     }

@@ -14,6 +14,7 @@ pub struct Editor {
     event_receiver: Option<Receiver<TheEvent>>,
 
     sidebar: Sidebar,
+    context: Context,
 }
 
 impl Editor {
@@ -59,6 +60,7 @@ impl TheTrait for Editor {
             event_receiver: None,
 
             sidebar: Sidebar::new(),
+            context: Context::new(),
         }
     }
 
@@ -188,22 +190,6 @@ impl TheTrait for Editor {
         stop_button.set_status_text("Stop");
         stop_button.set_icon_name("stop-fill".to_string());
 
-        let mut time_slider = TheTimeSlider::new(TheId::named("Server Time Slider"));
-        time_slider.set_status_text("Server time");
-        time_slider.set_continuous(true);
-        time_slider.limiter_mut().set_max_width(400);
-        time_slider.set_value(TheValue::Time(TheTime::default()));
-
-        let mut update_button = TheMenubarButton::new(TheId::named("Update"));
-        update_button.set_status_text("Update");
-        update_button.set_icon_name("arrows-clockwise".to_string());
-
-        let mut patreon_button = TheMenubarButton::new(TheId::named("Patreon"));
-        patreon_button.set_status_text("Patreon");
-        patreon_button.set_icon_name("patreon".to_string());
-        // patreon_button.set_fixed_size(vec2i(36, 36));
-        patreon_button.set_icon_offset(Vec2::new(-4, -2));
-
         let mut hlayout = TheHLayout::new(TheId::named("Menu Layout"));
         hlayout.set_background_color(None);
         hlayout.set_margin(Vec4::new(10, 2, 10, 1));
@@ -219,13 +205,6 @@ impl TheTrait for Editor {
         hlayout.add_widget(Box::new(play_button));
         hlayout.add_widget(Box::new(pause_button));
         hlayout.add_widget(Box::new(stop_button));
-        hlayout.add_widget(Box::new(TheMenubarSeparator::new(TheId::empty())));
-        hlayout.add_widget(Box::new(time_slider));
-        //hlayout.add_widget(Box::new(TheMenubarSeparator::new(TheId::empty())));
-
-        hlayout.add_widget(Box::new(update_button));
-        hlayout.add_widget(Box::new(TheMenubarSeparator::new(TheId::empty())));
-        hlayout.add_widget(Box::new(patreon_button));
 
         hlayout.set_reverse_index(Some(3));
 
@@ -233,9 +212,6 @@ impl TheTrait for Editor {
         top_canvas.set_layout(hlayout);
         top_canvas.set_top(menu_canvas);
         ui.canvas.set_top(top_canvas);
-
-        // Sidebar
-        self.sidebar.init_ui(ui, ctx, &self.machine);
 
         let mut editor_canvas: TheCanvas = TheCanvas::new();
         let render_view = TheRenderView::new(TheId::named("RenderView"));
@@ -274,8 +250,12 @@ impl TheTrait for Editor {
 
         let mut code_stack_canvas = TheCanvas::new();
 
-        let mut code_layout = TheStackLayout::new(TheId::named("Editor Stack"));
-        code_layout.add_canvas(code_canvas);
+        let mut code_layout = TheStackLayout::new(TheId::named("Code Stack"));
+
+        // Sidebar
+        self.sidebar
+            .init_ui(ui, ctx, &self.machine, &mut self.context, &mut code_layout);
+        // code_layout.add_canvas(code_canvas);
 
         code_stack_canvas.set_layout(code_layout);
 
@@ -290,10 +270,18 @@ impl TheTrait for Editor {
         shared_canvas.set_layout(vsplitlayout);
 
         ui.canvas.set_center(shared_canvas);
+
+        let mut status_canvas = TheCanvas::new();
+        let mut statusbar = TheStatusbar::new(TheId::named("Statusbar"));
+        statusbar.set_text("Welcome to CHIPcade".into());
+        status_canvas.set_widget(statusbar);
+
+        ui.canvas.set_bottom(status_canvas);
+
         self.event_receiver = Some(ui.add_state_listener("Main Receiver".into()));
     }
 
-    fn update_ui(&mut self, ui: &mut TheUI, _ctx: &mut TheContext) -> bool {
+    fn update_ui(&mut self, ui: &mut TheUI, ctx: &mut TheContext) -> bool {
         let redraw = true;
 
         if let Some(render_view) = ui.get_render_view("RenderView") {
@@ -365,9 +353,131 @@ impl TheTrait for Editor {
                 //
 
                 match event {
-                    TheEvent::StateChanged(id, TheWidgetState::Selected) => {
+                    TheEvent::ValueChanged(id, value) => {
                         if id.name.ends_with(".asm") {
-                            if let Some(edit) = ui.get_text_area_edit("ASMEdit") {}
+                            if let Some(value) = value.to_string() {
+                                self.context.content.insert(id.name.clone(), value);
+                                self.sidebar.set_tree_item_title(
+                                    format!("{} *", id.name),
+                                    ui,
+                                    &mut self.context,
+                                );
+                                self.context.changed.insert(id.name);
+                            }
+                        }
+                    }
+                    TheEvent::StateChanged(id, _state) => {
+                        if id.name == "Undo" || id.name == "Redo" {
+                            if ui.focus_widget_supports_undo_redo(ctx) {
+                                if id.name == "Undo" {
+                                    ui.undo(ctx);
+                                } else {
+                                    ui.redo(ctx);
+                                }
+                            }
+                        } else if id.name.ends_with(".asm") {
+                            if let Some(stack) = ui.get_stack_layout("Code Stack") {
+                                if let Some(index) = self.context.stack_indices.get(&id.name) {
+                                    stack.set_index(*index as usize);
+                                    ctx.ui.relayout = true;
+                                    ctx.ui.redraw_all = true;
+                                    self.context.current = id.name.clone();
+                                }
+                            }
+                        } else if id.name == "Cut" {
+                            if ui.focus_widget_supports_clipboard(ctx) {
+                                // Widget specific
+                                ui.cut(ctx);
+                            } else {
+                                // Global
+                                ctx.ui.send(TheEvent::Cut);
+                            }
+                        } else if id.name == "Copy" {
+                            if ui.focus_widget_supports_clipboard(ctx) {
+                                // Widget specific
+                                ui.copy(ctx);
+                            } else {
+                                // Global
+                                ctx.ui.send(TheEvent::Copy);
+                            }
+                        } else if id.name == "Paste" {
+                            if ui.focus_widget_supports_clipboard(ctx) {
+                                // Widget specific
+                                ui.paste(ctx);
+                            } else {
+                                // Global
+                                if let Some(value) = &ctx.ui.clipboard {
+                                    ctx.ui.send(TheEvent::Paste(
+                                        value.clone(),
+                                        ctx.ui.clipboard_app_type.clone(),
+                                    ));
+                                } else {
+                                    ctx.ui.send(TheEvent::Paste(
+                                        TheValue::Empty,
+                                        ctx.ui.clipboard_app_type.clone(),
+                                    ));
+                                }
+                            }
+                        } else if id.name == "Save" {
+                            if self.context.changed.contains(&self.context.current) {
+                                if let Some(content) =
+                                    self.context.content.get(&self.context.current)
+                                {
+                                    let is_asm = self.context.current.ends_with(".asm");
+                                    if is_asm {
+                                        match self
+                                            .machine
+                                            .validate_asm(&self.context.current, content)
+                                        {
+                                            Ok(_) => {}
+                                            Err((line, error)) => {
+                                                let msg = if let Some(line) = line {
+                                                    format!("line {}: {}", line, error)
+                                                } else {
+                                                    error
+                                                };
+                                                self.sidebar.set_status_text(msg, ui);
+                                                // Do not write on validation failure.
+                                                continue;
+                                            }
+                                        }
+                                    }
+
+                                    // Save (ASM or other)
+                                    let save_result = if is_asm {
+                                        self.machine.write_asm_file(&self.context.current, content)
+                                    } else {
+                                        Err("Saving non-asm files is not supported yet".into())
+                                    };
+
+                                    match save_result {
+                                        Ok(_) => {
+                                            self.sidebar.set_status_text(
+                                                format!(
+                                                    "'{}' saved successfully.",
+                                                    self.context.current
+                                                ),
+                                                ui,
+                                            );
+                                            self.context.changed.remove(&self.context.current);
+                                            self.sidebar.set_tree_item_title(
+                                                format!("{}", self.context.current),
+                                                ui,
+                                                &mut self.context,
+                                            );
+                                        }
+                                        Err(error) => {
+                                            self.sidebar
+                                                .set_status_text(format!("Error: {}", error), ui);
+                                        }
+                                    }
+                                }
+                            } else {
+                                self.sidebar.set_status_text(
+                                    format!("'{}' has no changes.", self.context.current),
+                                    ui,
+                                );
+                            }
                         }
                     }
                     _ => {}

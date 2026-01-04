@@ -9,6 +9,5 @@ height = 192
 mode = "bitmap"
 
 [palette]
-global_colors = 32
-sprite_palettes = 4
+global_colors = 16
 colors_per_sprite = 4

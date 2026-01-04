@@ -9,6 +9,16 @@ height = 192
 mode = "bitmap"
 
 [palette]
-global_colors = 32
-sprite_palettes = 4
+global_colors = 16
 colors_per_sprite = 4
+
+# [rom]
+# base = 0x8270
+
+# [[rom.asset]]
+# file = "data/font.bin"
+# label = "FONT_BASE"
+
+# [[rom.asset]]
+# file = "data/title.bin"
+# label = "TITLE_BASE"
