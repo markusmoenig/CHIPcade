@@ -1,5 +1,5 @@
 ; Entry point
-    .include "include/chipcade.inc"
+.include "include/chipcade.inc"
 
 Start:
 ; Clear VRAM then write a small pattern (bitmap mode, VRAM base 0x2000)
@@ -46,5 +46,36 @@ STA ($00),Y
 INY
 DEX
 BNE PatternLoop
+
+; activate sprite
+LDY #$00
+LDA #<SPRITE_RAM
+STA $00
+LDA #>SPRITE_RAM
+STA $01
+
+LDA #$50          ; X
+STA ($00),Y
+INY
+LDA #$50          ; Y
+STA ($00),Y
+INY
+LDA #SPR_CHIPCADE ; image index 0 (SPR_CHIPCADE)
+STA ($00),Y
+INY
+LDA #%00010001    ; enable + size=16x16
+STA ($00),Y
+INY
+LDA #12           ; Color 1
+STA ($00),Y
+INY
+LDA #7            ; Color 2
+STA ($00),Y
+INY
+LDA #15           ; Color 3
+STA ($00),Y
+INY
+LDA #0            ; reserved
+STA ($00),Y
 
 BRK

@@ -88,7 +88,10 @@ pub fn assemble<R: Read, W: Write>(mut input: R, output: &mut W) -> AssembleResu
             .unwrap_or_default();
         let placeholder_repl = if let Some((start, _, _)) = first_symbol_after_mnemonic(&instr) {
             let bytes = instr.as_bytes();
+            let has_immediate = bytes[..start].iter().any(|b| *b == b'#');
             if is_branch(&mnemonic) {
+                "0"
+            } else if has_immediate {
                 "0"
             } else if start > 0 && (bytes[start - 1] == b'>' || bytes[start - 1] == b'<') {
                 "$00"
@@ -137,6 +140,7 @@ pub fn assemble<R: Read, W: Write>(mut input: R, output: &mut W) -> AssembleResu
                 .unwrap_or_default();
             let bytes = instr.as_bytes();
             let mut replace_start = start;
+            let has_immediate = bytes[..start].iter().any(|b| *b == b'#');
             let replacement = if is_branch(&mnemonic) {
                 let offset = target as i32 - (pc as i32 + 2);
                 if !(i8::MIN as i32..=i8::MAX as i32).contains(&offset) {
@@ -151,6 +155,8 @@ pub fn assemble<R: Read, W: Write>(mut input: R, output: &mut W) -> AssembleResu
                 format!("${:02X}", (target >> 8) as u8)
             } else if start > 0 && bytes[start - 1] == b'<' {
                 replace_start -= 1;
+                format!("${:02X}", target as u8)
+            } else if has_immediate {
                 format!("${:02X}", target as u8)
             } else {
                 format!("${:04X}", target)
@@ -184,7 +190,7 @@ pub fn assemble<R: Read, W: Write>(mut input: R, output: &mut W) -> AssembleResu
                     "Parse error on line {}: {}",
                     line_no,
                     resolved.trim()
-                ))
+                ));
             }
         }
     }
@@ -251,6 +257,11 @@ fn first_symbol_after_mnemonic(line: &str) -> Option<(usize, usize, String)> {
             let name = &rest[start..end];
             // Skip binary literal prefixes like 0bXXXX
             if start > 0 && (bytes[start - 1] == b'0') && (b == b'b' || b == b'B') {
+                i = end;
+                continue;
+            }
+            // Skip hex literal prefixes like 0xXXXX
+            if start > 0 && (bytes[start - 1] == b'0') && (b == b'x' || b == b'X') {
                 i = end;
                 continue;
             }

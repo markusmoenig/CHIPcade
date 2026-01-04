@@ -1,4 +1,5 @@
 use crate::config::{Config, MemoryMap, PaletteConfig};
+use crate::sprites::SpritePack;
 use mos6502::memory::{Bus, Memory};
 use std::path::Path;
 
@@ -7,6 +8,37 @@ pub struct Palette {
     data_len: u16, // bytes of palette color data
     base: u16,
     end: u16,
+}
+
+pub struct SpriteRam {
+    pub base: u16,
+    pub end: u16,
+    data: Vec<u8>, // 64 sprites * 8 bytes
+}
+
+impl SpriteRam {
+    fn new(map: &MemoryMap) -> Self {
+        let len = 64 * 8;
+        let base = map.sprite_ram;
+        let end = base.saturating_add(len as u16 - 1);
+        Self {
+            base,
+            end,
+            data: vec![0; len],
+        }
+    }
+
+    fn read(&self, addr: u16) -> u8 {
+        let idx = (addr - self.base) as usize;
+        self.data.get(idx).copied().unwrap_or(0)
+    }
+
+    fn write(&mut self, addr: u16, value: u8) {
+        let idx = (addr - self.base) as usize;
+        if let Some(slot) = self.data.get_mut(idx) {
+            *slot = value;
+        }
+    }
 }
 
 impl Palette {
@@ -131,18 +163,32 @@ pub struct ChipcadeBus {
     pub mem: Memory,
     pub palette: Palette,
     pub vram: VideoRam,
+    pub sprite_ram: SpriteRam,
+    pub sprites: SpritePack,
 }
 
 impl ChipcadeBus {
-    pub fn from_config(cfg: &Config, palette_data: Option<&[u8]>) -> Self {
+    pub fn from_config(cfg: &Config, palette_data: Option<&[u8]>, sprites: SpritePack) -> Self {
         let map = MemoryMap::from_config(cfg);
         let palette = Palette::new(&cfg.palette, &map, palette_data);
         let vram = VideoRam::new(cfg.video.width, cfg.video.height, map.video_ram);
+        let sprite_ram = SpriteRam::new(&map);
+
+        let mut mem = Memory::new();
+        if !sprites.data.is_empty() {
+            let rom_base = map.rom;
+            let end = rom_base as usize + sprites.data.len();
+            if end <= u16::MAX as usize + 1 {
+                mem.set_bytes(rom_base, &sprites.data);
+            }
+        }
 
         Self {
-            mem: Memory::new(),
+            mem,
             palette,
             vram,
+            sprite_ram,
+            sprites,
         }
     }
 
@@ -181,6 +227,84 @@ impl ChipcadeBus {
         out
     }
 
+    pub fn render_frame_rgba(&self) -> Vec<u8> {
+        let mut out = self.render_bitmap_rgba();
+        self.blit_sprites(&mut out);
+        out
+    }
+
+    fn blit_sprites(&self, out: &mut [u8]) {
+        let width = self.vram.width as i32;
+        let height = self.vram.height as i32;
+
+        for i in 0..64 {
+            let base = i * 8;
+            if base + 7 >= self.sprite_ram.data.len() {
+                continue;
+            }
+            let sprite = &self.sprite_ram.data[base..base + 8];
+            let x = sprite[0] as i32;
+            let y = sprite[1] as i32;
+            let image_index = sprite[2] as usize;
+            let attrs = sprite[3];
+            let c1 = sprite[4];
+            let c2 = sprite[5];
+            let c3 = sprite[6];
+
+            let enable = (attrs & 0b0001_0000) != 0;
+            if !enable {
+                continue;
+            }
+            let priority_back = (attrs & 0b0000_1000) != 0;
+            if priority_back {
+                continue; // behind opaque background
+            }
+            let size_flag = (attrs & 0b0000_0001) != 0;
+            let flip_x = (attrs & 0b0000_0010) != 0;
+            let flip_y = (attrs & 0b0000_0100) != 0;
+
+            let Some(img) = self.sprites.images.get(image_index) else {
+                continue;
+            };
+            let size = if size_flag { 16 } else { 8 };
+            let w = size.min(img.width as i32);
+            let h = size.min(img.height as i32);
+            let data = &self.sprites.data[img.offset..img.offset + img.len];
+
+            for sy in 0..h {
+                let iy = if flip_y { h - 1 - sy } else { sy };
+                let dest_y = y + sy;
+                if dest_y < 0 || dest_y >= height {
+                    continue;
+                }
+                for sx in 0..w {
+                    let ix = if flip_x { w - 1 - sx } else { sx };
+                    let dest_x = x + sx;
+                    if dest_x < 0 || dest_x >= width {
+                        continue;
+                    }
+                    let pixel_idx = (iy * size + ix) as usize;
+                    let pp = get_2bpp(data, pixel_idx);
+                    let pal_index = match pp {
+                        0 => continue,
+                        1 => c1,
+                        2 => c2,
+                        3 => c3,
+                        _ => continue,
+                    };
+                    let (r, g, b) = self.palette_rgb(pal_index);
+                    let di = (dest_y as usize * width as usize + dest_x as usize) * 4;
+                    if di + 3 < out.len() {
+                        out[di] = r;
+                        out[di + 1] = g;
+                        out[di + 2] = b;
+                        out[di + 3] = 0xFF;
+                    }
+                }
+            }
+        }
+    }
+
     #[allow(dead_code)]
     pub fn save_bitmap_png<P: AsRef<Path>>(&self, path: P) -> Result<(), String> {
         let rgba = self.render_bitmap_rgba();
@@ -200,6 +324,9 @@ impl Bus for ChipcadeBus {
         if (self.palette.base..=self.palette.end).contains(&address) {
             return self.palette.read(address);
         }
+        if (self.sprite_ram.base..=self.sprite_ram.end).contains(&address) {
+            return self.sprite_ram.read(address);
+        }
         if (self.vram.base..=self.vram.end).contains(&address) {
             return self.vram.read(address);
         }
@@ -211,10 +338,22 @@ impl Bus for ChipcadeBus {
             self.palette.write(address, value);
             return;
         }
+        if (self.sprite_ram.base..=self.sprite_ram.end).contains(&address) {
+            self.sprite_ram.write(address, value);
+            return;
+        }
         if (self.vram.base..=self.vram.end).contains(&address) {
             self.vram.write(address, value);
             return;
         }
         self.mem.set_byte(address, value);
     }
+}
+
+fn get_2bpp(data: &[u8], pixel_index: usize) -> u8 {
+    let byte_index = pixel_index / 4;
+    let shift = 6 - (pixel_index % 4) * 2;
+    data.get(byte_index)
+        .map(|b| (b >> shift) & 0b11)
+        .unwrap_or(0)
 }

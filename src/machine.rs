@@ -1,5 +1,6 @@
 use crate::bus::ChipcadeBus;
 use crate::config;
+use crate::sprites::{SpritePack, load_sprite_pack, load_sprite_pack_from_embedded, sprite_consts};
 use chipcade_asm::assemble;
 use mos6502::cpu;
 use mos6502::instruction::Nmos6502;
@@ -26,9 +27,15 @@ pub struct RunArtifacts {
     pub config: config::Config,
     pub sys_consts: Vec<SystemConst>,
     pub program: Vec<u8>,
+    pub sprites: crate::sprites::SpritePack,
     pub vram_rgba: Vec<u8>,
     pub steps: u64,
     pub reason: String,
+}
+
+pub struct BuildArtifacts {
+    pub program: Vec<u8>,
+    pub sprites: crate::sprites::SpritePack,
 }
 
 #[derive(Clone)]
@@ -120,41 +127,85 @@ impl Machine {
         );
     }
 
-    /// Assemble the current project and return the program bytes.
-    pub fn assemble(&self) -> Result<Vec<u8>, String> {
-        let prologue = build_system_prologue(&self.sys_consts);
-        let expanded = expand_asm(&self.paths.asm_main, &mut HashSet::new())?;
+    /// Assemble the current project and return artifacts (program + sprites).
+    pub fn assemble(&self) -> Result<BuildArtifacts, String> {
+        let project_root = self
+            .paths
+            .config
+            .parent()
+            .unwrap_or_else(|| Path::new("."))
+            .to_path_buf();
+        let mut sprite_pack = load_sprite_pack(&project_root)?;
+        if sprite_pack.images.is_empty() {
+            let mut embedded = Vec::new();
+            for file in EmbeddedAssets::iter() {
+                let path = file.as_ref();
+                if path.starts_with("assets/sprites/") && path.ends_with(".spr") {
+                    if let Some(data) = EmbeddedAssets::get(path) {
+                        let content = String::from_utf8_lossy(data.data.as_ref()).to_string();
+                        let name = Path::new(path)
+                            .file_stem()
+                            .and_then(|s| s.to_str())
+                            .unwrap_or("sprite")
+                            .to_string();
+                        embedded.push((name, content));
+                    }
+                }
+            }
+            sprite_pack = load_sprite_pack_from_embedded(embedded)?;
+            println!(
+                "Loaded {} sprite(s) from embedded assets.",
+                sprite_pack.images.len()
+            );
+        } else {
+            println!(
+                "Loaded {} sprite(s) from {}.",
+                sprite_pack.images.len(),
+                project_root.join("assets/sprites").display()
+            );
+        }
+        let sprite_consts = sprite_consts(&sprite_pack.images);
 
-        let mut asm = prologue.bytes.clone();
-        asm.extend_from_slice(&expanded.bytes);
-        let mut line_map = prologue.line_map.clone();
-        line_map.extend_from_slice(&expanded.line_map);
+        write_chipcade_inc(&self.paths, &self.sys_consts, &sprite_consts)?;
+
+        let expanded = expand_asm(&self.paths.asm_main, &mut HashSet::new())?;
+        let asm = expanded.bytes.clone();
+        let line_map = expanded.line_map.clone();
 
         let mut program = Vec::<u8>::new();
         assemble(&mut Cursor::new(asm), &mut program).map_err(|msg| {
             if let Some((file, line)) = map_error_to_origin(&msg, &line_map) {
-                format!(
-                    "Assembly error: {}:{} -> {}",
-                    file.to_string_lossy(),
-                    line,
-                    msg
-                )
+                let project_root = self.paths.config.parent().unwrap_or_else(|| Path::new("."));
+                let rel = relative_path(project_root, &file);
+                let trimmed = msg
+                    .splitn(2, ':')
+                    .nth(1)
+                    .map(|s| s.trim())
+                    .unwrap_or(msg.as_str());
+                format!("Assembly error: {}:{} -> {}", rel.display(), line, trimmed)
             } else {
                 format!("Assembly error: {}", msg)
             }
         })?;
 
-        Ok(program)
+        Ok(BuildArtifacts {
+            program,
+            sprites: sprite_pack,
+        })
     }
 
     /// Run an already assembled program.
-    pub fn execute(&self, mut program: Vec<u8>) -> Result<RunArtifacts, String> {
+    pub fn execute(
+        &self,
+        mut program: Vec<u8>,
+        sprites: SpritePack,
+    ) -> Result<RunArtifacts, String> {
         let palette_bytes = load_palette_file(
             &self.paths.palette,
             self.config.palette.global_colors as usize,
         )?;
         let mut cpu = cpu::CPU::new(
-            ChipcadeBus::from_config(&self.config, Some(&palette_bytes)),
+            ChipcadeBus::from_config(&self.config, Some(&palette_bytes), sprites.clone()),
             Nmos6502,
         );
 
@@ -202,12 +253,13 @@ impl Machine {
             steps += 1;
         }
 
-        let vram_rgba = cpu.memory.render_bitmap_rgba();
+        let vram_rgba = cpu.memory.render_frame_rgba();
 
         Ok(RunArtifacts {
             config: self.config.clone(),
             sys_consts: self.sys_consts.clone(),
             program,
+            sprites,
             vram_rgba,
             steps,
             reason: stop_reason,
@@ -216,8 +268,8 @@ impl Machine {
 
     /// Assemble and run in one step (current CLI behavior).
     pub fn run(&self) -> Result<RunArtifacts, String> {
-        let program = self.assemble()?;
-        self.execute(program)
+        let build = self.assemble()?;
+        self.execute(build.program, build.sprites)
     }
 
     pub fn persist_artifacts(&self, artifacts: &RunArtifacts) {
@@ -377,34 +429,63 @@ impl Machine {
         let base_dir = virtual_path.parent().unwrap_or(&root);
 
         // Assemble with system prologue so constants are available.
-        let prologue = build_system_prologue(&self.sys_consts);
+        let project_root = self
+            .paths
+            .config
+            .parent()
+            .unwrap_or_else(|| Path::new("."))
+            .to_path_buf();
+        let mut sprite_pack = match load_sprite_pack(&project_root) {
+            Ok(p) => p,
+            Err(e) => return Err((None, e)),
+        };
+        if sprite_pack.images.is_empty() {
+            let mut embedded = Vec::new();
+            for file in EmbeddedAssets::iter() {
+                let path = file.as_ref();
+                if path.starts_with("assets/sprites/") && path.ends_with(".spr") {
+                    if let Some(data) = EmbeddedAssets::get(path) {
+                        let content = String::from_utf8_lossy(data.data.as_ref()).to_string();
+                        let name = Path::new(path)
+                            .file_stem()
+                            .and_then(|s| s.to_str())
+                            .unwrap_or("sprite")
+                            .to_string();
+                        embedded.push((name, content));
+                    }
+                }
+            }
+            sprite_pack = load_sprite_pack_from_embedded(embedded).map_err(|e| (None, e))?;
+        }
+        let sprite_consts = sprite_consts(&sprite_pack.images);
+        if let Err(e) = write_chipcade_inc(&self.paths, &self.sys_consts, &sprite_consts) {
+            return Err((None, e));
+        }
+
         let expanded =
             match expand_asm_inline(base_dir, &virtual_path, content, &mut HashSet::new()) {
                 Ok(e) => e,
                 Err(e) => return Err((None, e)),
             };
 
-        let mut asm = prologue.bytes.clone();
-        asm.extend_from_slice(&expanded.bytes);
-        let mut line_map = prologue.line_map.clone();
-        line_map.extend_from_slice(&expanded.line_map);
+        let mut asm = expanded.bytes.clone();
+        let mut line_map = expanded.line_map.clone();
+        // Prepend include to ensure constants are seen first.
+        let include_line = b".include \"include/chipcade.inc\"\n";
+        asm.splice(0..0, include_line.iter().copied());
+        line_map.iter_mut().for_each(|l| l.line += 1);
+        line_map.insert(
+            0,
+            LineOrigin {
+                file: virtual_path.clone(),
+                line: 1,
+            },
+        );
 
         if let Err(msg) = assemble(&mut Cursor::new(asm), &mut Vec::<u8>::new()) {
             if let Some((file, line)) = map_error_to_origin(&msg, &line_map) {
-                let project_root = self
-                    .paths
-                    .config
-                    .parent()
-                    .unwrap_or_else(|| Path::new("."))
-                    .canonicalize()
-                    .unwrap_or_else(|_| {
-                        self.paths
-                            .config
-                            .parent()
-                            .unwrap_or_else(|| Path::new("."))
-                            .to_path_buf()
-                    });
-                let rel = relative_path(&project_root, &file);
+                let project_root = self.paths.config.parent().unwrap_or_else(|| Path::new("."));
+                let rel = relative_path(project_root, &file);
                 let decorated = if file == virtual_path {
                     msg
                 } else {
@@ -705,23 +786,40 @@ fn system_constants(map: &config::MemoryMap, cfg: &config::Config) -> Vec<System
     ]
 }
 
-fn build_system_prologue(constants: &[SystemConst]) -> ExpandedAsm {
-    let mut bytes = Vec::new();
-    let mut line_map = Vec::new();
-    let sys_path = PathBuf::from("<system>");
-    for (idx, c) in constants.iter().enumerate() {
-        let line = if c.is_hex {
-            format!(".const {} ${:04X}\n", c.name, c.value)
-        } else {
-            format!(".const {} {}\n", c.name, c.value)
-        };
-        bytes.extend_from_slice(line.as_bytes());
-        line_map.push(LineOrigin {
-            file: sys_path.clone(),
-            line: idx + 1,
-        });
+fn write_chipcade_inc(
+    paths: &ProjectPaths,
+    sys_consts: &[SystemConst],
+    sprite_consts: &[(String, u32)],
+) -> Result<(), String> {
+    let include_path = paths
+        .asm_main
+        .parent()
+        .unwrap_or_else(|| Path::new("."))
+        .join("include/chipcade.inc");
+    if let Some(parent) = include_path.parent() {
+        fs::create_dir_all(parent)
+            .map_err(|e| format!("Failed to create include dir {}: {e}", parent.display()))?;
     }
-    ExpandedAsm { bytes, line_map }
+
+    let mut out = String::new();
+    out.push_str("; Auto-generated by chipcade. Do not edit.\n");
+    out.push_str("; System constants\n");
+    for c in sys_consts {
+        if c.is_hex {
+            out.push_str(&format!(".const {} ${:04X}\n", c.name, c.value));
+        } else {
+            out.push_str(&format!(".const {} {}\n", c.name, c.value));
+        }
+    }
+    if !sprite_consts.is_empty() {
+        out.push_str("\n; Sprite indices\n");
+        for (name, val) in sprite_consts {
+            out.push_str(&format!(".const {} {}\n", name, val));
+        }
+    }
+
+    fs::write(&include_path, out)
+        .map_err(|e| format!("Failed to write {}: {e}", include_path.display()))
 }
 
 fn save_rgba_png(width: u32, height: u32, rgba: &[u8], path: &Path) -> Result<(), String> {
@@ -779,8 +877,8 @@ pub fn scaffold_project(name: PathBuf) {
             root.join("assets/palettes/default.pal"),
         ),
         (
-            "assets/palettes/sprites/chipcade.spr",
-            root.join("assets/palettes/sprites/chipcade.spr"),
+            "assets/sprites/chipcade.spr",
+            root.join("assets/sprites/chipcade.spr"),
         ),
         (".gitignore", root.join(".gitignore")),
         ("README.md", root.join("README.md")),

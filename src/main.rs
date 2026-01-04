@@ -4,6 +4,7 @@ mod editor;
 mod eval;
 mod machine;
 mod player;
+mod sprites;
 
 use clap::{Parser, Subcommand};
 use eval::{EvalResult, eval_expression};
@@ -88,7 +89,7 @@ fn main() {
     match command {
         Commands::Run { project, scale } => match Machine::new(project) {
             Ok(machine) => match machine.assemble() {
-                Ok(_bytes) => {
+                Ok(_) => {
                     let mut player = crate::player::player::Player::new();
                     player.set_machine(machine, scale);
                     let app = TheApp::new();
@@ -107,7 +108,7 @@ fn main() {
             Ok(machine) => {
                 println!("Launching editor (preview)…");
                 match machine.assemble() {
-                    Ok(_bytes) => {
+                    Ok(_) => {
                         let mut editor = crate::editor::editor::Editor::new();
                         editor.set_machine(machine);
                         editor.set_integer_scale(false);
