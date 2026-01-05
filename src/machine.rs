@@ -14,9 +14,9 @@ use std::path::{Component, Path, PathBuf};
 use std::time::{Duration, Instant};
 
 #[derive(Clone)]
-struct LineOrigin {
-    file: PathBuf,
-    line: usize,
+pub struct LineOrigin {
+    pub file: PathBuf,
+    pub line: usize,
 }
 
 struct ExpandedAsm {
@@ -36,11 +36,209 @@ pub struct RunArtifacts {
 }
 
 #[derive(Clone)]
+pub struct DebugRegisters {
+    pub a: u8,
+    pub x: u8,
+    pub y: u8,
+    pub sp: u8,
+    pub pc: u16,
+    pub status: u8,
+}
+
+pub struct DebugLine {
+    pub file: String,
+    pub line: usize,
+}
+
+pub struct DebugStep {
+    pub registers: DebugRegisters,
+    pub stop_reason: Option<String>,
+    pub line: Option<DebugLine>,
+}
+
+pub struct DebugSession {
+    cpu: cpu::CPU<ChipcadeBus, Nmos6502>,
+    artifacts: BuildArtifacts,
+    init_addr: Option<u16>,
+    update_addr: Option<u16>,
+    did_init: bool,
+    in_init: bool,
+}
+
+impl DebugSession {
+    fn ensure_ready(&mut self) {
+        if self.did_init {
+            return;
+        }
+        // Position PC at Init if present, else entry point, else Update.
+        if let Some(init) = self.init_addr.or(self.artifacts.entry_point) {
+            self.cpu.registers.program_counter = init;
+        } else if let Some(update) = self.update_addr {
+            self.cpu.registers.program_counter = update;
+        }
+        self.in_init = self.init_addr.is_some();
+        self.did_init = true;
+    }
+
+    fn map_line(&self, pc: u16) -> Option<DebugLine> {
+        if pc < self.artifacts.load_addr {
+            return None;
+        }
+        let idx = (pc - self.artifacts.load_addr) as usize;
+        self.artifacts.pc_line_map.get(idx).map(|orig| DebugLine {
+            file: orig
+                .file
+                .file_name()
+                .and_then(|s| s.to_str())
+                .unwrap_or_default()
+                .to_string(),
+            line: orig.line,
+        })
+    }
+
+    pub fn peek_registers(&self) -> DebugRegisters {
+        let regs = &self.cpu.registers;
+        DebugRegisters {
+            a: regs.accumulator,
+            x: regs.index_x,
+            y: regs.index_y,
+            sp: regs.stack_pointer.0,
+            pc: regs.program_counter,
+            status: regs.status.bits(),
+        }
+    }
+
+    pub fn peek_line(&self) -> Option<DebugLine> {
+        self.map_line(self.cpu.registers.program_counter)
+    }
+
+    pub fn step(&mut self) -> DebugStep {
+        self.ensure_ready();
+        let pc = self.cpu.registers.program_counter;
+        let line = self.map_line(pc);
+        let opcode = self.cpu.memory.get_byte(pc);
+        let stop_reason = if opcode == 0x00 {
+            if self.in_init {
+                if let Some(update) = self.update_addr {
+                    self.cpu.registers.program_counter = update;
+                    self.in_init = false;
+                    Some("Init BRK -> Update".to_string())
+                } else {
+                    Some("BRK".to_string())
+                }
+            } else {
+                // Loop Update on BRK if present.
+                if let Some(update) = self.update_addr {
+                    self.cpu.registers.program_counter = update;
+                    None
+                } else {
+                    Some("BRK".to_string())
+                }
+            }
+        } else if opcode == 0xFF {
+            Some("HALT".to_string())
+        } else {
+            self.cpu.single_step();
+            if opcode == 0x60 && self.in_init {
+                self.in_init = false;
+            }
+            None
+        };
+
+        let regs = &self.cpu.registers;
+        let registers = DebugRegisters {
+            a: regs.accumulator,
+            x: regs.index_x,
+            y: regs.index_y,
+            sp: regs.stack_pointer.0,
+            pc: regs.program_counter,
+            status: regs.status.bits(),
+        };
+
+        DebugStep {
+            registers,
+            stop_reason,
+            line,
+        }
+    }
+
+    pub fn step_with_frame(&mut self) -> (DebugStep, Vec<u8>) {
+        let step = self.step();
+        let frame = self.cpu.memory.render_frame_rgba();
+        (step, frame)
+    }
+
+    pub fn current_frame_rgba(&self) -> Vec<u8> {
+        self.cpu.memory.render_frame_rgba()
+    }
+
+    pub fn run_to_rts(&mut self) -> DebugStep {
+        self.ensure_ready();
+        loop {
+            let pc = self.cpu.registers.program_counter;
+            let line = self.map_line(pc);
+            let opcode = self.cpu.memory.get_byte(pc);
+            if opcode == 0x00 {
+                if self.in_init {
+                    if let Some(update) = self.update_addr {
+                        self.cpu.registers.program_counter = update;
+                        self.in_init = false;
+                        let regs = self.peek_registers();
+                        return DebugStep {
+                            registers: regs.clone(),
+                            stop_reason: Some("Init BRK -> Update".to_string()),
+                            line: self.map_line(regs.pc).or(line),
+                        };
+                    }
+                } else if let Some(update) = self.update_addr {
+                    self.cpu.registers.program_counter = update;
+                    continue;
+                }
+                let regs = self.peek_registers();
+                return DebugStep {
+                    registers: regs,
+                    stop_reason: Some("BRK".to_string()),
+                    line,
+                };
+            }
+            if opcode == 0xFF {
+                let regs = self.peek_registers();
+                return DebugStep {
+                    registers: regs,
+                    stop_reason: Some("HALT".to_string()),
+                    line,
+                };
+            }
+            if opcode == 0x60 {
+                self.cpu.single_step();
+                let regs = self.peek_registers();
+                let line_after = self.map_line(regs.pc);
+                return DebugStep {
+                    registers: regs,
+                    stop_reason: Some("RTS".to_string()),
+                    line: line_after.or(line),
+                };
+            }
+            self.cpu.single_step();
+        }
+    }
+
+    pub fn run_to_rts_with_frame(&mut self) -> (DebugStep, Vec<u8>) {
+        let step = self.run_to_rts();
+        let frame = self.cpu.memory.render_frame_rgba();
+        (step, frame)
+    }
+}
+
+#[derive(Clone)]
 pub struct BuildArtifacts {
     pub program: Vec<u8>,
     pub sprites: crate::sprites::SpritePack,
     pub entry_point: Option<u16>,
     pub labels: std::collections::HashMap<String, u16>,
+    pub load_addr: u16,
+    pub line_map: Vec<LineOrigin>,
+    pub pc_line_map: Vec<LineOrigin>,
 }
 
 #[derive(Clone)]
@@ -250,6 +448,13 @@ impl Machine {
             }
         })?;
 
+        let mut pc_line_map = Vec::new();
+        for line_no in &assembled.pc_line {
+            if let Some(orig) = line_map.get(line_no.saturating_sub(1)) {
+                pc_line_map.push(orig.clone());
+            }
+        }
+
         let entry_point = assembled
             .labels
             .get("Start")
@@ -262,6 +467,9 @@ impl Machine {
             program: assembled.bytes,
             sprites: sprite_pack,
             labels: assembled.labels,
+            load_addr: origin,
+            line_map,
+            pc_line_map,
         })
     }
 
@@ -403,6 +611,22 @@ impl Machine {
     pub fn run(&self) -> Result<RunArtifacts, String> {
         let build = self.assemble_impl(true)?; // silent=true to avoid duplicate output
         self.execute(build.program, build.sprites, build.entry_point)
+    }
+
+    /// Create a debugging session with a CPU initialized to the program entry.
+    pub fn start_debug_session(&self) -> Result<DebugSession, String> {
+        let build = self.assemble_impl(true)?; // silent
+        let cpu = self.create_cpu(&build.program, &build.sprites, build.entry_point)?;
+        let init_addr = build.labels.get("Init").copied();
+        let update_addr = build.labels.get("Update").copied();
+        Ok(DebugSession {
+            cpu,
+            artifacts: build,
+            init_addr,
+            update_addr,
+            did_init: false,
+            in_init: init_addr.is_some(),
+        })
     }
 
     pub fn persist_artifacts(&self, artifacts: &RunArtifacts) {

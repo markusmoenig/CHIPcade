@@ -12,6 +12,7 @@ type AssembleResult = Result<(), String>;
 pub struct AssembleOutput {
     pub bytes: Vec<u8>,
     pub labels: HashMap<String, u16>,
+    pub pc_line: Vec<usize>,
 }
 
 fn strip_comments(input: &[u8]) -> Vec<u8> {
@@ -147,11 +148,12 @@ pub fn assemble_with_labels_at<R: Read>(
         instructions.push((idx + 1, instr.trim().to_string()));
     }
 
-    let program = assemble_second_pass(instructions, &labels, origin)?;
+    let (program, pc_line) = assemble_second_pass(instructions, &labels, origin)?;
 
     Ok(AssembleOutput {
         bytes: program,
         labels,
+        pc_line,
     })
 }
 
@@ -159,9 +161,10 @@ fn assemble_second_pass(
     instructions: Vec<(usize, String)>,
     labels: &HashMap<String, u16>,
     origin: u16,
-) -> Result<Vec<u8>, String> {
+) -> Result<(Vec<u8>, Vec<usize>), String> {
     // Second pass: resolve labels and emit final bytes
     let mut program: Vec<u8> = Vec::new();
+    let mut pc_line: Vec<usize> = Vec::new();
     let mut pc: u16 = origin;
     for (line_no, instr) in instructions {
         if instr.is_empty() {
@@ -216,6 +219,8 @@ fn assemble_second_pass(
                 if rem.iter().all(|b| b.is_ascii_whitespace()) {
                     let before = program.len();
                     emit_opcode(opcode, &mut program)?;
+                    let emitted = program.len() - before;
+                    pc_line.extend(std::iter::repeat(line_no).take(emitted));
                     pc = pc
                         .checked_add((program.len() - before) as u16)
                         .ok_or_else(|| "Program too large".to_owned())?;
@@ -237,7 +242,7 @@ fn assemble_second_pass(
         }
     }
 
-    Ok(program)
+    Ok((program, pc_line))
 }
 
 fn split_label_and_instr(line: &str) -> (Option<String>, String) {

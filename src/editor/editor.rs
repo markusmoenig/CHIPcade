@@ -1,15 +1,33 @@
 use crate::machine::EmbeddedAssets;
+use crate::machine::{BuildArtifacts, DebugSession, Machine};
 use crate::prelude::*;
 use image::load_from_memory;
+use mos6502::cpu;
+use mos6502::instruction::Nmos6502;
 use theframework::prelude::*;
 
 use std::sync::mpsc::Receiver;
 
+#[derive(Debug, PartialEq, Copy, Clone)]
+enum EditorState {
+    Idle,
+    Playing,
+    Debugging,
+}
+
 pub struct Editor {
     machine: Machine,
     frame: Option<(Vec<u8>, u32, u32)>,
+
+    artifacts: Option<BuildArtifacts>,
+    cpu: Option<cpu::CPU<ChipcadeBus, Nmos6502>>,
+
     integer_scale: bool,
     vertical_margin: u32,
+    did_init: bool,
+    state: EditorState,
+    debug_session: Option<DebugSession>,
+    debug_running: bool,
 
     event_receiver: Option<Receiver<TheEvent>>,
 
@@ -21,6 +39,11 @@ impl Editor {
     pub fn set_machine(&mut self, machine: Machine) {
         self.machine = machine;
         self.frame = None;
+        self.artifacts = None;
+        self.cpu = None;
+        self.did_init = false;
+        self.debug_session = None;
+        self.debug_running = false;
     }
 
     pub fn set_integer_scale(&mut self, integer_scale: bool) {
@@ -32,17 +55,53 @@ impl Editor {
     }
 
     fn ensure_frame(&mut self) {
-        if self.frame.is_some() {
-            return;
-        }
-        match self.machine.run() {
-            Ok(artifacts) => {
-                let w = artifacts.config.video.width;
-                let h = artifacts.config.video.height;
-                self.frame = Some((artifacts.vram_rgba, w, h));
+        // Assemble once, then run one frame each draw using a persistent CPU.
+        let artifacts = match self.artifacts.clone() {
+            Some(a) => a,
+            None => match self.machine.assemble_silent() {
+                Ok(a) => {
+                    self.artifacts = Some(a.clone());
+                    a
+                }
+                Err(e) => {
+                    eprintln!("{e}");
+                    return;
+                }
+            },
+        };
+
+        let cpu = self.cpu.get_or_insert_with(|| {
+            self.machine
+                .create_cpu(
+                    &artifacts.program,
+                    &artifacts.sprites,
+                    artifacts.entry_point,
+                )
+                .expect("failed to create CPU")
+        });
+
+        // Run Init once if present; otherwise fall back to Start/entry_point.
+        if !self.did_init {
+            let init = Machine::label_address(&artifacts.labels, "Init").or(artifacts.entry_point);
+            if let Some(addr) = init {
+                let init_entry = self.machine.entry_address(Some(addr));
+                let (_rgba, _steps, _reason) = self.machine.run_frame(cpu, init_entry);
             }
-            Err(e) => eprintln!("{e}"),
         }
+
+        if self.state == EditorState::Playing
+            || (self.state == EditorState::Idle && self.did_init == false)
+        {
+            // Per-frame Update; fallback to Start/entry_point if missing.
+            let update =
+                Machine::label_address(&artifacts.labels, "Update").or(artifacts.entry_point);
+            let update_entry = self.machine.entry_address(update);
+            let (rgba, _steps, _reason) = self.machine.run_frame(cpu, update_entry);
+            let (w, h) = self.machine.video_size();
+            self.frame = Some((rgba, w, h));
+        }
+
+        self.did_init = true;
     }
 }
 
@@ -56,6 +115,13 @@ impl TheTrait for Editor {
             frame: None,
             integer_scale: false,
             vertical_margin: 2,
+            did_init: false,
+
+            artifacts: None,
+            cpu: None,
+            state: EditorState::Idle,
+            debug_session: None,
+            debug_running: false,
 
             event_receiver: None,
 
@@ -135,15 +201,52 @@ impl TheTrait for Editor {
             TheId::named("Paste"),
             TheAccelerator::new(TheAcceleratorKey::CTRLCMD, 'v'),
         ));
-        edit_menu.add_separator();
+
+        let mut actions_menu = TheContextMenu::named("Actions".to_string());
+        actions_menu.add(TheContextMenuItem::new_with_accel(
+            "Play".to_string(),
+            TheId::named("Play"),
+            TheAccelerator::new(TheAcceleratorKey::CTRLCMD, 'p'),
+        ));
+        actions_menu.add(TheContextMenuItem::new_with_accel(
+            "Stop".to_string(),
+            TheId::named("Stop"),
+            TheAccelerator::new(TheAcceleratorKey::CTRLCMD, 'b'),
+        ));
+        actions_menu.add_separator();
+        actions_menu.add(TheContextMenuItem::new_with_accel(
+            "Debug".to_string(),
+            TheId::named("Debug"),
+            TheAccelerator::new(TheAcceleratorKey::CTRLCMD, 'd'),
+        ));
+        actions_menu.add(TheContextMenuItem::new_with_accel(
+            "Step".to_string(),
+            TheId::named("Step"),
+            TheAccelerator::new(TheAcceleratorKey::CTRLCMD, 'e'),
+        ));
+        actions_menu.add(TheContextMenuItem::new_with_accel(
+            "Run to RTS".to_string(),
+            TheId::named("RunRTS"),
+            TheAccelerator::new(TheAcceleratorKey::CTRLCMD, 't'),
+        ));
+        actions_menu.add(TheContextMenuItem::new_with_accel(
+            "Continue".to_string(),
+            TheId::named("Continue"),
+            TheAccelerator::new(TheAcceleratorKey::CTRLCMD, 'o'),
+        ));
+        actions_menu.add(TheContextMenuItem::new_with_accel(
+            "Pause".to_string(),
+            TheId::named("Pause"),
+            TheAccelerator::new(TheAcceleratorKey::CTRLCMD, 'a'),
+        ));
 
         file_menu.register_accel(ctx);
         edit_menu.register_accel(ctx);
-        // view_menu.register_accel(ctx);
-        // tools_menu.register_accel(ctx);
+        actions_menu.register_accel(ctx);
 
         menu.add_context_menu(file_menu);
         menu.add_context_menu(edit_menu);
+        menu.add_context_menu(actions_menu);
         menu_canvas.set_widget(menu);
 
         // Menubar
@@ -156,18 +259,9 @@ impl TheTrait for Editor {
         logo_button.set_icon_name("logo".to_string());
         logo_button.set_status_text("Logo");
 
-        let mut open_button = TheMenubarButton::new(TheId::named("Open"));
-        open_button.set_icon_name("icon_role_load".to_string());
-        open_button.set_status_text("Open project");
-
         let mut save_button = TheMenubarButton::new(TheId::named("Save"));
-        save_button.set_status_text("Save project");
-        save_button.set_icon_name("icon_role_save".to_string());
-
-        let mut save_as_button = TheMenubarButton::new(TheId::named("Save As"));
-        save_as_button.set_icon_name("icon_role_save_as".to_string());
-        save_as_button.set_status_text("Save project as…");
-        save_as_button.set_icon_offset(Vec2::new(2, -5));
+        save_button.set_status_text("Save the current file to disk");
+        save_button.set_icon_name("icon_role_load".to_string());
 
         let mut undo_button = TheMenubarButton::new(TheId::named("Undo"));
         undo_button.set_status_text("Undo last action");
@@ -177,36 +271,17 @@ impl TheTrait for Editor {
         redo_button.set_status_text("Redo last action");
         redo_button.set_icon_name("icon_role_redo".to_string());
 
-        let mut play_button = TheMenubarButton::new(TheId::named("Play"));
-        play_button.set_status_text("Play");
-        play_button.set_icon_name("play".to_string());
-        //play_button.set_fixed_size(vec2i(28, 28));
-
-        let mut pause_button = TheMenubarButton::new(TheId::named("Pause"));
-        pause_button.set_status_text("Pause");
-        pause_button.set_icon_name("play-pause".to_string());
-
-        let mut stop_button = TheMenubarButton::new(TheId::named("Stop"));
-        stop_button.set_status_text("Stop");
-        stop_button.set_icon_name("stop-fill".to_string());
-
         let mut hlayout = TheHLayout::new(TheId::named("Menu Layout"));
         hlayout.set_background_color(None);
         hlayout.set_margin(Vec4::new(10, 2, 10, 1));
         hlayout.add_widget(Box::new(logo_button));
         hlayout.add_widget(Box::new(TheMenubarSeparator::new(TheId::empty())));
-        hlayout.add_widget(Box::new(open_button));
         hlayout.add_widget(Box::new(save_button));
-        hlayout.add_widget(Box::new(save_as_button));
         hlayout.add_widget(Box::new(TheMenubarSeparator::new(TheId::empty())));
         hlayout.add_widget(Box::new(undo_button));
         hlayout.add_widget(Box::new(redo_button));
-        hlayout.add_widget(Box::new(TheMenubarSeparator::new(TheId::empty())));
-        hlayout.add_widget(Box::new(play_button));
-        hlayout.add_widget(Box::new(pause_button));
-        hlayout.add_widget(Box::new(stop_button));
 
-        hlayout.set_reverse_index(Some(3));
+        // hlayout.set_reverse_index(Some(3));
 
         top_canvas.set_widget(menubar);
         top_canvas.set_layout(hlayout);
@@ -259,6 +334,56 @@ impl TheTrait for Editor {
 
         code_stack_canvas.set_layout(code_layout);
 
+        // Toolbar
+
+        let mut toolbar_canvas = TheCanvas::default();
+        let traybar_widget = TheTraybar::new(TheId::empty());
+        toolbar_canvas.set_widget(traybar_widget);
+        let mut toolbar_hlayout = TheHLayout::new(TheId::empty());
+        toolbar_hlayout.set_background_color(None);
+
+        let mut play_button = TheTraybarButton::new(TheId::named("Play"));
+        play_button.set_icon(ctx.ui.icon("play-fill").unwrap().clone());
+        play_button.set_status_text("Play");
+        toolbar_hlayout.add_widget(Box::new(play_button));
+
+        toolbar_hlayout.add_widget(Box::new(TheHDivider::new(TheId::empty())));
+
+        let mut debug_button = TheTraybarButton::new(TheId::named("Debug"));
+        debug_button.set_icon(ctx.ui.icon("bug-fill").unwrap().clone());
+        debug_button.set_status_text("Debug");
+        toolbar_hlayout.add_widget(Box::new(debug_button));
+
+        let mut step_button = TheTraybarButton::new(TheId::named("Step"));
+        step_button.set_icon(ctx.ui.icon("play-pause-fill").unwrap().clone());
+        step_button.set_status_text("Step");
+        toolbar_hlayout.add_widget(Box::new(step_button));
+
+        let mut run_rts_button = TheTraybarButton::new(TheId::named("RunRTS"));
+        run_rts_button.set_icon(ctx.ui.icon("skip-end-fill").unwrap().clone());
+        run_rts_button.set_status_text("Run to RTS");
+        toolbar_hlayout.add_widget(Box::new(run_rts_button));
+
+        let mut cont_button = TheTraybarButton::new(TheId::named("Continue"));
+        cont_button.set_icon(ctx.ui.icon("play-circle-fill").unwrap().clone());
+        cont_button.set_status_text("Continue");
+        toolbar_hlayout.add_widget(Box::new(cont_button));
+
+        let mut pause_button = TheTraybarButton::new(TheId::named("Pause"));
+        pause_button.set_icon(ctx.ui.icon("pause-fill").unwrap().clone());
+        pause_button.set_status_text("Pause");
+        toolbar_hlayout.add_widget(Box::new(pause_button));
+
+        toolbar_hlayout.add_widget(Box::new(TheHDivider::new(TheId::empty())));
+
+        let mut stop_button = TheTraybarButton::new(TheId::named("Stop"));
+        stop_button.set_icon(ctx.ui.icon("stop-fill").unwrap().clone());
+        stop_button.set_status_text("Stop");
+        toolbar_hlayout.add_widget(Box::new(stop_button));
+
+        toolbar_canvas.set_layout(toolbar_hlayout);
+        code_stack_canvas.set_top(toolbar_canvas);
+
         // Main V Layout
         let mut vsplitlayout = TheSharedVLayout::new(TheId::named("Shared VLayout"));
         vsplitlayout.add_canvas(editor_canvas);
@@ -282,7 +407,7 @@ impl TheTrait for Editor {
     }
 
     fn update_ui(&mut self, ui: &mut TheUI, ctx: &mut TheContext) -> bool {
-        let redraw = true;
+        let mut redraw = true;
 
         if let Some(render_view) = ui.get_render_view("RenderView") {
             let dim = *render_view.dim();
@@ -290,7 +415,9 @@ impl TheTrait for Editor {
             let buffer = render_view.render_buffer_mut();
             buffer.resize(dim.width, dim.height);
 
-            self.ensure_frame();
+            if self.state != EditorState::Debugging || self.debug_session.is_none() {
+                self.ensure_frame();
+            }
 
             let width = dim.width.max(0) as u32;
             let height = dim.height.max(0) as u32;
@@ -376,6 +503,7 @@ impl TheTrait for Editor {
                                 }
                             }
                         } else if id.name.ends_with(".asm") {
+                            // Show the assembler file
                             if let Some(stack) = ui.get_stack_layout("Code Stack") {
                                 if let Some(index) = self.context.stack_indices.get(&id.name) {
                                     stack.set_index(*index as usize);
@@ -478,6 +606,121 @@ impl TheTrait for Editor {
                                     ui,
                                 );
                             }
+                        } else if id.name == "Play" {
+                            self.artifacts = None;
+                            self.cpu = None;
+                            self.debug_session = None;
+                            if let Some(edit) =
+                                ui.get_text_area_edit(&format!("ASM: {}", self.context.current))
+                            {
+                                edit.set_debug_line(None);
+                            }
+                            self.debug_running = false;
+                            self.did_init = false;
+                            self.state = EditorState::Playing;
+                        } else if id.name == "Stop" {
+                            self.artifacts = None;
+                            self.cpu = None;
+                            self.debug_session = None;
+                            if let Some(edit) =
+                                ui.get_text_area_edit(&format!("ASM: {}", self.context.current))
+                            {
+                                edit.set_debug_line(None);
+                            }
+                            self.debug_running = false;
+                            self.did_init = false;
+                            self.state = EditorState::Idle;
+                        } else if id.name == "Debug" {
+                            self.artifacts = None;
+                            self.cpu = None;
+                            self.debug_running = false;
+                            self.did_init = false;
+                            self.state = EditorState::Debugging;
+                            match self.machine.start_debug_session() {
+                                Ok(session) => {
+                                    // Render current frame/registers without stepping.
+                                    let (w, h) = self.machine.video_size();
+                                    let frame = session.current_frame_rgba();
+                                    self.frame = Some((frame, w, h));
+
+                                    let regs = session.peek_registers();
+                                    let mut msg = format!(
+                                        "PC=${:04X} A={:02X} X={:02X} Y={:02X} SP={:02X} P={:02X}",
+                                        regs.pc, regs.a, regs.x, regs.y, regs.sp, regs.status
+                                    );
+                                    if let Some(line) = session.peek_line() {
+                                        msg.push_str(&format!(" at {}:{}", line.file, line.line));
+                                        self.sidebar.goto_debug_line(
+                                            &line,
+                                            ui,
+                                            ctx,
+                                            &mut self.context,
+                                        );
+                                    }
+                                    self.sidebar.set_status_text(msg, ui);
+
+                                    self.debug_session = Some(session);
+                                }
+                                Err(err) => println!("Error: {}", err),
+                            }
+                        } else if id.name == "Step" {
+                            if let Some(session) = &mut self.debug_session {
+                                let (step, rgba) = session.step_with_frame();
+                                let (w, h) = self.machine.video_size();
+                                self.frame = Some((rgba, w, h));
+                                let mut msg = format!(
+                                    "PC=${:04X} A={:02X} X={:02X} Y={:02X} SP={:02X} P={:02X}",
+                                    step.registers.pc,
+                                    step.registers.a,
+                                    step.registers.x,
+                                    step.registers.y,
+                                    step.registers.sp,
+                                    step.registers.status
+                                );
+                                if let Some(line) = step.line {
+                                    msg.push_str(&format!(" at {}:{}", line.file, line.line));
+                                    self.sidebar
+                                        .goto_debug_line(&line, ui, ctx, &mut self.context);
+                                }
+                                if let Some(reason) = step.stop_reason {
+                                    msg.push_str(&format!(" stop={}", reason));
+                                }
+                                self.sidebar.set_status_text(msg, ui);
+                                redraw = true;
+                            }
+                        } else if id.name == "RunRTS" {
+                            if let Some(session) = &mut self.debug_session {
+                                let (step, rgba) = session.run_to_rts_with_frame();
+                                let (w, h) = self.machine.video_size();
+                                self.frame = Some((rgba, w, h));
+                                let mut msg = format!(
+                                    "PC=${:04X} A={:02X} X={:02X} Y={:02X} SP={:02X} P={:02X}",
+                                    step.registers.pc,
+                                    step.registers.a,
+                                    step.registers.x,
+                                    step.registers.y,
+                                    step.registers.sp,
+                                    step.registers.status
+                                );
+                                if let Some(line) = step.line {
+                                    msg.push_str(&format!(" at {}:{}", line.file, line.line));
+                                    self.sidebar
+                                        .goto_debug_line(&line, ui, ctx, &mut self.context);
+                                }
+                                if let Some(reason) = step.stop_reason {
+                                    msg.push_str(&format!(" stop={}", reason));
+                                }
+                                self.sidebar.set_status_text(msg, ui);
+                                redraw = true;
+                            }
+                        } else if id.name == "Continue" {
+                            if self.state == EditorState::Debugging {
+                                self.debug_running = true;
+                            }
+                        } else if id.name == "Pause" {
+                            if self.state == EditorState::Debugging {
+                                self.debug_running = false;
+                            }
                         }
                     }
                     _ => {}
@@ -485,6 +728,40 @@ impl TheTrait for Editor {
             }
         }
 
+        if self.state == EditorState::Debugging && self.debug_running {
+            if self.machine.should_tick() {
+                if let Some(session) = &mut self.debug_session {
+                    let (step, rgba) = session.step_with_frame();
+                    let (w, h) = self.machine.video_size();
+                    self.frame = Some((rgba, w, h));
+                    let mut msg = format!(
+                        "PC=${:04X} A={:02X} X={:02X} Y={:02X} SP={:02X} P={:02X}",
+                        step.registers.pc,
+                        step.registers.a,
+                        step.registers.x,
+                        step.registers.y,
+                        step.registers.sp,
+                        step.registers.status
+                    );
+                    if let Some(line) = step.line {
+                        msg.push_str(&format!(" at {}:{}", line.file, line.line));
+                        self.sidebar
+                            .goto_debug_line(&line, ui, ctx, &mut self.context);
+                    }
+                    if let Some(reason) = step.stop_reason {
+                        msg.push_str(&format!(" stop={}", reason));
+                        self.debug_running = false; // pause on stop
+                    }
+                    self.sidebar.set_status_text(msg, ui);
+                    redraw = true;
+                }
+            }
+        }
+
         redraw
+    }
+
+    fn target_fps(&self) -> f64 {
+        self.machine.config().machine.refresh_hz as f64
     }
 }

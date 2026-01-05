@@ -1,3 +1,4 @@
+use crate::machine::DebugLine;
 use crate::prelude::*;
 use theframework::prelude::*;
 
@@ -262,7 +263,7 @@ impl Sidebar {
 
     pub fn create_asm_editor(&self, name: String, content: String) -> TheCanvas {
         let mut code_canvas: TheCanvas = TheCanvas::new();
-        let mut textedit = TheTextAreaEdit::new(TheId::named(&name));
+        let mut textedit = TheTextAreaEdit::new(TheId::named(&format!("ASM: {}", name)));
         textedit.set_continuous(true);
         textedit.display_line_number(true);
         textedit.as_code_editor("Python", TheCodeEditorSettings::default());
@@ -313,6 +314,40 @@ impl Sidebar {
     pub fn set_status_text(&self, text: String, ui: &mut TheUI) {
         if let Some(statusbar) = ui.get_widget("Statusbar") {
             statusbar.as_statusbar().unwrap().set_text(text);
+        }
+    }
+
+    pub fn goto_debug_line(
+        &self,
+        line: &DebugLine,
+        ui: &mut TheUI,
+        ctx: &mut TheContext,
+        context: &mut Context,
+    ) {
+        if context.current != line.file {
+            if let Some(edit) = ui.get_text_area_edit(&format!("ASM: {}", context.current)) {
+                edit.set_debug_line(None);
+            }
+            if let Some(stack) = ui.get_stack_layout("Code Stack") {
+                if let Some(index) = context.stack_indices.get(&line.file) {
+                    stack.set_index(*index as usize);
+                    ctx.ui.relayout = true;
+                    ctx.ui.redraw_all = true;
+                    context.current = line.file.clone();
+                }
+            }
+            if let Some(tree_layout) = ui.get_tree_layout("Project Tree") {
+                if let Some(node) = tree_layout.get_node_by_id_mut(&context.asm_node_id) {
+                    if let Some(id) = context.tree_item_ids.get(&line.file) {
+                        node.new_item_selected(&TheId::named_with_id(&line.file, *id));
+                    }
+                }
+            }
+        }
+
+        if let Some(edit) = ui.get_text_area_edit(&format!("ASM: {}", line.file)) {
+            edit.goto_line(line.line);
+            edit.set_debug_line(Some(line.line - 1));
         }
     }
 }
