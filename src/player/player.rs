@@ -25,7 +25,11 @@ impl Player {
         self.did_init = false;
         self.tick_due = true;
 
-        if let Ok(build) = self.machine.build_silent() {
+        // Prefer an existing built image; fall back to building silently.
+        if let Ok((meta, artifacts)) = self.machine.load_built_artifacts() {
+            self.machine = Machine::from_build_meta(meta);
+            self.artifacts = Some(artifacts);
+        } else if let Ok(build) = self.machine.build_silent() {
             self.artifacts = Some(build);
         }
     }

@@ -1,7 +1,8 @@
+use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SpriteImage {
     pub name: String,
     pub index: u16,
@@ -12,7 +13,7 @@ pub struct SpriteImage {
     pub len: usize,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct SpritePack {
     pub data: Vec<u8>,
     pub images: Vec<SpriteImage>,

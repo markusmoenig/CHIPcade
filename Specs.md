@@ -124,3 +124,26 @@ SPR_BULLET = 2
 ```
 
 These constants are used when writing to `SPRITE_RAM + 2` (sprite image index).
+
+---
+
+## Build / Packaging
+
+The build output is a single flat 64 KB image at `build/program.bin`. Everything needed to run (desktop or wasm) is inside this one file:
+
+- **Program**: assembled bytes written at the RAM load address (from the config memory map).
+- **Palette**: global palette bytes written at the palette RAM base.
+- **Sprite graphics**: packed 2bpp sprite data written at the ROM base.
+- **Header**: a tiny metadata block at address `0xF000` with:
+  - Magic `CHPB`
+  - `meta_len` (u32 little-endian)
+  - `meta` (bincode `BuildMeta`) containing:
+    - config (video sizes, etc.)
+    - entry point (Init/Update)
+    - labels map
+    - palette bytes
+    - sprite base address (where sprite data starts in the image)
+    - program length
+    - sprite image descriptors (names, sizes, offsets)
+
+At runtime (desktop/wasm) the loader reads the header at `0xF000`, decodes `BuildMeta`, slices the program bytes from the load address for `program_len`, rebuilds the sprite pack from `sprite_base`, and uses the embedded palette. No project files are needed once `program.bin` exists.

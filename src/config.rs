@@ -1,28 +1,28 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::fs;
 
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Serialize, Clone)]
 pub struct Config {
     pub machine: MachineConfig,
     pub video: VideoConfig,
     pub palette: PaletteConfig,
 }
 
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Serialize, Clone)]
 pub struct MachineConfig {
     pub cpu: String,
     pub clock_hz: u32,
     pub refresh_hz: u32,
 }
 
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Serialize, Clone)]
 pub struct VideoConfig {
     pub width: u32,
     pub height: u32,
     pub mode: String,
 }
 
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Serialize, Clone)]
 pub struct PaletteConfig {
     pub global_colors: u32,
     pub colors_per_sprite: u32,

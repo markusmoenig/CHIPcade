@@ -6,6 +6,7 @@ mod machine;
 mod player;
 mod sprites;
 
+#[cfg(not(target_arch = "wasm32"))]
 use clap::{Parser, Subcommand};
 use eval::{EvalResult, eval_expression};
 use machine::{Machine, scaffold_project};
@@ -24,6 +25,7 @@ pub mod prelude {
     pub use crate::editor::prelude::*;
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 #[derive(Parser)]
 #[command(name = "chipcade", about = "CHIPcade toolchain driver", version)]
 struct Cli {
@@ -31,6 +33,7 @@ struct Cli {
     command: Commands,
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 #[derive(Subcommand)]
 enum Commands {
     /// Assemble and run a project (default)
@@ -78,6 +81,7 @@ enum Commands {
     },
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 #[derive(Subcommand)]
 enum SpriteCommands {
     /// Add a new sprite file
@@ -100,6 +104,7 @@ enum SpriteCommands {
     },
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 fn main() {
     let cli = Cli::parse();
 
@@ -174,6 +179,54 @@ fn main() {
                 }
             }
         },
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+fn main() {
+    console_error_panic_hook::set_once();
+
+    let bundle_bytes = include_bytes!("../build/program.bin");
+
+    let meta = match machine::parse_flat_image(bundle_bytes) {
+        Ok(v) => v,
+        Err(e) => {
+            wasm_log(&format!("Failed to parse bundle meta: {e}"));
+            return;
+        }
+    };
+
+    wasm_log(&format!(
+        "WASM bundle meta: entry={:?} program_len={} sprite_base=${:04X} labels={}",
+        meta.entry_point,
+        meta.program_len,
+        meta.sprite_base,
+        meta.labels.len()
+    ));
+
+    let machine = Machine::from_build_meta(meta.clone());
+    let (_, artifacts) = match Machine::artifacts_from_image(bundle_bytes) {
+        Ok(a) => a,
+        Err(e) => {
+            wasm_log(&format!("Failed to load build bundle: {e}"));
+            return;
+        }
+    };
+
+    let mut player = crate::player::player::Player::new();
+    // Use the same default scale as native (3x) for wasm to avoid tiny output.
+    player.set_machine_with_artifacts(machine, artifacts, 3);
+
+    let app = TheApp::new();
+    () = app.run(Box::new(player));
+}
+
+#[cfg(target_arch = "wasm32")]
+fn wasm_log(msg: &str) {
+    // Prefer console logging in browser; fallback to stdout if unavailable.
+    #[allow(unused_unsafe)]
+    unsafe {
+        web_sys::console::log_1(&msg.into());
     }
 }
 

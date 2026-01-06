@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [workspace]
-members = ["src/asm6502"]
+members = ["src/asm6502", "run-wasm"]
 
 [dependencies]
 chipcade_asm = { path = "src/asm6502" }
@@ -14,10 +14,11 @@ toml = "0.8"
 image = "0.24"
 clap = { version = "4.5", features = ["derive"] }
 rust-embed = "8"
-
-# theframework = { version = "0.1.40", git = "https://github.com/markusmoenig/TheFramework", features = [
-#     "ui",
-# ], default-features = true }
+bincode = "1.3"
 theframework = { path = "../TheFramework", features = [
     "ui",
 ], default-features = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+console_error_panic_hook = "0.1"
+web-sys = { version = "0.3", features = ["console"] }

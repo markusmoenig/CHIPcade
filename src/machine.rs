@@ -2,7 +2,8 @@ use crate::bus::ChipcadeBus;
 use crate::config;
 use crate::sprites::validate_sprite_str;
 use crate::sprites::{
-    SpritePack, load_sprite_pack, load_sprite_pack_from_embedded, sprite_consts, sprite_to_rgba,
+    SpriteImage, SpritePack, load_sprite_pack, load_sprite_pack_from_embedded, sprite_consts,
+    sprite_to_rgba,
 };
 use chipcade_asm::assemble_with_labels_at;
 use mos6502::cpu;
@@ -16,6 +17,9 @@ use std::fs;
 use std::io::Cursor;
 use std::path::{Component, Path, PathBuf};
 use std::time::{Duration, Instant};
+
+const META_ADDR: usize = 0xF000;
+const BUNDLE_MAGIC: [u8; 4] = *b"CHPB";
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct LineOrigin {
@@ -232,6 +236,17 @@ pub struct BuildArtifacts {
     pub pc_line_map: Vec<LineOrigin>,
 }
 
+#[derive(Clone, Serialize, Deserialize)]
+pub struct BuildMeta {
+    pub config: config::Config,
+    pub entry_point: Option<u16>,
+    pub labels: std::collections::HashMap<String, u16>,
+    pub palette_bytes: Vec<u8>,
+    pub sprite_base: u16,
+    pub program_len: usize,
+    pub sprite_images: Vec<SpriteImage>,
+}
+
 #[derive(Clone)]
 pub struct SystemConst {
     pub name: &'static str,
@@ -275,6 +290,7 @@ pub struct Machine {
     config: config::Config,
     mem_map: config::MemoryMap,
     sys_consts: Vec<SystemConst>,
+    palette_bytes: Option<Vec<u8>>,
     last_tick: Option<Instant>,
     tick_accum: Duration,
 }
@@ -328,6 +344,66 @@ impl Machine {
         &self.paths.program_bin
     }
 
+    /// Reconstruct build artifacts from a raw 64 KB image that contains embedded meta at META_ADDR.
+    pub fn artifacts_from_image(image: &[u8]) -> Result<(BuildMeta, BuildArtifacts), String> {
+        let meta = parse_flat_image(image)?;
+        let mem_map = config::MemoryMap::from_config(&meta.config);
+
+        let load_addr = mem_map.ram as usize;
+        let end = load_addr
+            .checked_add(meta.program_len)
+            .ok_or_else(|| "program length overflow".to_string())?;
+        if end > image.len() {
+            return Err("program image too small for recorded program length".to_string());
+        }
+        let program = image[load_addr..end].to_vec();
+
+        let sprite_base = meta.sprite_base as usize;
+        let sprite_data = if sprite_base < image.len() {
+            image[sprite_base..].to_vec()
+        } else {
+            Vec::new()
+        };
+
+        let sprites = SpritePack {
+            data: sprite_data,
+            images: meta.sprite_images.clone(),
+        };
+
+        let artifacts = BuildArtifacts {
+            entry_point: meta.entry_point,
+            program,
+            sprites,
+            labels: meta.labels.clone(),
+            load_addr: mem_map.ram,
+            line_map: Vec::new(),
+            pc_line_map: Vec::new(),
+        };
+
+        Ok((meta, artifacts))
+    }
+
+    pub fn from_build_meta(meta: BuildMeta) -> Self {
+        let mem_map = config::MemoryMap::from_config(&meta.config);
+        let sys_consts = system_constants(&mem_map, &meta.config);
+        Self {
+            paths: ProjectPaths::new("."),
+            config: meta.config,
+            mem_map,
+            sys_consts,
+            palette_bytes: Some(meta.palette_bytes),
+            last_tick: None,
+            tick_accum: Duration::ZERO,
+        }
+    }
+
+    /// Load build artifacts directly from an existing `build/program.bin`.
+    pub fn load_built_artifacts(&self) -> Result<(BuildMeta, BuildArtifacts), String> {
+        let data = fs::read(&self.paths.program_bin)
+            .map_err(|e| format!("Failed to read {}: {e}", self.paths.program_bin.display()))?;
+        Self::artifacts_from_image(&data)
+    }
+
     pub fn new(project_root: PathBuf) -> Result<Self, String> {
         let paths = ProjectPaths::new(&project_root);
         ensure_project_files(&paths)?;
@@ -346,6 +422,7 @@ impl Machine {
             config,
             mem_map,
             sys_consts,
+            palette_bytes: None,
             last_tick: None,
             tick_accum: Duration::ZERO,
         })
@@ -468,8 +545,7 @@ impl Machine {
 
         let entry_point = assembled
             .labels
-            .get("Start")
-            .or_else(|| assembled.labels.get("Init"))
+            .get("Init")
             .or_else(|| assembled.labels.get("Update"))
             .copied();
 
@@ -490,10 +566,13 @@ impl Machine {
         sprites: &SpritePack,
         entry_point: Option<u16>,
     ) -> Result<cpu::CPU<ChipcadeBus, Nmos6502>, String> {
-        let palette_bytes = load_palette_file(
-            &self.paths.palette,
-            self.config.palette.global_colors as usize,
-        )?;
+        let palette_bytes = match &self.palette_bytes {
+            Some(p) => p.clone(),
+            None => load_palette_file(
+                &self.paths.palette,
+                self.config.palette.global_colors as usize,
+            )?,
+        };
         let mut cpu = cpu::CPU::new(
             ChipcadeBus::from_config(&self.config, Some(&palette_bytes), sprites.clone()),
             Nmos6502,
@@ -507,7 +586,7 @@ impl Machine {
         cpu.memory.set_bytes(load_addr, &program);
 
         if entry_point.is_none() {
-            println!("Warning: 'Start' label not found; starting at program base.");
+            println!("Warning: 'Init'/'Update' labels not found; starting at program base.");
         }
         let start_pc = self.entry_address(entry_point);
         cpu.registers.program_counter = start_pc;
@@ -523,10 +602,13 @@ impl Machine {
         sprites: SpritePack,
         entry_point: Option<u16>,
     ) -> Result<RunArtifacts, String> {
-        let palette_bytes = load_palette_file(
-            &self.paths.palette,
-            self.config.palette.global_colors as usize,
-        )?;
+        let palette_bytes = match &self.palette_bytes {
+            Some(p) => p.clone(),
+            None => load_palette_file(
+                &self.paths.palette,
+                self.config.palette.global_colors as usize,
+            )?,
+        };
         let mut cpu = cpu::CPU::new(
             ChipcadeBus::from_config(&self.config, Some(&palette_bytes), sprites.clone()),
             Nmos6502,
@@ -638,10 +720,13 @@ impl Machine {
         image[start..end].copy_from_slice(&artifacts.program);
 
         // Palette into palette RAM
-        let palette_bytes = load_palette_file(
-            &self.paths.palette,
-            self.config.palette.global_colors as usize,
-        )?;
+        let palette_bytes = match &self.palette_bytes {
+            Some(p) => p.clone(),
+            None => load_palette_file(
+                &self.paths.palette,
+                self.config.palette.global_colors as usize,
+            )?,
+        };
         let pal_start = self.mem_map.palette_ram as usize;
         let pal_end = pal_start
             .checked_add(palette_bytes.len())
@@ -666,6 +751,29 @@ impl Machine {
                 self.paths.build_dir.display()
             ));
         }
+
+        let meta = BuildMeta {
+            config: self.config.clone(),
+            entry_point: artifacts.entry_point,
+            labels: artifacts.labels.clone(),
+            palette_bytes: palette_bytes.clone(),
+            program_len: artifacts.program.len(),
+            sprite_base: self.mem_map.rom,
+            sprite_images: artifacts.sprites.images.clone(),
+        };
+        let meta_bytes =
+            bincode::serialize(&meta).map_err(|e| format!("Failed to serialize meta: {e}"))?;
+
+        let header_len = 4 + 4 + meta_bytes.len();
+        if META_ADDR + header_len > image.len() {
+            return Err("metadata does not fit in image".to_string());
+        }
+        let mut offset = META_ADDR;
+        image[offset..offset + 4].copy_from_slice(&BUNDLE_MAGIC);
+        offset += 4;
+        image[offset..offset + 4].copy_from_slice(&(meta_bytes.len() as u32).to_le_bytes());
+        offset += 4;
+        image[offset..offset + meta_bytes.len()].copy_from_slice(&meta_bytes);
 
         fs::write(&self.paths.program_bin, &image).map_err(|e| {
             format!(
@@ -1161,6 +1269,29 @@ fn collect_asm_paths(root: &Path, dir: &Path, out: &mut Vec<PathBuf>) -> Result<
     Ok(())
 }
 
+/// Parse a flat 64 KB image that has metadata embedded at META_ADDR.
+pub fn parse_flat_image(image: &[u8]) -> Result<BuildMeta, String> {
+    if image.len() < META_ADDR + 8 {
+        return Err("image too small for metadata".to_string());
+    }
+    let header = &image[META_ADDR..];
+    if &header[0..4] != BUNDLE_MAGIC {
+        return Err("invalid metadata magic".to_string());
+    }
+    let meta_len = u32::from_le_bytes([header[4], header[5], header[6], header[7]]) as usize;
+    let meta_start = META_ADDR + 8;
+    let meta_end = meta_start
+        .checked_add(meta_len)
+        .ok_or_else(|| "metadata length overflow".to_string())?;
+    if meta_end > image.len() {
+        return Err("metadata exceeds image".to_string());
+    }
+    let meta_bytes = &image[meta_start..meta_end];
+    let meta: BuildMeta =
+        bincode::deserialize(meta_bytes).map_err(|e| format!("Failed to decode meta: {e}"))?;
+    Ok(meta)
+}
+
 impl Default for Machine {
     /// Create a dummy machine using default config and a placeholder path.
     fn default() -> Self {
@@ -1173,6 +1304,7 @@ impl Default for Machine {
             config,
             mem_map,
             sys_consts,
+            palette_bytes: None,
             last_tick: None,
             tick_accum: Duration::ZERO,
         }
