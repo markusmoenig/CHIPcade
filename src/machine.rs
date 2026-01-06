@@ -1,6 +1,9 @@
 use crate::bus::ChipcadeBus;
 use crate::config;
-use crate::sprites::{SpritePack, load_sprite_pack, load_sprite_pack_from_embedded, sprite_consts};
+use crate::sprites::validate_sprite_str;
+use crate::sprites::{
+    SpritePack, load_sprite_pack, load_sprite_pack_from_embedded, sprite_consts, sprite_to_rgba,
+};
 use chipcade_asm::assemble_with_labels_at;
 use mos6502::cpu;
 use mos6502::instruction::Nmos6502;
@@ -117,6 +120,7 @@ impl DebugSession {
         let pc = self.cpu.registers.program_counter;
         let line = self.map_line(pc);
         let opcode = self.cpu.memory.get_byte(pc);
+        let regs_before = self.peek_registers();
         let stop_reason = if opcode == 0x00 {
             if self.in_init {
                 if let Some(update) = self.update_addr {
@@ -145,18 +149,8 @@ impl DebugSession {
             None
         };
 
-        let regs = &self.cpu.registers;
-        let registers = DebugRegisters {
-            a: regs.accumulator,
-            x: regs.index_x,
-            y: regs.index_y,
-            sp: regs.stack_pointer.0,
-            pc: regs.program_counter,
-            status: regs.status.bits(),
-        };
-
         DebugStep {
-            registers,
+            registers: regs_before,
             stop_reason,
             line,
         }
@@ -178,6 +172,7 @@ impl DebugSession {
             let pc = self.cpu.registers.program_counter;
             let line = self.map_line(pc);
             let opcode = self.cpu.memory.get_byte(pc);
+            let regs_before = self.peek_registers();
             if opcode == 0x00 {
                 if self.in_init {
                     if let Some(update) = self.update_addr {
@@ -185,7 +180,7 @@ impl DebugSession {
                         self.in_init = false;
                         let regs = self.peek_registers();
                         return DebugStep {
-                            registers: regs.clone(),
+                            registers: regs_before,
                             stop_reason: Some("Init BRK -> Update".to_string()),
                             line: self.map_line(regs.pc).or(line),
                         };
@@ -194,29 +189,24 @@ impl DebugSession {
                     self.cpu.registers.program_counter = update;
                     continue;
                 }
-                let regs = self.peek_registers();
                 return DebugStep {
-                    registers: regs,
+                    registers: regs_before,
                     stop_reason: Some("BRK".to_string()),
                     line,
                 };
             }
             if opcode == 0xFF {
-                let regs = self.peek_registers();
                 return DebugStep {
-                    registers: regs,
+                    registers: regs_before,
                     stop_reason: Some("HALT".to_string()),
                     line,
                 };
             }
             if opcode == 0x60 {
-                self.cpu.single_step();
-                let regs = self.peek_registers();
-                let line_after = self.map_line(regs.pc);
                 return DebugStep {
-                    registers: regs,
+                    registers: regs_before,
                     stop_reason: Some("RTS".to_string()),
-                    line: line_after.or(line),
+                    line,
                 };
             }
             self.cpu.single_step();
@@ -741,6 +731,34 @@ impl Machine {
         Ok(out)
     }
 
+    /// List sprite files (assets/sprites), returning file name and contents.
+    pub fn list_sprite_sources(&self) -> Result<Vec<(String, String)>, String> {
+        let root = self
+            .paths
+            .config
+            .parent()
+            .unwrap_or_else(|| Path::new("."))
+            .join("assets/sprites");
+        if !root.exists() {
+            return Ok(Vec::new());
+        }
+        let mut entries = Vec::new();
+        for entry in fs::read_dir(&root)
+            .map_err(|e| format!("Failed to read sprites dir {}: {e}", root.display()))?
+        {
+            let entry =
+                entry.map_err(|e| format!("Failed to read entry in {}: {e}", root.display()))?;
+            let path = entry.path();
+            if path.extension().and_then(|s| s.to_str()) != Some("spr") {
+                continue;
+            }
+            let content = read_file(&path)?;
+            entries.push((file_name(&path)?, content));
+        }
+        entries.sort_by(|a, b| a.0.cmp(&b.0));
+        Ok(entries)
+    }
+
     pub fn write_asm_source(&self, relative: &Path, content: &str) -> Result<PathBuf, String> {
         let root = self.asm_root()?;
         if relative.components().any(|c| {
@@ -864,6 +882,113 @@ impl Machine {
         }
 
         Ok(())
+    }
+
+    /// Validate a sprite source in-memory.
+    pub fn validate_sprite(&self, name: &str, content: &str) -> Result<(), String> {
+        validate_sprite_str(name, content)
+    }
+
+    /// Write a sprite file into assets/sprites/.
+    pub fn write_sprite_file(&self, name: &str, content: &str) -> Result<PathBuf, String> {
+        let root = self
+            .paths
+            .config
+            .parent()
+            .unwrap_or_else(|| Path::new("."))
+            .join("assets/sprites");
+        fs::create_dir_all(&root)
+            .map_err(|e| format!("Failed to create sprites dir {}: {e}", root.display()))?;
+        let file = validate_file_name(name)?;
+        let target = root.join(file);
+        write_file(&target, content)
+    }
+
+    /// Render a sprite preview into an RGBA buffer of the given canvas size, centered and scaled up as much as possible while preserving aspect ratio.
+    /// `sprite_rgba` must be sprite_w * sprite_h * 4 bytes.
+    pub fn render_sprite_preview(
+        &self,
+        sprite_w: u32,
+        sprite_h: u32,
+        sprite_rgba: &[u8],
+        canvas_w: u32,
+        canvas_h: u32,
+    ) -> Vec<u8> {
+        let canvas_len = (canvas_w as usize)
+            .saturating_mul(canvas_h as usize)
+            .saturating_mul(4);
+        let mut out = vec![0; canvas_len]; // black background
+
+        if sprite_w == 0 || sprite_h == 0 || canvas_w == 0 || canvas_h == 0 {
+            return out;
+        }
+        let expected = sprite_w as usize * sprite_h as usize * 4;
+        if sprite_rgba.len() < expected {
+            return out;
+        }
+
+        let scale_x = canvas_w as f32 / sprite_w as f32;
+        let scale_y = canvas_h as f32 / sprite_h as f32;
+        let scale = scale_x.min(scale_y).max(1.0);
+        let dest_w = (sprite_w as f32 * scale).round() as i32;
+        let dest_h = (sprite_h as f32 * scale).round() as i32;
+        let ox = ((canvas_w as i32 - dest_w) / 2).max(0);
+        let oy = ((canvas_h as i32 - dest_h) / 2).max(0);
+
+        for y in 0..canvas_h as i32 {
+            for x in 0..canvas_w as i32 {
+                if x < ox || x >= ox + dest_w || y < oy || y >= oy + dest_h {
+                    continue;
+                }
+                let src_x = (((x - ox) as f32) / scale)
+                    .floor()
+                    .clamp(0.0, sprite_w as f32 - 1.0) as usize;
+                let src_y = (((y - oy) as f32) / scale)
+                    .floor()
+                    .clamp(0.0, sprite_h as f32 - 1.0) as usize;
+                let si = (src_y * sprite_w as usize + src_x) * 4;
+                let di = ((y as usize * canvas_w as usize) + x as usize) * 4;
+                if si + 3 < sprite_rgba.len() && di + 3 < out.len() {
+                    out[di..di + 4].copy_from_slice(&sprite_rgba[si..si + 4]);
+                }
+            }
+        }
+
+        out
+    }
+
+    /// Load a sprite by name from assets/sprites/, decode to RGBA, and render a preview.
+    pub fn render_sprite_preview_from_disk(
+        &self,
+        name: &str,
+        canvas_w: u32,
+        canvas_h: u32,
+    ) -> Result<Vec<u8>, String> {
+        let sprites = self
+            .paths
+            .config
+            .parent()
+            .unwrap_or_else(|| Path::new("."))
+            .join("assets/sprites")
+            .join(name);
+        if !sprites.exists() {
+            return Err(format!("Sprite {} not found", sprites.display()));
+        }
+        let content = read_file(&sprites)?;
+        let palette = load_palette_file(
+            &self.paths.palette,
+            self.config.palette.global_colors as usize,
+        )?;
+        let spr = crate::sprites::parse_spr_str(name, &content, &sprites)
+            .map_err(|e| format!("Failed to parse {}: {}", sprites.display(), e))?;
+        let rgba = sprite_to_rgba(&spr, Some(&palette));
+        Ok(self.render_sprite_preview(
+            spr.width as u32,
+            spr.height as u32,
+            &rgba,
+            canvas_w,
+            canvas_h,
+        ))
     }
 
     /// Write an include file (e.g., "macros.inc") into asm/include.

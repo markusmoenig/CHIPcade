@@ -19,13 +19,13 @@ pub struct SpritePack {
 }
 
 #[derive(Debug)]
-struct SprFile {
-    name: String,
-    path: PathBuf,
-    width: u8,
-    height: u8,
-    colors: [u8; 3],
-    pixels: Vec<Vec<char>>,
+pub struct SprFile {
+    pub name: String,
+    pub path: PathBuf,
+    pub width: u8,
+    pub height: u8,
+    pub colors: [u8; 3],
+    pub pixels: Vec<Vec<char>>,
 }
 
 pub fn load_sprite_pack(root: &Path) -> Result<SpritePack, String> {
@@ -96,13 +96,18 @@ where
     Ok(pack)
 }
 
+/// Validate sprite content without writing it.
+pub fn validate_sprite_str(name: &str, content: &str) -> Result<(), String> {
+    parse_spr_str(name, content, Path::new(name)).map(|_| ())
+}
+
 fn parse_spr_file(name: &str, path: &Path) -> Result<SprFile, String> {
     let content =
         fs::read_to_string(path).map_err(|e| format!("Failed to read {}: {e}", path.display()))?;
     parse_spr_str(name, &content, path)
 }
 
-fn parse_spr_str(name: &str, content: &str, path: &Path) -> Result<SprFile, String> {
+pub fn parse_spr_str(name: &str, content: &str, path: &Path) -> Result<SprFile, String> {
     let mut width = None;
     let mut height = None;
     let mut colors: Option<[u8; 3]> = None;
@@ -252,6 +257,47 @@ fn pack_sprite(spr: &SprFile) -> Result<Vec<u8>, String> {
         }
     }
     Ok(out)
+}
+
+/// Convert a sprite's pixel grid into a flat RGBA buffer using its palette indices and transparency rules:
+/// '.' = transparent, '1' = color0, '2' = color1, '3' = color2.
+/// If `palette` is provided, indices are looked up there (three bytes per entry). Otherwise a grayscale
+/// fallback based on the palette index is used.
+pub fn sprite_to_rgba(spr: &SprFile, palette: Option<&[u8]>) -> Vec<u8> {
+    let mut out = Vec::with_capacity(spr.width as usize * spr.height as usize * 4);
+
+    let fetch_rgb = |idx: u8| -> [u8; 3] {
+        if let Some(p) = palette {
+            let base = idx as usize * 3;
+            if base + 2 < p.len() {
+                return [p[base], p[base + 1], p[base + 2]];
+            }
+        }
+        [idx, idx, idx]
+    };
+
+    for row in &spr.pixels {
+        for &c in row {
+            let rgba = match c {
+                '.' => [0, 0, 0, 0],
+                '1' => {
+                    let [r, g, b] = fetch_rgb(spr.colors[0]);
+                    [r, g, b, 255]
+                }
+                '2' => {
+                    let [r, g, b] = fetch_rgb(spr.colors[1]);
+                    [r, g, b, 255]
+                }
+                '3' => {
+                    let [r, g, b] = fetch_rgb(spr.colors[2]);
+                    [r, g, b, 255]
+                }
+                _ => [0, 0, 0, 0],
+            };
+            out.extend_from_slice(&rgba);
+        }
+    }
+    out
 }
 
 pub fn sprite_consts(images: &[SpriteImage]) -> Vec<(String, u32)> {

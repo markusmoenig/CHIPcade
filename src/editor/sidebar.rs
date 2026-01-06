@@ -1,4 +1,4 @@
-use crate::machine::DebugLine;
+use crate::machine::{DebugLine, DebugStep};
 use crate::prelude::*;
 use theframework::prelude::*;
 
@@ -12,7 +12,7 @@ pub struct Sidebar {
 impl Sidebar {
     pub fn new() -> Self {
         Self {
-            width: 380,
+            width: 300,
 
             startup: true,
         }
@@ -28,227 +28,188 @@ impl Sidebar {
     ) {
         // Tree View
 
-        let mut canvas: TheCanvas = TheCanvas::new();
-
-        let mut project_canvas: TheCanvas = TheCanvas::new();
-        let mut project_tree_layout = TheTreeLayout::new(TheId::named("Project Tree"));
-        let root = project_tree_layout.get_root();
+        let mut tree_canvas: TheCanvas = TheCanvas::new();
+        let mut tree_layout = TheTreeLayout::new(TheId::named("Project Tree"));
+        let root = tree_layout.get_root();
 
         let mut asm_node: TheTreeNode =
-            TheTreeNode::new(TheId::named_with_id("Assembler", context.asm_node_id));
+            TheTreeNode::new(TheId::named_with_id("Sources", context.asm_node_id));
         asm_node.set_open(true);
         asm_node.set_root_mode(false);
 
+        // -- Sources
+
         let mut stack_index: u16 = 0;
 
-        if let Ok(list) = machine.list_asm_sources() {
+        if let Ok(list) = machine.list_include_sources() {
             for item in list {
                 let id = Uuid::new_v4();
                 let mut widget = TheTreeItem::new(TheId::named_with_id(&item.0.clone(), id));
                 widget.set_text(item.0.clone());
+                widget.set_background_color(TheColor::from([200, 195, 150, 255]));
                 asm_node.add_widget(Box::new(widget));
-
-                if stack_index == 0 {
-                    asm_node.new_item_selected(&TheId::named_with_id(&item.0.clone(), id));
-                    context.current = item.0.clone();
-                }
 
                 context.stack_indices.insert(item.0.clone(), stack_index);
                 context.tree_item_ids.insert(item.0.clone(), id);
                 context.content.insert(item.0.clone(), item.1.clone());
                 stack_index += 1;
 
-                let canvas = self.create_asm_editor(item.0, item.1);
+                let canvas = self.create_asm_editor(item.0, item.1, true);
+                stack_layout.add_canvas(canvas);
+            }
+        }
+
+        if let Ok(list) = machine.list_asm_sources() {
+            for item in list {
+                let id = Uuid::new_v4();
+                let mut widget = TheTreeItem::new(TheId::named_with_id(&item.0.clone(), id));
+                widget.set_text(item.0.clone());
+                widget.set_background_color(TheColor::from([160, 175, 190, 255]));
+                asm_node.add_widget(Box::new(widget));
+
+                context.stack_indices.insert(item.0.clone(), stack_index);
+                context.tree_item_ids.insert(item.0.clone(), id);
+                context.content.insert(item.0.clone(), item.1.clone());
+                stack_index += 1;
+
+                if item.0 == "main.asm" {
+                    asm_node.new_item_selected(&TheId::named_with_id(&item.0.clone(), id));
+                    context.current = item.0.clone();
+                    stack_layout.set_index(stack_index as usize - 1);
+                }
+
+                let canvas = self.create_asm_editor(item.0, item.1, false);
                 stack_layout.add_canvas(canvas);
             }
         }
 
         root.add_child(asm_node);
 
-        /*
-        let characters_node: TheTreeNode = TheTreeNode::new(TheId::named_with_id(
-            &fl!("characters"),
-            server_ctx.tree_characters_id,
-        ));
-        root.add_child(characters_node);
+        // -- Sprites
 
-        let items_node: TheTreeNode = TheTreeNode::new(TheId::named_with_id(
-            &fl!("items"),
-            server_ctx.tree_items_id,
-        ));
-        root.add_child(items_node);
+        let mut sprites_node: TheTreeNode =
+            TheTreeNode::new(TheId::named_with_id("Sprites", context.sprites_node_id));
+        sprites_node.set_open(true);
+        sprites_node.set_root_mode(false);
 
-        let tilemaps_node: TheTreeNode = TheTreeNode::new(TheId::named_with_id(
-            &fl!("tilesets"),
-            server_ctx.tree_tilemaps_id,
-        ));
-        root.add_child(tilemaps_node);
+        let mut widget = TheTreeIcons::new(TheId::named("Sprites"));
 
-        let screens_node: TheTreeNode = TheTreeNode::new(TheId::named_with_id(
-            &fl!("screens"),
-            server_ctx.tree_screens_id,
-        ));
-        root.add_child(screens_node);
+        let sprite_size = 40u32;
+        let mut sprite_icons = vec![];
+        let mut sprite_offset: u16 = 0;
 
-        let mut assets_node: TheTreeNode = TheTreeNode::new(TheId::named_with_id(
-            &fl!("assets"),
-            server_ctx.tree_assets_id,
-        ));
+        if let Ok(list) = machine.list_sprite_sources() {
+            for item in list {
+                if let Ok(preview) =
+                    machine.render_sprite_preview_from_disk(&item.0, sprite_size, sprite_size)
+                {
+                    let buffer = TheRGBABuffer::from(preview, sprite_size, sprite_size);
+                    sprite_icons.push(buffer);
+                    context.sprite_offsets.insert(item.0.clone(), sprite_offset);
+                    sprite_offset += 1;
 
-        let fonts_node: TheTreeNode = TheTreeNode::new(TheId::named_with_id(
-            &fl!("fonts"),
-            server_ctx.tree_assets_fonts_id,
-        ));
-        assets_node.add_child(fonts_node);
-        root.add_child(assets_node);
+                    context.stack_indices.insert(item.0.clone(), stack_index);
+                    context.content.insert(item.0.clone(), item.1.clone());
+                    stack_index += 1;
 
-        let mut config_node: TheTreeNode = TheTreeNode::new(TheId::named(&fl!("game")));
+                    let canvas = self.create_asm_editor(item.0, item.1, false);
+                    stack_layout.add_canvas(canvas);
+                }
+            }
+        }
+        widget.set_icon_count(sprite_icons.len());
+        widget.set_icon_size(sprite_size as i32);
+        for (index, buffer) in sprite_icons.iter().enumerate() {
+            widget.set_icon(index, buffer.clone());
+        }
 
-        let mut config_item = TheTreeItem::new(TheId::named("Project Settings"));
-        config_item.set_text(fl!("settings"));
-        config_node.add_widget(Box::new(config_item));
+        sprites_node.add_widget(Box::new(widget));
 
-        root.add_child(config_node);
+        root.add_child(sprites_node);
 
-        // let palette_node: TheTreeNode =
-        //     TheTreeNode::new(TheId::named_with_id("Palette", server_ctx.tree_palette_id));
-        // root.add_child(palette_node);
-        */
+        // --
 
-        project_canvas.set_layout(project_tree_layout);
+        tree_canvas.set_layout(tree_layout);
 
-        // Tree View Toolbar
-
-        let mut add_button = TheTraybarButton::new(TheId::named("Project Add"));
-        add_button.set_icon_name("icon_role_add".to_string());
-        add_button.set_status_text("Add to the project");
-        add_button.set_context_menu(Some(TheContextMenu {
-            items: vec![
-                TheContextMenuItem::new("Add Region".to_string(), TheId::named("Add Region")),
-                TheContextMenuItem::new("Add Character".to_string(), TheId::named("Add Character")),
-                TheContextMenuItem::new("Add Item".to_string(), TheId::named("Add Item")),
-                TheContextMenuItem::new("Add Tileset".to_string(), TheId::named("Add Tileset")),
-                TheContextMenuItem::new("Add Screen".to_string(), TheId::named("Add Screen")),
-                TheContextMenuItem::new(
-                    "Add Font Asset".to_string(),
-                    TheId::named("Add Font Asset"),
-                ),
-            ],
-            ..Default::default()
-        }));
-
-        let mut remove_button = TheTraybarButton::new(TheId::named("Project Remove"));
-        remove_button.set_icon_name("icon_role_remove".to_string());
-        // remove_button.set_status_text(&fl!("status_project_remove_button"));
+        // Toolbar
 
         let mut project_context_text = TheText::new(TheId::named("Project Context"));
-        project_context_text.set_text("".to_string());
+        project_context_text.set_text("CHIPcade".to_string());
 
-        let mut import_button: TheTraybarButton =
-            TheTraybarButton::new(TheId::named("Project Import"));
-        import_button.set_icon_name("import".to_string());
-        // import_button.set_status_text(&fl!("status_project_import_button"));
-        import_button.set_context_menu(Some(TheContextMenu {
-            items: vec![
-                TheContextMenuItem::new("Import Region".to_string(), TheId::named("Import Region")),
-                TheContextMenuItem::new(
-                    "Import Character".to_string(),
-                    TheId::named("Import Character"),
-                ),
-                TheContextMenuItem::new("Import Item".to_string(), TheId::named("Import Item")),
-                TheContextMenuItem::new(
-                    "Import Tileset".to_string(),
-                    TheId::named("Import Tileset"),
-                ),
-                TheContextMenuItem::new("Import Screen".to_string(), TheId::named("Import Screen")),
-                TheContextMenuItem::new(
-                    "Import Font Asset".to_string(),
-                    TheId::named("Import Font Asset"),
-                ),
-            ],
-            ..Default::default()
-        }));
+        let mut toolbar_group = TheGroupButton::new(TheId::named("Toolbar Group"));
+        toolbar_group.add_text_status("Registers".to_string(), "Show the registers".to_string());
+        toolbar_group.add_text_status(
+            "Memory".to_string(),
+            "Apply procedural materials.".to_string(),
+        );
+        toolbar_group.add_text_status("Preview".to_string(), "Apply a color.".to_string());
 
-        let mut export_button: TheTraybarButton =
-            TheTraybarButton::new(TheId::named("Project Export"));
-        export_button.set_icon_name("export".to_string());
-        // export_button.set_status_text(&fl!("status_project_export_button"));
+        toolbar_group.set_item_width(70);
+        toolbar_group.set_index(0);
 
         let mut toolbar_hlayout = TheHLayout::new(TheId::empty());
         toolbar_hlayout.set_background_color(None);
         toolbar_hlayout.set_margin(Vec4::new(5, 2, 5, 2));
-        toolbar_hlayout.add_widget(Box::new(add_button));
-        toolbar_hlayout.add_widget(Box::new(remove_button));
-        toolbar_hlayout.add_widget(Box::new(TheHDivider::new(TheId::empty())));
-        toolbar_hlayout.add_widget(Box::new(project_context_text));
-        toolbar_hlayout.add_widget(Box::new(import_button));
-        toolbar_hlayout.add_widget(Box::new(export_button));
-
-        toolbar_hlayout.set_reverse_index(Some(2));
+        toolbar_hlayout.add_widget(Box::new(toolbar_group));
 
         let mut toolbar_canvas = TheCanvas::default();
         toolbar_canvas.set_widget(TheTraybar::new(TheId::empty()));
         toolbar_canvas.set_layout(toolbar_hlayout);
-        project_canvas.set_bottom(toolbar_canvas);
+        tree_canvas.set_bottom(toolbar_canvas);
 
-        // Shared Layout
+        // Panel
 
-        let mut stack_layout = TheStackLayout::new(TheId::named("Tree Stack Layout"));
-        stack_layout.add_canvas(project_canvas);
+        // let mut stack_layout = TheStackLayout::new(TheId::named("Tree Stack Layout"));
+        // stack_layout.add_canvas(project_canvas);
 
         // canvas.set_top(header);
         // canvas.set_right(sectionbar_canvas);
         // canvas.top_is_expanding = false;
         // canvas.set_layout(stack_layout);
 
-        canvas.set_layout(stack_layout);
+        // canvas.set_layout(stack_layout);
 
         // Multi functional footer canvas
 
         let mut right_canvas = TheCanvas::new();
-
         let mut shared_layout = TheSharedVLayout::new(TheId::named("Multi Shared"));
 
-        let mut nodes_minimap_canvas: TheCanvas = TheCanvas::default();
-        let mut nodes_minimap_shared = TheSharedVLayout::new(TheId::named("Multi Tab"));
-        nodes_minimap_shared.set_shared_ratio(0.5);
-        nodes_minimap_shared.set_mode(TheSharedVLayoutMode::Shared);
-
-        let mut minimap_canvas = TheCanvas::default();
-        let mut minimap = TheRenderView::new(TheId::named("MiniMap"));
-        minimap.limiter_mut().set_max_width(self.width);
-        minimap_canvas.set_widget(minimap);
-
-        let mut node_settings_canvas = TheCanvas::default();
-        let mut tree_layout = TheTreeLayout::new(TheId::named("Node Settings"));
-        tree_layout.limiter_mut().set_max_width(self.width);
-        let root = tree_layout.get_root();
-
-        //text_layout.set_fixed_text_width(110);
-        // text_layout.set_text_margin(20);
-        // text_layout.set_text_align(TheHorizontalAlign::Right);
-        let mut settings_node: TheTreeNode =
-            TheTreeNode::new(TheId::named_with_id("Settings", Uuid::new_v4()));
-        settings_node.set_root_mode(false);
-        settings_node.set_open(true);
-
-        root.add_child(settings_node);
-
-        node_settings_canvas.set_layout(tree_layout);
-
         // let mut header = TheCanvas::new();
-        // let mut switchbar = TheSwitchbar::new(TheId::named("Action Header"));
+        // let mut switchbar = TheSwitchbar::new(TheId::named("State"));
         // switchbar.set_text("Settings".to_string());
         // header.set_widget(switchbar);
 
         // nodes_minimap_canvas.set_top(header);
 
-        nodes_minimap_shared.add_canvas(node_settings_canvas);
-        nodes_minimap_shared.add_canvas(minimap_canvas);
-        nodes_minimap_canvas.set_layout(nodes_minimap_shared);
+        // nodes_minimap_shared.add_canvas(node_settings_canvas);
+        // nodes_minimap_shared.add_canvas(minimap_canvas);
+        // nodes_minimap_canvas.set_layout(nodes_minimap_shared);
 
-        shared_layout.add_canvas(canvas);
-        shared_layout.add_canvas(nodes_minimap_canvas);
+        let mut stack_canvas = TheCanvas::default();
+        let mut stack_layout = TheStackLayout::new(TheId::named("Panel Stack"));
+
+        // State
+
+        let mut state_canvas = TheCanvas::default();
+
+        let mut vlayout = TheVLayout::new(TheId::empty());
+        // vlayout.set_margin(Vec4::new(5, 20, 5, 10));
+        vlayout.set_alignment(TheHorizontalAlign::Center);
+
+        let mut text = TheText::new(TheId::named("Registers"));
+        text.set_text(format!("A = $00   X = $00   Y = $00"));
+        vlayout.add_widget(Box::new(text));
+
+        state_canvas.set_layout(vlayout);
+
+        stack_layout.add_canvas(state_canvas);
+
+        // -
+
+        stack_canvas.set_layout(stack_layout);
+
+        shared_layout.add_canvas(tree_canvas);
+        shared_layout.add_canvas(stack_canvas);
         shared_layout.set_mode(TheSharedVLayoutMode::Shared);
         shared_layout.set_shared_ratio(0.6);
         shared_layout.limiter_mut().set_max_width(self.width);
@@ -261,7 +222,7 @@ impl Sidebar {
         ui.canvas.set_right(right_canvas);
     }
 
-    pub fn create_asm_editor(&self, name: String, content: String) -> TheCanvas {
+    pub fn create_asm_editor(&self, name: String, content: String, readonly: bool) -> TheCanvas {
         let mut code_canvas: TheCanvas = TheCanvas::new();
         let mut textedit = TheTextAreaEdit::new(TheId::named(&format!("ASM: {}", name)));
         textedit.set_continuous(true);
@@ -271,6 +232,8 @@ impl Sidebar {
         textedit.use_global_statusbar(true);
         textedit.set_font_size(14.0);
         textedit.set_text(content);
+
+        textedit.readonly(readonly);
 
         if let Some(bytes) = crate::machine::EmbeddedAssets::get("parser/gruvbox-dark.tmTheme") {
             if let Ok(source) = std::str::from_utf8(bytes.data.as_ref()) {
@@ -310,11 +273,72 @@ impl Sidebar {
         }
     }
 
+    /// Set the title for a tree item
+    pub fn set_tree_node_title(&self, title: String, id: Uuid, ui: &mut TheUI) {
+        if let Some(tree_layout) = ui.get_tree_layout("Project Tree") {
+            if let Some(node) = tree_layout.get_node_by_id_mut(&id) {
+                node.widget.set_value(TheValue::Text(title));
+            }
+        }
+    }
+
+    /// Update sprite icon
+    pub fn update_sprite_icon(
+        &self,
+        name: String,
+        ui: &mut TheUI,
+        context: &mut Context,
+        machine: &Machine,
+    ) {
+        if let Some(tree_layout) = ui.get_tree_layout("Project Tree") {
+            if let Some(node) = tree_layout.get_node_by_id_mut(&context.sprites_node_id) {
+                if let Some(index) = context.sprite_offsets.get(&context.current) {
+                    if let Some(widget) = node.widgets[*index as usize].as_tree_icons() {
+                        if let Ok(preview) = machine.render_sprite_preview_from_disk(&name, 40, 40)
+                        {
+                            let buffer = TheRGBABuffer::from(preview, 40, 40);
+                            widget.set_icon(*index as usize, buffer);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     /// Set the status bar text
     pub fn set_status_text(&self, text: String, ui: &mut TheUI) {
         if let Some(statusbar) = ui.get_widget("Statusbar") {
             statusbar.as_statusbar().unwrap().set_text(text);
         }
+    }
+
+    pub fn clear_debug_step(&self, ui: &mut TheUI, ctx: &mut TheContext, _context: &mut Context) {
+        ui.set_widget_value(
+            "Registers",
+            ctx,
+            TheValue::Text(format!("A= {:02X} X= {:02X} Y= {:02X}", 0, 0, 0)),
+        );
+        ctx.ui.relayout = true;
+        ctx.ui.redraw_all = true;
+    }
+
+    pub fn show_debug_step(
+        &self,
+        step: &DebugStep,
+        ui: &mut TheUI,
+        ctx: &mut TheContext,
+        _context: &mut Context,
+    ) {
+        ui.set_widget_value(
+            "Registers",
+            ctx,
+            TheValue::Text(format!(
+                "A={:02X} X={:02X} Y={:02X}",
+                step.registers.a, step.registers.x, step.registers.y
+            )),
+        );
+        ctx.ui.relayout = true;
+        ctx.ui.redraw_all = true;
     }
 
     pub fn goto_debug_line(

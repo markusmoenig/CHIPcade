@@ -483,13 +483,42 @@ impl TheTrait for Editor {
                     TheEvent::ValueChanged(id, value) => {
                         if id.name.ends_with(".asm") {
                             if let Some(value) = value.to_string() {
-                                self.context.content.insert(id.name.clone(), value);
+                                self.context
+                                    .content
+                                    .insert(self.context.current.clone(), value);
                                 self.sidebar.set_tree_item_title(
-                                    format!("{} *", id.name),
+                                    format!("{} *", self.context.current),
                                     ui,
                                     &mut self.context,
                                 );
-                                self.context.changed.insert(id.name);
+                                self.context.changed.insert(self.context.current.clone());
+                            }
+                        } else if id.name.ends_with(".spr") {
+                            if let Some(value) = value.to_string() {
+                                self.context
+                                    .content
+                                    .insert(self.context.current.clone(), value);
+                                self.sidebar.set_tree_node_title(
+                                    "Sprites *".into(),
+                                    self.context.sprites_node_id,
+                                    ui,
+                                );
+                                self.context.changed.insert(self.context.current.clone());
+                            }
+                        }
+                    }
+                    TheEvent::IndexChanged(id, index) => {
+                        if id.name == "Sprites" {
+                            // Sprite Index Changed
+                            if let Some(name) = self.context.sprite_name_for_offset(index as u16) {
+                                if let Some(stack) = ui.get_stack_layout("Code Stack") {
+                                    if let Some(index) = self.context.stack_indices.get(&name) {
+                                        stack.set_index(*index as usize);
+                                        ctx.ui.relayout = true;
+                                        ctx.ui.redraw_all = true;
+                                        self.context.current = name.clone();
+                                    }
+                                }
                             }
                         }
                     }
@@ -501,8 +530,20 @@ impl TheTrait for Editor {
                                 } else {
                                     ui.redo(ctx);
                                 }
+                            } else {
+                                // Undo / Redo Button has to work manually
+                                if let Some(edit) =
+                                    ui.get_text_area_edit(&format!("ASM: {}", self.context.current))
+                                {
+                                    let event = if id.name == "Undo" {
+                                        TheEvent::Undo
+                                    } else {
+                                        TheEvent::Redo
+                                    };
+                                    _ = edit.on_event(&event, ctx);
+                                }
                             }
-                        } else if id.name.ends_with(".asm") {
+                        } else if id.name.ends_with(".asm") || id.name.ends_with(".inc") {
                             // Show the assembler file
                             if let Some(stack) = ui.get_stack_layout("Code Stack") {
                                 if let Some(index) = self.context.stack_indices.get(&id.name) {
@@ -551,8 +592,7 @@ impl TheTrait for Editor {
                                 if let Some(content) =
                                     self.context.content.get(&self.context.current)
                                 {
-                                    let is_asm = self.context.current.ends_with(".asm");
-                                    if is_asm {
+                                    if self.context.current.ends_with(".asm") {
                                         match self
                                             .machine
                                             .validate_asm(&self.context.current, content)
@@ -569,34 +609,77 @@ impl TheTrait for Editor {
                                                 continue;
                                             }
                                         }
-                                    }
 
-                                    // Save (ASM or other)
-                                    let save_result = if is_asm {
-                                        self.machine.write_asm_file(&self.context.current, content)
-                                    } else {
-                                        Err("Saving non-asm files is not supported yet".into())
-                                    };
+                                        let save_result = self
+                                            .machine
+                                            .write_asm_file(&self.context.current, content);
 
-                                    match save_result {
-                                        Ok(_) => {
-                                            self.sidebar.set_status_text(
-                                                format!(
-                                                    "'{}' saved successfully.",
-                                                    self.context.current
-                                                ),
-                                                ui,
-                                            );
-                                            self.context.changed.remove(&self.context.current);
-                                            self.sidebar.set_tree_item_title(
-                                                format!("{}", self.context.current),
-                                                ui,
-                                                &mut self.context,
-                                            );
+                                        match save_result {
+                                            Ok(_) => {
+                                                self.sidebar.set_status_text(
+                                                    format!(
+                                                        "'{}' saved successfully.",
+                                                        self.context.current
+                                                    ),
+                                                    ui,
+                                                );
+                                                self.context.changed.remove(&self.context.current);
+                                                self.sidebar.set_tree_item_title(
+                                                    format!("{}", self.context.current),
+                                                    ui,
+                                                    &mut self.context,
+                                                );
+                                            }
+                                            Err(error) => {
+                                                self.sidebar.set_status_text(
+                                                    format!("Error: {}", error),
+                                                    ui,
+                                                );
+                                            }
                                         }
-                                        Err(error) => {
-                                            self.sidebar
-                                                .set_status_text(format!("Error: {}", error), ui);
+                                    } else if self.context.current.ends_with(".spr") {
+                                        if let Err(error) = self
+                                            .machine
+                                            .validate_sprite(&self.context.current, content)
+                                        {
+                                            self.sidebar.set_status_text(error, ui);
+                                            // Do not write on validation failure.
+                                            continue;
+                                        }
+
+                                        match self
+                                            .machine
+                                            .write_sprite_file(&self.context.current, content)
+                                        {
+                                            Ok(_) => {
+                                                self.sidebar.set_status_text(
+                                                    format!(
+                                                        "'{}' saved successfully.",
+                                                        self.context.current
+                                                    ),
+                                                    ui,
+                                                );
+                                                self.context.changed.remove(&self.context.current);
+                                                if !self.context.has_changed_sprites() {
+                                                    self.sidebar.set_tree_node_title(
+                                                        "Sprites".into(),
+                                                        self.context.sprites_node_id,
+                                                        ui,
+                                                    );
+                                                }
+                                                self.sidebar.update_sprite_icon(
+                                                    self.context.current.clone(),
+                                                    ui,
+                                                    &mut self.context,
+                                                    &self.machine,
+                                                );
+                                            }
+                                            Err(error) => {
+                                                self.sidebar.set_status_text(
+                                                    format!("Error: {}", error),
+                                                    ui,
+                                                );
+                                            }
                                         }
                                     }
                                 }
@@ -648,6 +731,7 @@ impl TheTrait for Editor {
                                         "PC=${:04X} A={:02X} X={:02X} Y={:02X} SP={:02X} P={:02X}",
                                         regs.pc, regs.a, regs.x, regs.y, regs.sp, regs.status
                                     );
+                                    self.sidebar.clear_debug_step(ui, ctx, &mut self.context);
                                     if let Some(line) = session.peek_line() {
                                         msg.push_str(&format!(" at {}:{}", line.file, line.line));
                                         self.sidebar.goto_debug_line(
@@ -677,6 +761,8 @@ impl TheTrait for Editor {
                                     step.registers.sp,
                                     step.registers.status
                                 );
+                                self.sidebar
+                                    .show_debug_step(&step, ui, ctx, &mut self.context);
                                 if let Some(line) = step.line {
                                     msg.push_str(&format!(" at {}:{}", line.file, line.line));
                                     self.sidebar
@@ -702,6 +788,8 @@ impl TheTrait for Editor {
                                     step.registers.sp,
                                     step.registers.status
                                 );
+                                self.sidebar
+                                    .show_debug_step(&step, ui, ctx, &mut self.context);
                                 if let Some(line) = step.line {
                                     msg.push_str(&format!(" at {}:{}", line.file, line.line));
                                     self.sidebar
@@ -743,6 +831,9 @@ impl TheTrait for Editor {
                         step.registers.sp,
                         step.registers.status
                     );
+                    self.sidebar
+                        .show_debug_step(&step, ui, ctx, &mut self.context);
+
                     if let Some(line) = step.line {
                         msg.push_str(&format!(" at {}:{}", line.file, line.line));
                         self.sidebar
