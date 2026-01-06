@@ -19,7 +19,7 @@ use std::path::{Component, Path, PathBuf};
 use std::time::{Duration, Instant};
 
 const META_ADDR: usize = 0xF000;
-const BUNDLE_MAGIC: [u8; 4] = *b"CHPB";
+const BUNDLE_MAGIC: [u8; 4] = *b"CHPC";
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct LineOrigin {

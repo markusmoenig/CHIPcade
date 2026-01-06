@@ -135,7 +135,7 @@ The build output is a single flat 64 KB image at `build/program.bin`. Everything
 - **Palette**: global palette bytes written at the palette RAM base.
 - **Sprite graphics**: packed 2bpp sprite data written at the ROM base.
 - **Header**: a tiny metadata block at address `0xF000` with:
-  - Magic `CHPB`
+  - Magic `CHPC`
   - `meta_len` (u32 little-endian)
   - `meta` (bincode `BuildMeta`) containing:
     - config (video sizes, etc.)
