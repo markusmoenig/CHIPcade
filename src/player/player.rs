@@ -15,6 +15,7 @@ pub struct Player {
 }
 
 impl Player {
+    #[allow(dead_code)]
     pub fn set_machine(&mut self, machine: Machine, scale: u32) {
         self.machine = machine;
         self.scale = scale;
@@ -23,13 +24,32 @@ impl Player {
         self.cpu = None;
         self.did_init = false;
         self.tick_due = true;
+
+        if let Ok(build) = self.machine.build_silent() {
+            self.artifacts = Some(build);
+        }
+    }
+
+    pub fn set_machine_with_artifacts(
+        &mut self,
+        machine: Machine,
+        artifacts: BuildArtifacts,
+        scale: u32,
+    ) {
+        self.machine = machine;
+        self.scale = scale;
+        self.frame = None;
+        self.artifacts = Some(artifacts);
+        self.cpu = None;
+        self.did_init = false;
+        self.tick_due = true;
     }
 
     fn ensure_frame(&mut self) {
-        // Assemble once, then run one frame each draw using a persistent CPU.
+        // Build once, then run one frame each draw using a persistent CPU.
         let artifacts = match self.artifacts.clone() {
             Some(a) => a,
-            None => match self.machine.assemble_silent() {
+            None => match self.machine.build_silent() {
                 Ok(a) => {
                     self.artifacts = Some(a.clone());
                     a

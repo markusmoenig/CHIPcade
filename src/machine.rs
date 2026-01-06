@@ -10,13 +10,14 @@ use mos6502::instruction::Nmos6502;
 use mos6502::memory::Bus;
 use mos6502::registers::StackPointer;
 use rust_embed::RustEmbed;
+use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::fs;
 use std::io::Cursor;
 use std::path::{Component, Path, PathBuf};
 use std::time::{Duration, Instant};
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct LineOrigin {
     pub file: PathBuf,
     pub line: usize,
@@ -323,6 +324,10 @@ impl Machine {
         (self.config.video.width, self.config.video.height)
     }
 
+    pub fn program_bin_path(&self) -> &Path {
+        &self.paths.program_bin
+    }
+
     pub fn new(project_root: PathBuf) -> Result<Self, String> {
         let paths = ProjectPaths::new(&project_root);
         ensure_project_files(&paths)?;
@@ -372,6 +377,22 @@ impl Machine {
     /// Assemble silently (no console output for loaded assets).
     pub fn assemble_silent(&self) -> Result<BuildArtifacts, String> {
         self.assemble_impl(true)
+    }
+
+    /// Build the project, writing a 64 KB image to build/program.bin.
+    pub fn build(&self) -> Result<BuildArtifacts, String> {
+        self.build_impl(false)
+    }
+
+    /// Build silently (no console output for loaded assets).
+    pub fn build_silent(&self) -> Result<BuildArtifacts, String> {
+        self.build_impl(true)
+    }
+
+    fn build_impl(&self, silent: bool) -> Result<BuildArtifacts, String> {
+        let artifacts = self.assemble_impl(silent)?;
+        self.write_build_image(&artifacts)?;
+        Ok(artifacts)
     }
 
     fn assemble_impl(&self, silent: bool) -> Result<BuildArtifacts, String> {
@@ -601,6 +622,59 @@ impl Machine {
     pub fn run(&self) -> Result<RunArtifacts, String> {
         let build = self.assemble_impl(true)?; // silent=true to avoid duplicate output
         self.execute(build.program, build.sprites, build.entry_point)
+    }
+
+    fn write_build_image(&self, artifacts: &BuildArtifacts) -> Result<(), String> {
+        let mut image = vec![0u8; 0x10000]; // 64 KB
+
+        // Program into RAM at load address
+        let start = artifacts.load_addr as usize;
+        let end = start
+            .checked_add(artifacts.program.len())
+            .ok_or_else(|| "program does not fit in 64 KB image".to_string())?;
+        if end > image.len() {
+            return Err("program does not fit in 64 KB image".to_string());
+        }
+        image[start..end].copy_from_slice(&artifacts.program);
+
+        // Palette into palette RAM
+        let palette_bytes = load_palette_file(
+            &self.paths.palette,
+            self.config.palette.global_colors as usize,
+        )?;
+        let pal_start = self.mem_map.palette_ram as usize;
+        let pal_end = pal_start
+            .checked_add(palette_bytes.len())
+            .ok_or_else(|| "palette does not fit in image".to_string())?;
+        if pal_end <= image.len() {
+            image[pal_start..pal_end].copy_from_slice(&palette_bytes);
+        }
+
+        // Sprite graphics into ROM base
+        let rom_start = self.mem_map.rom as usize;
+        let rom_end = rom_start
+            .checked_add(artifacts.sprites.data.len())
+            .ok_or_else(|| "sprites do not fit in image".to_string())?;
+        if rom_end > image.len() {
+            return Err("sprites do not fit in 64 KB image".to_string());
+        }
+        image[rom_start..rom_end].copy_from_slice(&artifacts.sprites.data);
+
+        if let Err(e) = fs::create_dir_all(&self.paths.build_dir) {
+            return Err(format!(
+                "Failed to create build dir {}: {e}",
+                self.paths.build_dir.display()
+            ));
+        }
+
+        fs::write(&self.paths.program_bin, &image).map_err(|e| {
+            format!(
+                "Failed to write build image to {}: {e}",
+                self.paths.program_bin.display(),
+            )
+        })?;
+
+        Ok(())
     }
 
     /// Create a debugging session with a CPU initialized to the program entry.

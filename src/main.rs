@@ -70,6 +70,12 @@ enum Commands {
         #[command(subcommand)]
         command: SpriteCommands,
     },
+    /// Build a distributable 64 KB binary image
+    Build {
+        /// Project root (contains chipcade.toml, asm/, build/, etc.)
+        #[arg(default_value = ".")]
+        project: PathBuf,
+    },
 }
 
 #[derive(Subcommand)]
@@ -99,13 +105,20 @@ fn main() {
 
     match cli.command {
         Commands::Run { project, scale } => match Machine::new(project) {
-            Ok(machine) => match machine.assemble() {
-                Ok(_) => {
+            Ok(machine) => match machine.build() {
+                Ok(artifacts) => {
                     let mut player = crate::player::player::Player::new();
-                    player.set_machine(machine, scale);
+                    player.set_machine_with_artifacts(machine, artifacts, scale);
                     let app = TheApp::new();
                     () = app.run(Box::new(player));
                 }
+                Err(e) => eprintln!("{e}"),
+            },
+            Err(e) => eprintln!("{e}"),
+        },
+        Commands::Build { project } => match Machine::new(project) {
+            Ok(machine) => match machine.build() {
+                Ok(_) => println!("Build finished: {}", machine.program_bin_path().display()),
                 Err(e) => eprintln!("{e}"),
             },
             Err(e) => eprintln!("{e}"),
