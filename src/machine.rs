@@ -991,6 +991,31 @@ impl Machine {
         ))
     }
 
+    /// Render a sprite preview from in-memory source (unsaved) using the project palette.
+    pub fn render_sprite_preview_from_str(
+        &self,
+        name: &str,
+        content: &str,
+        canvas_w: u32,
+        canvas_h: u32,
+    ) -> Result<Vec<u8>, String> {
+        let palette = load_palette_file(
+            &self.paths.palette,
+            self.config.palette.global_colors as usize,
+        )?;
+        let dummy_path = Path::new(name);
+        let spr = crate::sprites::parse_spr_str(name, content, dummy_path)
+            .map_err(|e| format!("Failed to parse {}: {}", name, e))?;
+        let rgba = sprite_to_rgba(&spr, Some(&palette));
+        Ok(self.render_sprite_preview(
+            spr.width as u32,
+            spr.height as u32,
+            &rgba,
+            canvas_w,
+            canvas_h,
+        ))
+    }
+
     /// Write an include file (e.g., "macros.inc") into asm/include.
     pub fn write_include_file(&self, name: &str, content: &str) -> Result<PathBuf, String> {
         let root = self.asm_root()?;
