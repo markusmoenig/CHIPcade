@@ -196,14 +196,6 @@ fn main() {
         }
     };
 
-    wasm_log(&format!(
-        "WASM bundle meta: entry={:?} program_len={} sprite_base=${:04X} labels={}",
-        meta.entry_point,
-        meta.program_len,
-        meta.sprite_base,
-        meta.labels.len()
-    ));
-
     let machine = Machine::from_build_meta(meta.clone());
     let (_, artifacts) = match Machine::artifacts_from_image(bundle_bytes) {
         Ok(a) => a,
