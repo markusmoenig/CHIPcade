@@ -7,9 +7,9 @@ use nom::bytes::complete::{tag, tag_no_case, take_while1};
 use nom::character::complete::{multispace0, multispace1};
 use nom::combinator::{map, opt};
 use nom::sequence::preceded;
-use nom::{branch::alt, IResult, Parser};
+use nom::{IResult, Parser, branch::alt};
 
-use crate::tokens::*;
+use super::tokens::*;
 
 type Res<'a, T> = IResult<&'a [u8], T>;
 
@@ -110,7 +110,7 @@ fn mnemonic<'a>(input: &'a [u8]) -> Res<'a, Mnemonic> {
             return Err(nom::Err::Error(nom::error::Error::new(
                 input,
                 nom::error::ErrorKind::Fail,
-            )))
+            )));
         }
     };
     Ok((rest, mnem))

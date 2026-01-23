@@ -1,11 +1,11 @@
 use crate::bus::ChipcadeBus;
 use crate::config;
+use crate::asm6502::assemble_with_labels_at;
 use crate::sprites::validate_sprite_str;
 use crate::sprites::{
     SpriteImage, SpritePack, load_sprite_pack, load_sprite_pack_from_embedded, sprite_consts,
     sprite_to_rgba,
 };
-use chipcade_asm::assemble_with_labels_at;
 use mos6502::cpu;
 use mos6502::instruction::Nmos6502;
 use mos6502::memory::Bus;

@@ -1,3 +1,4 @@
+mod asm6502;
 mod bus;
 mod config;
 mod editor;

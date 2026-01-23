@@ -3,8 +3,8 @@ mod tests;
 use std::collections::HashMap;
 use std::io::{Read, Write};
 
-use crate::parser::parse_opcode_line;
-use crate::tokens::*;
+use super::parser::parse_opcode_line;
+use super::tokens::*;
 
 type AssembleResult = Result<(), String>;
 
@@ -41,7 +41,7 @@ fn strip_comments(input: &[u8]) -> Vec<u8> {
 /// # Examples
 ///
 /// ```
-/// use chipcade_asm::assemble;
+/// use crate::asm6502::assemble;
 /// let asm = "LDA #1\nADC #1\nCMP #2".as_bytes();
 /// let mut buf = Vec::<u8>::new();
 /// if let Err(msg) = assemble(asm, &mut buf) {
@@ -54,6 +54,7 @@ fn strip_comments(input: &[u8]) -> Vec<u8> {
 /// The the input and output parameters are generic over the `Read` and `Write` traits,
 /// respectively. A more typical usage of this function would accept an input file and an output
 /// file.
+#[allow(dead_code)]
 pub fn assemble<R: Read, W: Write>(input: R, output: &mut W) -> AssembleResult {
     let assembled = assemble_with_labels(input)?;
 

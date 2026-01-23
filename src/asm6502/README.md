@@ -1,12 +1,13 @@
-# chipcade_asm (fork of asm6502 v0.1.2)
-[Upstream](https://github.com/bgourlie/asm6502) (MIT). 
+# CHIPcade assembler (fork of asm6502 v0.1.2)
+[Upstream](https://github.com/bgourlie/asm6502) (MIT).
 
-Bundled into CHIPcade with fixes and improvements (labels, constants and more).
+Bundled into CHIPcade with fixes and improvements (labels, constants and more). It now lives as
+the `asm6502` module inside the main crate instead of a separate dependency.
 
 ### Usage
 
 ```rust
-use chipcade_asm::assemble;
+use chipcade::asm6502::assemble;
 
 let asm = "LDA #1\nADC #1\nCMP #2".as_bytes();
 let mut buf = Vec::<u8>::new();

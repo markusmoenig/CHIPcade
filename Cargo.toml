@@ -8,11 +8,11 @@ repository = "https://github.com/markusmoenig/CHIPcade"
 keywords = ["6502", "fantasy", "console", "game", "engine"]
 
 [workspace]
-members = ["src/asm6502", "run-wasm"]
+members = ["run-wasm"]
 
 [dependencies]
-chipcade_asm = { path = "src/asm6502", version = "0.2.0" }
 mos6502 = "0.6"
+nom = "8"
 serde = { version = "1.0", features = ["derive"] }
 toml = "0.8"
 image = "0.24"

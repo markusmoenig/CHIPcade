@@ -1,5 +1,5 @@
 use super::*;
-use crate::tokens::*;
+use crate::asm6502::tokens::*;
 
 macro_rules! assert_parse {
     ( $ left : expr , $ right : expr ) => {
