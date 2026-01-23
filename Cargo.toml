@@ -11,7 +11,7 @@ keywords = ["6502", "fantasy", "console", "game", "engine"]
 members = ["src/asm6502", "run-wasm"]
 
 [dependencies]
-chipcade_asm = { path = "src/asm6502" }
+chipcade_asm = { path = "src/asm6502", version = "0.2.0" }
 mos6502 = "0.6"
 serde = { version = "1.0", features = ["derive"] }
 toml = "0.8"
