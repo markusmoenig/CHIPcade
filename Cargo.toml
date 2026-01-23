@@ -2,6 +2,10 @@
 name = "CHIPcade"
 version = "0.1.0"
 edition = "2024"
+description = "6502 Fantasy Console"
+license = "Apache-2.0 AND MIT"
+repository = "https://github.com/markusmoenig/CHIPcade"
+keywords = ["6502", "fantasy", "console", "game", "engine"]
 
 [workspace]
 members = ["src/asm6502", "run-wasm"]

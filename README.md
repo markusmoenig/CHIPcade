@@ -1,5 +1,7 @@
 # CHIPcade
 
+![Screenshot](images/screenshot.png)
+
 **CHIPcade — 6502 Fantasy Console**  
 *Inspired by the C64 era. Built for fun, not quirks.*
 
