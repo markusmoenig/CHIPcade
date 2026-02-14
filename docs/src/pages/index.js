@@ -60,7 +60,10 @@ export default function Home() {
         <section className="featureGrid">
           <article className="featureCard">
             <h3>6502 VM</h3>
-            <p>Deterministic execution with a simple memory map.</p>
+            <p>
+              Build one deterministic 64 KB image and run it locally or in the
+              browser via WASM.
+            </p>
           </article>
           <article className="featureCard">
             <h3>Graphics</h3>
@@ -69,7 +72,8 @@ export default function Home() {
           <article className="featureCard">
             <h3>C + ASM</h3>
             <p>
-              Use C, ASM, or both in the same project under <code>src/</code>.
+              CHIPcade compiles C to 6502 assembly, so you can mix both
+              seamlessly.
             </p>
           </article>
           <article className="featureCard">
@@ -82,8 +86,25 @@ export default function Home() {
 
         <section style={{ marginTop: "2rem" }}>
           <h2>Quick Start</h2>
+          <p>1) Install Rust (required):</p>
           <pre>
-            <code>{`cargo install chipcade\nchipcade new my_game\nchipcade build my_game\nchipcade run my_game`}</code>
+            <code>{`https://www.rust-lang.org/tools/install`}</code>
+          </pre>
+          <p>2) Install CHIPcade:</p>
+          <pre>
+            <code>{`cargo install chipcade`}</code>
+          </pre>
+          <p>3) Create a project:</p>
+          <pre>
+            <code>{`chipcade new my_game`}</code>
+          </pre>
+          <p>4) Enter the project folder:</p>
+          <pre>
+            <code>{`cd my_game`}</code>
+          </pre>
+          <p>5) Build and run:</p>
+          <pre>
+            <code>{`chipcade build\nchipcade run`}</code>
           </pre>
           <p>For ASM scaffold:</p>
           <pre>
@@ -91,14 +112,18 @@ export default function Home() {
           </pre>
           <p>Debug with live preview:</p>
           <pre>
-            <code>{`chipcade repl my_game`}</code>
+            <code>{`chipcade repl`}</code>
+          </pre>
+          <p>REPL essentials:</p>
+          <pre>
+            <code>{`debug        start/reset session\nstep 50      step instructions\nrun          run continuously\npause        pause running session\nline         show current C + ASM location\nmem VRAM 32  inspect memory\nlabels SPR_  filter labels\nstop         stop debug session`}</code>
           </pre>
         </section>
 
         <section style={{ marginTop: "2rem" }}>
           <h2>WASM</h2>
           <pre>
-            <code>{`cargo run -- build my_game\nCHIPCADE_BUNDLE=my_game/build/program.bin cargo run-wasm --package CHIPcade --bin CHIPcade`}</code>
+            <code>{`cargo install cargo-run-wasm\nchipcade wasm`}</code>
           </pre>
         </section>
       </main>

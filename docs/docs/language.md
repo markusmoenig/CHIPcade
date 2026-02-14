@@ -169,7 +169,7 @@ Interop is label-based and works both directions when both sources are built tog
 
 If ASM defines a label as a callable routine:
 
-```asm
+```asm6502
 AsmHook:
     RTS
 ```
@@ -192,7 +192,7 @@ void CFunc() {
 
 ASM can call:
 
-```asm
+```asm6502
     JSR CFunc
 ```
 
@@ -326,18 +326,15 @@ Same idea in ASM, split across files. This demonstrates shared symbols from `chi
 
 `src/main.asm`
 
-```asm
+```asm6502
     .include "include/chipcade.inc"
+    .include "utils.asm"
 
-    .segment "ZEROPAGE"
-player_x:    .res 1
-player_y:    .res 1
-enemy_x:     .res 1
-enemy_y:     .res 1
-
-    .segment "CODE"
-    .global Init
-    .global Update
+; Zero-page state (manual addresses)
+.const PLAYER_X $40
+.const PLAYER_Y $41
+.const ENEMY_X  $42
+.const ENEMY_Y  $43
 
 Init:
     JSR ResetRound
@@ -352,40 +349,40 @@ Update:
 
 ReadInputAndMovePlayer:
     LDA IO_LEFT
-    BEQ @check_right
-    LDA player_x
+    BEQ check_right
+    LDA PLAYER_X
     CMP #$08
-    BCC @check_right
-    DEC player_x
-@check_right:
+    BCC check_right
+    DEC PLAYER_X
+check_right:
     LDA IO_RIGHT
-    BEQ @check_up
-    LDA player_x
+    BEQ check_up
+    LDA PLAYER_X
     CMP #$F0
-    BCS @check_up
-    INC player_x
-@check_up:
+    BCS check_up
+    INC PLAYER_X
+check_up:
     LDA IO_UP
-    BEQ @check_down
-    LDA player_y
+    BEQ check_down
+    LDA PLAYER_Y
     CMP #$08
-    BCC @check_down
-    DEC player_y
-@check_down:
+    BCC check_down
+    DEC PLAYER_Y
+check_down:
     LDA IO_DOWN
-    BEQ @done
-    LDA player_y
+    BEQ done
+    LDA PLAYER_Y
     CMP #$B0
-    BCS @done
-    INC player_y
-@done:
+    BCS done
+    INC PLAYER_Y
+done:
     RTS
 
 DrawSprites:
     ; sprite 0 = player
-    LDA player_x
+    LDA PLAYER_X
     STA SPRITE_RAM + 0
-    LDA player_y
+    LDA PLAYER_Y
     STA SPRITE_RAM + 1
     LDA #SPR_CHIPCADE
     STA SPRITE_RAM + 2
@@ -399,9 +396,9 @@ DrawSprites:
     STA SPRITE_RAM + 6
 
     ; sprite 1 = enemy
-    LDA enemy_x
+    LDA ENEMY_X
     STA SPRITE_RAM + 8
-    LDA enemy_y
+    LDA ENEMY_Y
     STA SPRITE_RAM + 9
     LDA #SPR_CHIPCADE
     STA SPRITE_RAM + 10
@@ -418,47 +415,39 @@ DrawSprites:
 
 `src/utils.asm`
 
-```asm
+```asm6502
     .include "include/chipcade.inc"
-
-    .import player_x
-    .import player_y
-    .import enemy_x
-    .import enemy_y
-
-    .global ResetRound
-    .global MoveEnemyTowardPlayer
 
 ResetRound:
     LDA #$20
-    STA player_x
+    STA PLAYER_X
     LDA #$70
-    STA player_y
+    STA PLAYER_Y
     LDA #$A0
-    STA enemy_x
+    STA ENEMY_X
     LDA #$70
-    STA enemy_y
+    STA ENEMY_Y
     RTS
 
 MoveEnemyTowardPlayer:
-    LDA enemy_x
-    CMP player_x
-    BEQ @x_done
-    BCC @x_inc
-    DEC enemy_x
-    JMP @x_done
-@x_inc:
-    INC enemy_x
-@x_done:
-    LDA enemy_y
-    CMP player_y
-    BEQ @y_done
-    BCC @y_inc
-    DEC enemy_y
-    JMP @y_done
-@y_inc:
-    INC enemy_y
-@y_done:
+    LDA ENEMY_X
+    CMP PLAYER_X
+    BEQ x_done
+    BCC x_inc
+    DEC ENEMY_X
+    JMP x_done
+x_inc:
+    INC ENEMY_X
+x_done:
+    LDA ENEMY_Y
+    CMP PLAYER_Y
+    BEQ y_done
+    BCC y_inc
+    DEC ENEMY_Y
+    JMP y_done
+y_inc:
+    INC ENEMY_Y
+y_done:
     RTS
 ```
 
@@ -478,7 +467,7 @@ void TriggerFx() {
 
 `src/fx.asm`
 
-```asm
+```asm6502
     .include "include/chipcade.inc"
     .global AsmFlashPalette
 
@@ -506,6 +495,7 @@ AsmFlashPalette:
   - `for (...) {`
 - `else` must be `else {` (or `else{`) on its own line after the closing `}` of the `if` block.
 - C preprocessor directives are not implemented; `#include` lines are ignored by the transpiler.
+- ASM directives are intentionally minimal: use `.include` and `.const`; CA65-style directives like `.segment`, `.res`, `.global`, `.import` are not supported.
 
 ## Current Limitations
 

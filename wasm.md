@@ -4,21 +4,20 @@ CHIPcade uses the same packaged 64 KB runtime image (`program.bin`) for browser 
 
 ## Start
 
-From the repository root:
+From your project directory:
 
 ```sh
-cargo run -- build test
-CHIPCADE_BUNDLE=test/build/program.bin cargo run-wasm --package CHIPcade --bin CHIPcade
+cargo install cargo-run-wasm
+chipcade wasm
 ```
 
 Open the local URL printed by `cargo run-wasm`.
 
 ## Notes
 
-- `CHIPCADE_BUNDLE` selects which built project image is embedded for the WASM run.
-- If omitted, the build fallback is crate-root `build/program.bin`.
+- `chipcade wasm` builds the project first, then launches `cargo run-wasm`.
 - For build-only (no dev server):
 
 ```sh
-CHIPCADE_BUNDLE=test/build/program.bin cargo run-wasm --package CHIPcade --bin CHIPcade --build-only
+chipcade wasm --build-only
 ```

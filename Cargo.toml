@@ -1,11 +1,12 @@
 [package]
 name = "CHIPcade"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 description = "6502 Fantasy Console"
 license = "Apache-2.0 AND MIT"
 repository = "https://github.com/markusmoenig/CHIPcade"
 keywords = ["6502", "fantasy", "console", "game", "engine"]
+homepage = "https://chipcade.com"
 
 [workspace]
 members = ["run-wasm"]
@@ -32,6 +33,7 @@ web-sys = { version = "0.3", features = [
     "console",
     "Window",
     "Document",
+    "KeyboardEvent",
     "Element",
     "Node",
     "HtmlElement",

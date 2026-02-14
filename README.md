@@ -60,6 +60,6 @@ chipcade repl my_game --no-preview
 ## WASM
 
 ```sh
-cargo run -- build my_game
-CHIPCADE_BUNDLE=my_game/build/program.bin cargo run-wasm --package CHIPcade --bin CHIPcade
+cargo install cargo-run-wasm
+chipcade wasm my_game
 ```

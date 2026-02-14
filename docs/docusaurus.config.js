@@ -87,7 +87,7 @@ const config = {
     prism: {
       theme: chipcadeLightTheme,
       darkTheme: chipcadeDarkTheme,
-      additionalLanguages: ["toml"],
+      additionalLanguages: ["toml", "asm6502"],
     },
     navbar: {
       title: "CHIPcade",

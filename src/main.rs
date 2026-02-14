@@ -15,6 +15,8 @@ use machine::Machine;
 use machine::{ScaffoldLanguage, scaffold_project};
 use std::path::PathBuf;
 #[cfg(not(target_arch = "wasm32"))]
+use std::process::Command;
+#[cfg(not(target_arch = "wasm32"))]
 use std::sync::mpsc::{self, Receiver};
 
 pub mod prelude {
@@ -96,6 +98,15 @@ enum Commands {
         #[arg(long, default_value_t = false)]
         no_topmost: bool,
     },
+    /// Build current project and run it in browser via wasm
+    Wasm {
+        /// Project root (contains chipcade.toml, src/, build/, etc.)
+        #[arg(default_value = ".")]
+        project: PathBuf,
+        /// Build wasm artifacts only (no dev server).
+        #[arg(long, default_value_t = false)]
+        build_only: bool,
+    },
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -164,6 +175,14 @@ fn main() {
                 run_repl_with_preview(project, !no_topmost);
             }
         }
+        Commands::Wasm {
+            project,
+            build_only,
+        } => {
+            if let Err(e) = run_wasm(project, build_only) {
+                eprintln!("{e}");
+            }
+        }
         Commands::New { name, lang } => {
             let scaffold_lang = match lang {
                 NewLang::C => ScaffoldLanguage::C,
@@ -209,6 +228,45 @@ fn main() {
                 }
             }
         },
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn run_wasm(project: PathBuf, build_only: bool) -> Result<(), String> {
+    let machine = Machine::new(project.clone())?;
+    machine.build()?;
+    let program_bin = machine.program_bin_path();
+    let bundle = program_bin
+        .canonicalize()
+        .unwrap_or_else(|_| program_bin.to_path_buf());
+    let manifest_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("Cargo.toml");
+
+    let mut cmd = Command::new("cargo");
+    cmd.arg("run-wasm")
+        .arg("--manifest-path")
+        .arg(&manifest_path)
+        .arg("--package")
+        .arg("CHIPcade")
+        .arg("--bin")
+        .arg("CHIPcade");
+    if build_only {
+        cmd.arg("--build-only");
+    }
+    cmd.env("CHIPCADE_BUNDLE", &bundle);
+
+    println!("Build finished: {}", program_bin.display());
+    println!("Using bundle: {}", bundle.display());
+
+    let status = cmd
+        .status()
+        .map_err(|e| format!("Failed to launch `cargo run-wasm`: {e}"))?;
+    if status.success() {
+        Ok(())
+    } else {
+        Err(format!(
+            "`cargo run-wasm` failed with status {}. Install it with `cargo install cargo-run-wasm`.",
+            status
+        ))
     }
 }
 
@@ -1174,6 +1232,18 @@ fn run_wasm_player() -> Result<(), String> {
     use wasm_bindgen::Clamped;
     use wasm_bindgen::JsCast;
     use wasm_bindgen::closure::Closure;
+    use web_sys::KeyboardEvent;
+
+    fn key_to_input_mask(key: &str) -> Option<u8> {
+        match key {
+            "ArrowLeft" | "a" | "A" => Some(0x01),
+            "ArrowRight" | "d" | "D" => Some(0x02),
+            "ArrowUp" | "w" | "W" => Some(0x04),
+            "ArrowDown" | "s" | "S" => Some(0x08),
+            " " | "Enter" | "z" | "Z" | "x" | "X" => Some(0x10),
+            _ => None,
+        }
+    }
 
     fn run_frame_cpu(cpu: &mut cpu::CPU<ChipcadeBus, Nmos6502>, entry_point: u16) -> Vec<u8> {
         cpu.registers.program_counter = entry_point;
@@ -1234,6 +1304,7 @@ fn run_wasm_player() -> Result<(), String> {
         .map_err(|_| "created element is not a canvas".to_string())?;
     canvas.set_width(width);
     canvas.set_height(height);
+    canvas.set_tab_index(0);
     let style = format!(
         "width:{}px;height:{}px;image-rendering:pixelated;image-rendering:crisp-edges;",
         width.saturating_mul(3),
@@ -1259,13 +1330,51 @@ fn run_wasm_player() -> Result<(), String> {
         width,
         height,
     }));
+    let input_bits = Rc::new(RefCell::new(0u8));
+
+    let keydown_bits = Rc::clone(&input_bits);
+    let keydown = Closure::<dyn FnMut(KeyboardEvent)>::new(move |event: KeyboardEvent| {
+        if let Some(mask) = key_to_input_mask(&event.key()) {
+            let mut bits = keydown_bits.borrow_mut();
+            *bits |= mask;
+            event.prevent_default();
+        }
+    });
+    window
+        .add_event_listener_with_callback("keydown", keydown.as_ref().unchecked_ref())
+        .map_err(|e| format!("failed to register keydown: {e:?}"))?;
+
+    let keyup_bits = Rc::clone(&input_bits);
+    let keyup = Closure::<dyn FnMut(KeyboardEvent)>::new(move |event: KeyboardEvent| {
+        if let Some(mask) = key_to_input_mask(&event.key()) {
+            let mut bits = keyup_bits.borrow_mut();
+            *bits &= !mask;
+            event.prevent_default();
+        }
+    });
+    window
+        .add_event_listener_with_callback("keyup", keyup.as_ref().unchecked_ref())
+        .map_err(|e| format!("failed to register keyup: {e:?}"))?;
+
+    let blur_bits = Rc::clone(&input_bits);
+    let blur = Closure::<dyn FnMut()>::new(move || {
+        let mut bits = blur_bits.borrow_mut();
+        *bits = 0;
+    });
+    window
+        .add_event_listener_with_callback("blur", blur.as_ref().unchecked_ref())
+        .map_err(|e| format!("failed to register blur: {e:?}"))?;
+    let _ = canvas.focus();
 
     let hz = machine.config().machine.refresh_hz.max(1);
     let interval_ms = (1000u32 / hz).max(1) as i32;
 
     let tick_state = Rc::clone(&state);
+    let tick_input_bits = Rc::clone(&input_bits);
     let tick = Closure::<dyn FnMut()>::new(move || {
         let mut state = tick_state.borrow_mut();
+        let bits = *tick_input_bits.borrow();
+        state.cpu.memory.set_input_state(bits);
         let update_entry = state.update_entry;
         let rgba = run_frame_cpu(&mut state.cpu, update_entry);
         let img = web_sys::ImageData::new_with_u8_clamped_array_and_sh(
@@ -1289,6 +1398,9 @@ fn run_wasm_player() -> Result<(), String> {
             interval_ms,
         )
         .map_err(|e| format!("setInterval failed: {e:?}"))?;
+    keydown.forget();
+    keyup.forget();
+    blur.forget();
     tick.forget();
 
     Ok(())

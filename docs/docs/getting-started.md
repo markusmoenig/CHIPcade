@@ -29,27 +29,55 @@ chipcade new my_game --lang asm
 ## Build and Run
 
 ```sh
-chipcade build my_game
-chipcade run my_game
+cd my_game
+chipcade build
+chipcade run
 ```
 
 ## Debug (REPL + Preview)
 
 ```sh
-chipcade repl my_game
+chipcade repl
 ```
 
 Terminal-only REPL:
 
 ```sh
-chipcade repl my_game --no-preview
+chipcade repl --no-preview
+```
+
+Inside the REPL, typical flow is:
+
+```text
+debug        start/reset debug session
+step [n]     execute n instructions
+run [n]      run continuously (or up to n steps)
+pause        pause active run
+regs         show CPU registers
+line         show current C/source line + ASM context
+mem <a> [n]  dump memory at address a
+labels [p]   list labels (optional prefix filter p)
+stop         stop current debug session
+help         show all commands
+```
+
+Example session:
+
+```text
+CHIPcade> debug
+CHIPcade> step 20
+CHIPcade> mem SPRITE_RAM 16
+CHIPcade> run
+CHIPcade> pause
+CHIPcade> regs
 ```
 
 ## WASM
 
-From repository root:
+From your project folder:
 
 ```sh
-cargo run -- build my_game
-CHIPCADE_BUNDLE=my_game/build/program.bin cargo run-wasm --package CHIPcade --bin CHIPcade
+cd my_game
+cargo install cargo-run-wasm
+chipcade wasm
 ```
