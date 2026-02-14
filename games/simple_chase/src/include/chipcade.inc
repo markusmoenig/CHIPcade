@@ -5,6 +5,17 @@
 .const PALETTE $8000
 .const SPRITE_RAM $8030
 .const IO $8230
+.const IO_INPUT $8230
+.const IO_LEFT $8231
+.const IO_RIGHT $8232
+.const IO_UP $8233
+.const IO_DOWN $8234
+.const IO_FIRE $8235
+.const INPUT_LEFT $0001
+.const INPUT_RIGHT $0002
+.const INPUT_UP $0004
+.const INPUT_DOWN $0008
+.const INPUT_FIRE $0010
 .const ROM $8330
 .const VIDEO_WIDTH 256
 .const VIDEO_HEIGHT 192

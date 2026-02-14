@@ -333,6 +333,15 @@ fn first_symbol_or_expr_after_mnemonic(line: &str) -> Option<(usize, usize, Stri
             }
             let end = i;
             let name = &rest[start..end];
+            // Skip tail letters in hex literals like #$0C that would otherwise
+            // be misread as symbols ("C" in this example).
+            let mut j = start;
+            while j > 0 && bytes[j - 1].is_ascii_hexdigit() {
+                j -= 1;
+            }
+            if j > 0 && bytes[j - 1] == b'$' {
+                continue;
+            }
             // Skip binary literal prefixes like 0bXXXX
             if start > 0 && (bytes[start - 1] == b'0') && (b == b'b' || b == b'B') {
                 i = end;

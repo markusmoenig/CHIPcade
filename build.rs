@@ -3,15 +3,16 @@ use std::path::PathBuf;
 
 fn main() {
     // Ensure a bundle exists for include_bytes! in wasm builds.
+    // The bundle format is the same single 64K image produced by `chipcade build`.
     // Priority:
     // 1) use CHIPCADE_BUNDLE if set
-    // 2) use test/build/program.bin if it exists
+    // 2) use crate-root build/program.bin if it exists
     // 3) fallback: create a placeholder image with header at 0xF000
     let bundle_env = std::env::var("CHIPCADE_BUNDLE").ok();
     let src_candidates: Vec<PathBuf> = bundle_env
         .into_iter()
         .map(PathBuf::from)
-        .chain(std::iter::once(PathBuf::from("test/build/program.bin")).filter(|p| p.exists()))
+        .chain(std::iter::once(PathBuf::from("build/program.bin")).filter(|p| p.exists()))
         .collect();
 
     let build_dir = PathBuf::from("build");
@@ -33,7 +34,7 @@ fn main() {
     let mut image = vec![0u8; 0x10000];
     let meta_addr = 0xF000;
     if meta_addr + 8 <= image.len() {
-        image[meta_addr..meta_addr + 4].copy_from_slice(b"CHPB");
+        image[meta_addr..meta_addr + 4].copy_from_slice(b"CHPC");
         image[meta_addr + 4..meta_addr + 8].copy_from_slice(&(0u32).to_le_bytes());
     }
     if let Err(e) = fs::write(&dest_bundle, &image) {

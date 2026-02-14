@@ -1,6 +1,6 @@
+use crate::asm6502::assemble_with_labels_at;
 use crate::bus::ChipcadeBus;
 use crate::config;
-use crate::asm6502::assemble_with_labels_at;
 use crate::sprites::validate_sprite_str;
 use crate::sprites::{
     SpriteImage, SpritePack, load_sprite_pack, load_sprite_pack_from_embedded, sprite_consts,
@@ -12,7 +12,7 @@ use mos6502::memory::Bus;
 use mos6502::registers::StackPointer;
 use rust_embed::RustEmbed;
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::io::Cursor;
 use std::path::{Component, Path, PathBuf};
@@ -58,6 +58,18 @@ pub struct DebugLine {
     pub line: usize,
 }
 
+pub struct DebugSourceLine {
+    pub file: String,
+    pub line: usize,
+    pub text: String,
+}
+
+pub struct DebugAsmLine {
+    pub line: usize,
+    pub text: String,
+    pub is_current: bool,
+}
+
 pub struct DebugStep {
     pub registers: DebugRegisters,
     pub stop_reason: Option<String>,
@@ -74,6 +86,13 @@ pub struct DebugSession {
 }
 
 impl DebugSession {
+    fn pc_index(&self, pc: u16) -> Option<usize> {
+        if pc < self.artifacts.load_addr {
+            return None;
+        }
+        Some((pc - self.artifacts.load_addr) as usize)
+    }
+
     fn ensure_ready(&mut self) {
         if self.did_init {
             return;
@@ -89,10 +108,7 @@ impl DebugSession {
     }
 
     fn map_line(&self, pc: u16) -> Option<DebugLine> {
-        if pc < self.artifacts.load_addr {
-            return None;
-        }
-        let idx = (pc - self.artifacts.load_addr) as usize;
+        let idx = self.pc_index(pc)?;
         self.artifacts.pc_line_map.get(idx).map(|orig| DebugLine {
             file: orig
                 .file
@@ -118,6 +134,55 @@ impl DebugSession {
 
     pub fn peek_line(&self) -> Option<DebugLine> {
         self.map_line(self.cpu.registers.program_counter)
+    }
+
+    pub fn peek_source_line(&self) -> Option<DebugSourceLine> {
+        let pc = self.cpu.registers.program_counter;
+        let idx = self.pc_index(pc)?;
+        let orig = self.artifacts.pc_line_map.get(idx)?;
+        let content = fs::read_to_string(&orig.file).ok()?;
+        let text = content
+            .lines()
+            .nth(orig.line.saturating_sub(1))
+            .unwrap_or_default()
+            .trim_end()
+            .to_string();
+        Some(DebugSourceLine {
+            file: orig
+                .file
+                .file_name()
+                .and_then(|s| s.to_str())
+                .unwrap_or_default()
+                .to_string(),
+            line: orig.line,
+            text,
+        })
+    }
+
+    pub fn peek_asm_window(&self, radius: usize) -> Vec<DebugAsmLine> {
+        let pc = self.cpu.registers.program_counter;
+        let Some(idx) = self.pc_index(pc) else {
+            return Vec::new();
+        };
+        let Some(current_asm_line_no) = self.artifacts.pc_asm_line_map.get(idx).copied() else {
+            return Vec::new();
+        };
+        if current_asm_line_no == 0 || self.artifacts.asm_lines.is_empty() {
+            return Vec::new();
+        }
+
+        let current_idx = current_asm_line_no.saturating_sub(1);
+        let start = current_idx.saturating_sub(radius);
+        let end = (current_idx + radius + 1).min(self.artifacts.asm_lines.len());
+        let mut out = Vec::new();
+        for i in start..end {
+            out.push(DebugAsmLine {
+                line: i + 1,
+                text: self.artifacts.asm_lines[i].clone(),
+                is_current: i == current_idx,
+            });
+        }
+        out
     }
 
     pub fn step(&mut self) -> DebugStep {
@@ -223,6 +288,33 @@ impl DebugSession {
         let frame = self.cpu.memory.render_frame_rgba();
         (step, frame)
     }
+
+    pub fn read_byte(&mut self, addr: u16) -> u8 {
+        self.cpu.memory.get_byte(addr)
+    }
+
+    pub fn read_bytes(&mut self, addr: u16, len: usize) -> Vec<u8> {
+        let mut out = Vec::with_capacity(len);
+        for i in 0..len {
+            out.push(self.cpu.memory.get_byte(addr.wrapping_add(i as u16)));
+        }
+        out
+    }
+
+    pub fn label_address(&self, name: &str) -> Option<u16> {
+        self.artifacts.labels.get(name).copied()
+    }
+
+    pub fn labels(&self) -> Vec<(String, u16)> {
+        let mut out: Vec<(String, u16)> = self
+            .artifacts
+            .labels
+            .iter()
+            .map(|(k, v)| (k.clone(), *v))
+            .collect();
+        out.sort_by(|a, b| a.0.cmp(&b.0));
+        out
+    }
 }
 
 #[derive(Clone)]
@@ -234,6 +326,8 @@ pub struct BuildArtifacts {
     pub load_addr: u16,
     pub line_map: Vec<LineOrigin>,
     pub pc_line_map: Vec<LineOrigin>,
+    pub asm_lines: Vec<String>,
+    pub pc_asm_line_map: Vec<usize>,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -263,6 +357,12 @@ pub struct ProjectPaths {
     pub palette: PathBuf,
 }
 
+#[derive(Clone, Copy, Debug)]
+pub enum ScaffoldLanguage {
+    C,
+    Asm,
+}
+
 #[derive(RustEmbed)]
 #[folder = "embedded"]
 pub(crate) struct EmbeddedAssets;
@@ -270,7 +370,13 @@ pub(crate) struct EmbeddedAssets;
 impl ProjectPaths {
     pub fn new(root: impl AsRef<Path>) -> Self {
         let root = root.as_ref().to_path_buf();
-        let asm_dir = root.join("asm");
+        let src_dir = root.join("src");
+        let legacy_asm_dir = root.join("asm");
+        let asm_dir = if src_dir.exists() || !legacy_asm_dir.exists() {
+            src_dir
+        } else {
+            legacy_asm_dir
+        };
         let build_dir = root.join("build");
         let palette = root.join("assets/palettes/default.pal");
 
@@ -378,6 +484,8 @@ impl Machine {
             load_addr: mem_map.ram,
             line_map: Vec::new(),
             pc_line_map: Vec::new(),
+            asm_lines: Vec::new(),
+            pc_asm_line_map: Vec::new(),
         };
 
         Ok((meta, artifacts))
@@ -514,11 +622,36 @@ impl Machine {
         }
         let sprite_consts = sprite_consts(&sprite_pack.images);
 
-        write_chipcade_inc(&self.paths, &self.sys_consts, &sprite_consts)?;
+        write_chipcade_headers(&self.paths, &self.sys_consts, &sprite_consts)?;
 
-        let expanded = expand_asm(&self.paths.asm_main, &mut HashSet::new())?;
+        let c_root = self
+            .paths
+            .asm_main
+            .parent()
+            .unwrap_or_else(|| Path::new("."))
+            .to_path_buf();
+        let mut c_sources = Vec::new();
+        if c_root.exists() {
+            collect_c_paths(&c_root, &c_root, &mut c_sources)?;
+        }
+        let expanded = if !c_sources.is_empty() {
+            let c_expanded =
+                transpile_c_sources(&c_root, &c_sources, &self.sys_consts, &sprite_consts)?;
+            if self.paths.asm_main.exists() {
+                let asm_expanded = expand_asm(&self.paths.asm_main, &mut HashSet::new())?;
+                merge_expanded_asm(asm_expanded, c_expanded)
+            } else {
+                c_expanded
+            }
+        } else {
+            expand_asm(&self.paths.asm_main, &mut HashSet::new())?
+        };
         let asm = expanded.bytes.clone();
         let line_map = expanded.line_map.clone();
+        let asm_lines: Vec<String> = String::from_utf8_lossy(&asm)
+            .lines()
+            .map(|s| s.to_string())
+            .collect();
 
         let origin = self.mem_map.ram;
         let assembled = assemble_with_labels_at(&mut Cursor::new(asm), origin).map_err(|msg| {
@@ -537,7 +670,9 @@ impl Machine {
         })?;
 
         let mut pc_line_map = Vec::new();
+        let mut pc_asm_line_map = Vec::new();
         for line_no in &assembled.pc_line {
+            pc_asm_line_map.push(*line_no);
             if let Some(orig) = line_map.get(line_no.saturating_sub(1)) {
                 pc_line_map.push(orig.clone());
             }
@@ -557,6 +692,8 @@ impl Machine {
             load_addr: origin,
             line_map,
             pc_line_map,
+            asm_lines,
+            pc_asm_line_map,
         })
     }
 
@@ -869,7 +1006,7 @@ impl Machine {
             .asm_main
             .parent()
             .map(|p| p.to_path_buf())
-            .ok_or_else(|| "asm directory missing".to_string())
+            .ok_or_else(|| "source directory missing".to_string())
     }
 
     /// List ASM sources (non-include), returning file name and contents. `main.asm` is first.
@@ -898,7 +1035,7 @@ impl Machine {
         Ok(out)
     }
 
-    /// List include files (under asm/include), returning file name and contents.
+    /// List include files (under src/include), returning file name and contents.
     pub fn list_include_sources(&self) -> Result<Vec<(String, String)>, String> {
         let root = self.asm_root()?;
         let mut paths = Vec::new();
@@ -949,11 +1086,11 @@ impl Machine {
                 Component::ParentDir | Component::RootDir | Component::Prefix(_)
             )
         }) {
-            return Err("Refusing to write outside asm directory".to_string());
+            return Err("Refusing to write outside source directory".to_string());
         }
         let full = root.join(relative);
         if !full.starts_with(&root) {
-            return Err("Refusing to write outside asm directory".to_string());
+            return Err("Refusing to write outside source directory".to_string());
         }
         if let Some(parent) = full.parent() {
             fs::create_dir_all(parent)
@@ -1015,7 +1152,7 @@ impl Machine {
             sprite_pack = load_sprite_pack_from_embedded(embedded).map_err(|e| (None, e))?;
         }
         let sprite_consts = sprite_consts(&sprite_pack.images);
-        if let Err(e) = write_chipcade_inc(&self.paths, &self.sys_consts, &sprite_consts) {
+        if let Err(e) = write_chipcade_headers(&self.paths, &self.sys_consts, &sprite_consts) {
             return Err((None, e));
         }
 
@@ -1198,7 +1335,7 @@ impl Machine {
         ))
     }
 
-    /// Write an include file (e.g., "macros.inc") into asm/include.
+    /// Write an include file (e.g., "macros.inc") into src/include.
     pub fn write_include_file(&self, name: &str, content: &str) -> Result<PathBuf, String> {
         let root = self.asm_root()?;
         let file = validate_file_name(name)?;
@@ -1214,7 +1351,7 @@ fn is_asm_source(path: &Path) -> bool {
             .unwrap_or("")
             .to_ascii_lowercase()
             .as_str(),
-        "asm" | "inc"
+        "asm" | "inc" | "h"
     )
 }
 
@@ -1269,6 +1406,25 @@ fn collect_asm_paths(root: &Path, dir: &Path, out: &mut Vec<PathBuf>) -> Result<
     Ok(())
 }
 
+fn collect_c_paths(root: &Path, dir: &Path, out: &mut Vec<PathBuf>) -> Result<(), String> {
+    for entry in fs::read_dir(dir).map_err(|e| format!("Failed to read {}: {e}", dir.display()))? {
+        let entry = entry.map_err(|e| format!("Failed to read entry in {}: {e}", dir.display()))?;
+        let path = entry.path();
+        if path.is_dir() {
+            collect_c_paths(root, &path, out)?;
+        } else if path
+            .extension()
+            .and_then(|e| e.to_str())
+            .is_some_and(|e| e.eq_ignore_ascii_case("c"))
+        {
+            if path.starts_with(root) {
+                out.push(path);
+            }
+        }
+    }
+    Ok(())
+}
+
 /// Parse a flat 64 KB image that has metadata embedded at META_ADDR.
 pub fn parse_flat_image(image: &[u8]) -> Result<BuildMeta, String> {
     if image.len() < META_ADDR + 8 {
@@ -1318,10 +1474,20 @@ fn ensure_project_files(paths: &ProjectPaths) -> Result<(), String> {
             paths.config.display()
         ));
     }
-    if !paths.asm_main.exists() {
+    let c_root = paths
+        .asm_main
+        .parent()
+        .unwrap_or_else(|| Path::new("."))
+        .to_path_buf();
+    let mut c_sources = Vec::new();
+    if c_root.exists() {
+        collect_c_paths(&c_root, &c_root, &mut c_sources)?;
+    }
+    if !paths.asm_main.exists() && c_sources.is_empty() {
         return Err(format!(
-            "Missing asm/main.asm at {}",
-            paths.asm_main.display()
+            "Missing program entry: expected {} or at least one .c in {}",
+            paths.asm_main.display(),
+            c_root.display()
         ));
     }
     if !paths.palette.exists() {
@@ -1503,6 +1669,61 @@ fn system_constants(map: &config::MemoryMap, cfg: &config::Config) -> Vec<System
             is_hex: true,
         },
         SystemConst {
+            name: "IO_INPUT",
+            value: map.io as u32,
+            is_hex: true,
+        },
+        SystemConst {
+            name: "IO_LEFT",
+            value: map.io as u32 + 1,
+            is_hex: true,
+        },
+        SystemConst {
+            name: "IO_RIGHT",
+            value: map.io as u32 + 2,
+            is_hex: true,
+        },
+        SystemConst {
+            name: "IO_UP",
+            value: map.io as u32 + 3,
+            is_hex: true,
+        },
+        SystemConst {
+            name: "IO_DOWN",
+            value: map.io as u32 + 4,
+            is_hex: true,
+        },
+        SystemConst {
+            name: "IO_FIRE",
+            value: map.io as u32 + 5,
+            is_hex: true,
+        },
+        SystemConst {
+            name: "INPUT_LEFT",
+            value: 0x01,
+            is_hex: true,
+        },
+        SystemConst {
+            name: "INPUT_RIGHT",
+            value: 0x02,
+            is_hex: true,
+        },
+        SystemConst {
+            name: "INPUT_UP",
+            value: 0x04,
+            is_hex: true,
+        },
+        SystemConst {
+            name: "INPUT_DOWN",
+            value: 0x08,
+            is_hex: true,
+        },
+        SystemConst {
+            name: "INPUT_FIRE",
+            value: 0x10,
+            is_hex: true,
+        },
+        SystemConst {
             name: "ROM",
             value: map.rom as u32,
             is_hex: true,
@@ -1520,40 +1741,1589 @@ fn system_constants(map: &config::MemoryMap, cfg: &config::Config) -> Vec<System
     ]
 }
 
-fn write_chipcade_inc(
+fn write_chipcade_headers(
     paths: &ProjectPaths,
     sys_consts: &[SystemConst],
     sprite_consts: &[(String, u32)],
 ) -> Result<(), String> {
-    let include_path = paths
+    let include_dir = paths
         .asm_main
         .parent()
         .unwrap_or_else(|| Path::new("."))
-        .join("include/chipcade.inc");
-    if let Some(parent) = include_path.parent() {
-        fs::create_dir_all(parent)
-            .map_err(|e| format!("Failed to create include dir {}: {e}", parent.display()))?;
-    }
+        .join("include");
+    fs::create_dir_all(&include_dir).map_err(|e| {
+        format!(
+            "Failed to create include dir {}: {e}",
+            include_dir.display()
+        )
+    })?;
 
-    let mut out = String::new();
-    out.push_str("; Auto-generated by chipcade. Do not edit.\n");
-    out.push_str("; System constants\n");
+    let mut inc = String::new();
+    inc.push_str("; Auto-generated by chipcade. Do not edit.\n");
+    inc.push_str("; System constants\n");
     for c in sys_consts {
         if c.is_hex {
-            out.push_str(&format!(".const {} ${:04X}\n", c.name, c.value));
+            inc.push_str(&format!(".const {} ${:04X}\n", c.name, c.value));
         } else {
-            out.push_str(&format!(".const {} {}\n", c.name, c.value));
+            inc.push_str(&format!(".const {} {}\n", c.name, c.value));
         }
     }
     if !sprite_consts.is_empty() {
-        out.push_str("\n; Sprite indices\n");
+        inc.push_str("\n; Sprite indices\n");
         for (name, val) in sprite_consts {
-            out.push_str(&format!(".const {} {}\n", name, val));
+            inc.push_str(&format!(".const {} {}\n", name, val));
         }
     }
 
-    fs::write(&include_path, out)
-        .map_err(|e| format!("Failed to write {}: {e}", include_path.display()))
+    let include_inc = include_dir.join("chipcade.inc");
+    fs::write(&include_inc, inc)
+        .map_err(|e| format!("Failed to write {}: {e}", include_inc.display()))?;
+
+    let mut hdr = String::new();
+    hdr.push_str("/* Auto-generated by chipcade. Do not edit. */\n");
+    hdr.push_str("#ifndef CHIPCADE_H\n");
+    hdr.push_str("#define CHIPCADE_H\n\n");
+    hdr.push_str("/* Pseudo memory views for editor/highlighter compatibility. */\n");
+    hdr.push_str("extern unsigned char mem[];\n");
+    hdr.push_str("extern unsigned char data[];\n\n");
+    hdr.push_str("/* Raw sprite attribute bytes (maps to SPRITE_RAM + i). */\n");
+    hdr.push_str("extern unsigned char sprite_data[];\n\n");
+    hdr.push_str("typedef struct {\n");
+    hdr.push_str("    unsigned char x;\n");
+    hdr.push_str("    unsigned char y;\n");
+    hdr.push_str("    unsigned char tile;\n");
+    hdr.push_str("    unsigned char flags;\n");
+    hdr.push_str("    unsigned char c0;\n");
+    hdr.push_str("    unsigned char c1;\n");
+    hdr.push_str("    unsigned char c2;\n");
+    hdr.push_str("    unsigned char reserved;\n");
+    hdr.push_str("} ChipSprite;\n");
+    hdr.push_str("extern ChipSprite sprite[];\n\n");
+    hdr.push_str("/* System constants */\n");
+    for c in sys_consts {
+        if c.is_hex {
+            hdr.push_str(&format!("#define {} 0x{:04X}\n", c.name, c.value));
+        } else {
+            hdr.push_str(&format!("#define {} {}\n", c.name, c.value));
+        }
+    }
+    if !sprite_consts.is_empty() {
+        hdr.push_str("\n/* Sprite indices */\n");
+        for (name, val) in sprite_consts {
+            hdr.push_str(&format!("#define {} {}\n", name, val));
+        }
+    }
+    hdr.push_str("\n#endif /* CHIPCADE_H */\n");
+
+    let include_h = include_dir.join("chipcade.h");
+    fs::write(&include_h, hdr).map_err(|e| format!("Failed to write {}: {e}", include_h.display()))
+}
+
+#[derive(Clone)]
+struct CVar {
+    addr: u8,
+}
+
+#[derive(Clone)]
+enum CTerm {
+    Imm(u8),
+    Var(u8),
+}
+
+#[derive(Clone)]
+struct AddrExpr {
+    base: u16,
+    offset: Option<CTerm>,
+}
+
+#[derive(Clone, Copy)]
+enum CmpOp {
+    Eq,
+    Ne,
+    Lt,
+    Le,
+    Gt,
+    Ge,
+}
+
+#[derive(Clone)]
+enum CExpr {
+    Term(CTerm),
+    Mem(AddrExpr),
+    Not(Box<CExpr>),
+    Bin(Box<CExpr>, CBinOp, Box<CExpr>),
+}
+
+#[derive(Clone, Copy)]
+enum CBinOp {
+    Add,
+    Sub,
+    Shl,
+    Shr,
+    And,
+    Xor,
+    Or,
+}
+
+const C_EXPR_TMP_LHS: u8 = 0x20;
+const C_EXPR_TMP_RHS: u8 = 0x21;
+const C_EXPR_TMP_CNT: u8 = 0x22;
+const C_EXPR_TMP_CMP: u8 = 0x23;
+
+enum FlowBlock {
+    If {
+        else_label: String,
+        end_label: String,
+    },
+    Else {
+        end_label: String,
+    },
+    While {
+        start_label: String,
+        end_label: String,
+    },
+    For {
+        start_label: String,
+        end_label: String,
+        step_stmt: Option<String>,
+    },
+}
+
+fn transpile_c_sources(
+    c_root: &Path,
+    paths: &[PathBuf],
+    sys_consts: &[SystemConst],
+    sprite_consts: &[(String, u32)],
+) -> Result<ExpandedAsm, String> {
+    let mut ordered = paths.to_vec();
+    ordered.sort_by(|a, b| {
+        let ra = a.strip_prefix(c_root).unwrap_or(a);
+        let rb = b.strip_prefix(c_root).unwrap_or(b);
+        let a_main = ra == Path::new("main.c");
+        let b_main = rb == Path::new("main.c");
+        b_main
+            .cmp(&a_main)
+            .then_with(|| ra.to_string_lossy().cmp(&rb.to_string_lossy()))
+    });
+
+    let mut consts: HashMap<String, u16> = HashMap::new();
+    for c in sys_consts {
+        consts.insert(c.name.to_string(), c.value as u16);
+    }
+    for (name, value) in sprite_consts {
+        consts.insert(name.clone(), *value as u16);
+    }
+
+    let mut vars: HashMap<String, CVar> = HashMap::new();
+    let mut next_zp: u8 = 0x40;
+    for path in &ordered {
+        let content = fs::read_to_string(path)
+            .map_err(|e| format!("failed to read c file {}: {e}", path.display()))?;
+        let mut in_fn = false;
+        for (idx, raw) in content.lines().enumerate() {
+            let line_no = idx + 1;
+            let line = strip_c_comments(raw).trim();
+            if line.is_empty() || line.starts_with("#include") {
+                continue;
+            }
+            if in_fn {
+                if line == "}" {
+                    in_fn = false;
+                }
+                continue;
+            }
+            if parse_fn_proto(line)?.is_some() {
+                continue;
+            }
+            if parse_extern_decl(line)? {
+                continue;
+            }
+            if parse_fn_start(line)?.is_some() {
+                in_fn = true;
+                continue;
+            }
+            if let Some(name) = parse_global_char_decl(line)? {
+                if vars.contains_key(&name) {
+                    return Err(format!(
+                        "C parse error: {}:{}: duplicate global '{}'",
+                        path.display(),
+                        line_no,
+                        name
+                    ));
+                }
+                if next_zp == 0xFF {
+                    return Err(format!(
+                        "C parse error: {}:{}: out of zero-page space for globals",
+                        path.display(),
+                        line_no
+                    ));
+                }
+                vars.insert(name, CVar { addr: next_zp });
+                next_zp = next_zp.saturating_add(1);
+            }
+        }
+    }
+
+    let mut asm_lines: Vec<(String, PathBuf, usize)> = Vec::new();
+
+    let mut defined_fns: HashSet<String> = HashSet::new();
+    let mut label_counter: usize = 0;
+    for path in &ordered {
+        let content = fs::read_to_string(path)
+            .map_err(|e| format!("failed to read c file {}: {e}", path.display()))?;
+        let canonical = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
+        let mut in_fn: Option<String> = None;
+        let mut local_vars: HashMap<String, CVar> = HashMap::new();
+        let mut flow_stack: Vec<FlowBlock> = Vec::new();
+        let mut pending_else_end: Option<String> = None;
+        for (idx, raw) in content.lines().enumerate() {
+            let line_no = idx + 1;
+            let line = strip_c_comments(raw).trim();
+            if line.is_empty() || line.starts_with("#include") {
+                continue;
+            }
+
+            if in_fn.is_none() {
+                if parse_global_char_decl(line)?.is_some() {
+                    continue;
+                }
+                if parse_extern_decl(line)? {
+                    continue;
+                }
+                if parse_fn_proto(line)?.is_some() {
+                    continue;
+                }
+                if let Some(name) = parse_fn_start(line)? {
+                    if !defined_fns.insert(name.clone()) {
+                        return Err(format!(
+                            "C parse error: {}:{}: duplicate function '{}'",
+                            path.display(),
+                            line_no,
+                            name
+                        ));
+                    }
+                    asm_lines.push((format!("{}:", name), canonical.clone(), line_no));
+                    in_fn = Some(name);
+                    local_vars.clear();
+                    pending_else_end = None;
+                    continue;
+                }
+                return Err(format!(
+                    "C parse error: {}:{}: expected global char declaration or function",
+                    path.display(),
+                    line_no
+                ));
+            }
+
+            let mut scoped_vars = vars.clone();
+            for (k, v) in &local_vars {
+                scoped_vars.insert(k.clone(), v.clone());
+            }
+
+            if let Some(end_label) = pending_else_end.take() {
+                if parse_else_start(line) {
+                    flow_stack.push(FlowBlock::Else { end_label });
+                    continue;
+                }
+                asm_lines.push((format!("{}:", end_label), canonical.clone(), line_no));
+            }
+
+            if let Some((name, init)) = parse_char_decl(line)? {
+                if scoped_vars.contains_key(&name) {
+                    return Err(format!(
+                        "C parse error: {}:{}: duplicate local '{}'",
+                        path.display(),
+                        line_no,
+                        name
+                    ));
+                }
+                if next_zp == 0xFF {
+                    return Err(format!(
+                        "C parse error: {}:{}: out of zero-page space for locals",
+                        path.display(),
+                        line_no
+                    ));
+                }
+                let var = CVar { addr: next_zp };
+                next_zp = next_zp.saturating_add(1);
+                if let Some(expr) = init {
+                    let mut with_local = scoped_vars.clone();
+                    with_local.insert(name.clone(), var.clone());
+                    emit_expr_into_a(
+                        &expr,
+                        &with_local,
+                        &consts,
+                        line_no,
+                        path,
+                        &mut asm_lines,
+                        &canonical,
+                    )?;
+                    asm_lines.push((format!("STA ${:02X}", var.addr), canonical.clone(), line_no));
+                }
+                local_vars.insert(name, var);
+                continue;
+            }
+
+            if let Some(cond_src) = parse_if_start(line)? {
+                let end_label = format!("CIFEND{}", label_counter);
+                label_counter = label_counter.saturating_add(1);
+                let else_label = format!("CIFELSE{}", label_counter);
+                label_counter = label_counter.saturating_add(1);
+                emit_condition_false_jump(
+                    &cond_src,
+                    &else_label,
+                    line_no,
+                    path,
+                    &scoped_vars,
+                    &consts,
+                    &mut asm_lines,
+                    &canonical,
+                    &mut label_counter,
+                )?;
+                flow_stack.push(FlowBlock::If {
+                    else_label,
+                    end_label,
+                });
+                continue;
+            }
+
+            if let Some(cond_src) = parse_while_start(line)? {
+                let start_label = format!("CWHILES{}", label_counter);
+                label_counter = label_counter.saturating_add(1);
+                let end_label = format!("CWHILEE{}", label_counter);
+                label_counter = label_counter.saturating_add(1);
+                asm_lines.push((format!("{}:", start_label), canonical.clone(), line_no));
+                emit_condition_false_jump(
+                    &cond_src,
+                    &end_label,
+                    line_no,
+                    path,
+                    &scoped_vars,
+                    &consts,
+                    &mut asm_lines,
+                    &canonical,
+                    &mut label_counter,
+                )?;
+                flow_stack.push(FlowBlock::While {
+                    start_label,
+                    end_label,
+                });
+                continue;
+            }
+
+            if let Some((init_stmt, cond_src, step_stmt)) = parse_for_start(line)? {
+                if let Some(init_stmt) = init_stmt {
+                    compile_c_stmt(
+                        &format!("{};", init_stmt),
+                        line_no,
+                        path,
+                        in_fn.as_deref().unwrap_or_default(),
+                        &scoped_vars,
+                        &consts,
+                        &mut asm_lines,
+                        &canonical,
+                    )?;
+                }
+                let start_label = format!("CFORS{}", label_counter);
+                label_counter = label_counter.saturating_add(1);
+                let end_label = format!("CFORE{}", label_counter);
+                label_counter = label_counter.saturating_add(1);
+                asm_lines.push((format!("{}:", start_label), canonical.clone(), line_no));
+                if let Some(cond_src) = cond_src {
+                    emit_condition_false_jump(
+                        &cond_src,
+                        &end_label,
+                        line_no,
+                        path,
+                        &scoped_vars,
+                        &consts,
+                        &mut asm_lines,
+                        &canonical,
+                        &mut label_counter,
+                    )?;
+                }
+                flow_stack.push(FlowBlock::For {
+                    start_label,
+                    end_label,
+                    step_stmt,
+                });
+                continue;
+            }
+
+            if line == "}" {
+                if let Some(block) = flow_stack.pop() {
+                    match block {
+                        FlowBlock::If {
+                            else_label,
+                            end_label,
+                        } => {
+                            asm_lines.push((
+                                format!("JMP {}", end_label),
+                                canonical.clone(),
+                                line_no,
+                            ));
+                            asm_lines.push((
+                                format!("{}:", else_label),
+                                canonical.clone(),
+                                line_no,
+                            ));
+                            pending_else_end = Some(end_label);
+                        }
+                        FlowBlock::Else { end_label } => {
+                            asm_lines.push((format!("{}:", end_label), canonical.clone(), line_no));
+                        }
+                        FlowBlock::While {
+                            start_label,
+                            end_label,
+                        } => {
+                            asm_lines.push((
+                                format!("JMP {}", start_label),
+                                canonical.clone(),
+                                line_no,
+                            ));
+                            asm_lines.push((format!("{}:", end_label), canonical.clone(), line_no));
+                        }
+                        FlowBlock::For {
+                            start_label,
+                            end_label,
+                            step_stmt,
+                        } => {
+                            if let Some(step_stmt) = step_stmt {
+                                compile_c_stmt(
+                                    &format!("{};", step_stmt),
+                                    line_no,
+                                    path,
+                                    in_fn.as_deref().unwrap_or_default(),
+                                    &scoped_vars,
+                                    &consts,
+                                    &mut asm_lines,
+                                    &canonical,
+                                )?;
+                            }
+                            asm_lines.push((
+                                format!("JMP {}", start_label),
+                                canonical.clone(),
+                                line_no,
+                            ));
+                            asm_lines.push((format!("{}:", end_label), canonical.clone(), line_no));
+                        }
+                    }
+                    continue;
+                }
+
+                if let Some(end_label) = pending_else_end.take() {
+                    asm_lines.push((format!("{}:", end_label), canonical.clone(), line_no));
+                }
+
+                if let Some(name) = &in_fn {
+                    if name == "Init" || name == "Update" {
+                        asm_lines.push(("BRK".to_string(), canonical.clone(), line_no));
+                    } else {
+                        asm_lines.push(("RTS".to_string(), canonical.clone(), line_no));
+                    }
+                }
+                asm_lines.push(("".to_string(), canonical.clone(), line_no));
+                in_fn = None;
+                local_vars.clear();
+                continue;
+            }
+
+            let fn_name = in_fn.clone().unwrap_or_default();
+            compile_c_stmt(
+                line,
+                line_no,
+                path,
+                &fn_name,
+                &scoped_vars,
+                &consts,
+                &mut asm_lines,
+                &canonical,
+            )?;
+        }
+
+        if in_fn.is_some() {
+            return Err(format!(
+                "C parse error: {}: unterminated function body",
+                path.display()
+            ));
+        }
+        if pending_else_end.is_some() {
+            return Err(format!(
+                "C parse error: {}: dangling else handling at end of function",
+                path.display()
+            ));
+        }
+        if !flow_stack.is_empty() {
+            return Err(format!(
+                "C parse error: {}: unterminated control-flow block",
+                path.display()
+            ));
+        }
+    }
+
+    let mut bytes = Vec::new();
+    let mut line_map = Vec::new();
+    for (line, source_file, source_line) in asm_lines {
+        bytes.extend_from_slice(line.as_bytes());
+        bytes.push(b'\n');
+        line_map.push(LineOrigin {
+            file: source_file,
+            line: source_line,
+        });
+    }
+
+    Ok(ExpandedAsm { bytes, line_map })
+}
+
+fn strip_c_comments(line: &str) -> &str {
+    match line.find("//") {
+        Some(i) => &line[..i],
+        None => line,
+    }
+}
+
+fn merge_expanded_asm(mut a: ExpandedAsm, b: ExpandedAsm) -> ExpandedAsm {
+    if !a.bytes.ends_with(b"\n") {
+        a.bytes.push(b'\n');
+        let origin = a.line_map.last().cloned().unwrap_or(LineOrigin {
+            file: PathBuf::from("asm"),
+            line: 1,
+        });
+        a.line_map.push(origin);
+    }
+    a.bytes.extend_from_slice(&b.bytes);
+    a.line_map.extend(b.line_map);
+    ExpandedAsm {
+        bytes: a.bytes,
+        line_map: a.line_map,
+    }
+}
+
+fn parse_char_decl(line: &str) -> Result<Option<(String, Option<String>)>, String> {
+    let mut s = line.trim();
+    if let Some(rest) = s.strip_prefix("unsigned char ") {
+        s = rest;
+    } else if let Some(rest) = s.strip_prefix("signed char ") {
+        s = rest;
+    } else {
+        return Ok(None);
+    }
+    if let Some(rest) = s.strip_suffix(';') {
+        s = rest.trim();
+    } else {
+        return Err("expected ';' after declaration".to_string());
+    }
+    let (name, init) = if let Some(eq) = s.find('=') {
+        let name = s[..eq].trim();
+        let init = s[eq + 1..].trim();
+        if init.is_empty() {
+            return Err("expected initializer expression".to_string());
+        }
+        (name, Some(init.to_string()))
+    } else {
+        (s, None)
+    };
+    validate_ident(name)?;
+    Ok(Some((name.to_string(), init)))
+}
+
+fn parse_global_char_decl(line: &str) -> Result<Option<String>, String> {
+    match parse_char_decl(line)? {
+        Some((_name, Some(_))) => Err("global initializers are not supported yet".to_string()),
+        Some((name, None)) => Ok(Some(name)),
+        None => Ok(None),
+    }
+}
+
+fn parse_extern_decl(line: &str) -> Result<bool, String> {
+    let s = line.trim();
+    if !s.starts_with("extern ") {
+        return Ok(false);
+    }
+    if !s.ends_with(';') {
+        return Err("extern declaration must end with ';'".to_string());
+    }
+    Ok(true)
+}
+
+fn parse_fn_proto(line: &str) -> Result<Option<String>, String> {
+    let s = line.trim();
+    let Some(rest) = s.strip_prefix("void ") else {
+        return Ok(None);
+    };
+    let Some(open) = rest.find('(') else {
+        return Ok(None);
+    };
+    let name = rest[..open].trim();
+    validate_ident(name)?;
+    let tail = rest[open..].trim();
+    if tail == "();" || tail == "()" {
+        return Ok(Some(name.to_string()));
+    }
+    Ok(None)
+}
+
+fn parse_fn_start(line: &str) -> Result<Option<String>, String> {
+    let s = line.trim();
+    let Some(rest) = s.strip_prefix("void ") else {
+        return Ok(None);
+    };
+    let Some(open) = rest.find('(') else {
+        return Err("expected function parameters".to_string());
+    };
+    let name = rest[..open].trim();
+    validate_ident(name)?;
+    let tail = rest[open..].trim();
+    if tail != "() {" && tail != "(){" {
+        return Err("only zero-arg 'void Name() {' functions are supported".to_string());
+    }
+    Ok(Some(name.to_string()))
+}
+
+fn parse_if_start(line: &str) -> Result<Option<String>, String> {
+    parse_control_start(line, "if")
+}
+
+fn parse_while_start(line: &str) -> Result<Option<String>, String> {
+    parse_control_start(line, "while")
+}
+
+fn parse_else_start(line: &str) -> bool {
+    let s = line.trim();
+    s == "else {" || s == "else{"
+}
+
+fn parse_for_start(
+    line: &str,
+) -> Result<Option<(Option<String>, Option<String>, Option<String>)>, String> {
+    let s = line.trim();
+    let Some(rest) = s.strip_prefix("for") else {
+        return Ok(None);
+    };
+    let rest = rest.trim_start();
+    let Some(open) = rest.find('(') else {
+        return Err("expected for-loop parentheses".to_string());
+    };
+    let Some(close) = rest.rfind(')') else {
+        return Err("expected ')' in for loop".to_string());
+    };
+    let tail = rest[close + 1..].trim();
+    if tail != "{" {
+        return Err("for requires '{' on the same line in this C subset".to_string());
+    }
+    if open >= close {
+        return Err("empty for(...) clause".to_string());
+    }
+    let body = rest[open + 1..close].trim();
+    let parts: Vec<&str> = body.split(';').map(|p| p.trim()).collect();
+    if parts.len() != 3 {
+        return Err("for requires init; condition; step".to_string());
+    }
+    let init = if parts[0].is_empty() {
+        None
+    } else {
+        Some(parts[0].to_string())
+    };
+    let cond = if parts[1].is_empty() {
+        None
+    } else {
+        Some(parts[1].to_string())
+    };
+    let step = if parts[2].is_empty() {
+        None
+    } else {
+        Some(parts[2].to_string())
+    };
+    Ok(Some((init, cond, step)))
+}
+
+fn parse_control_start(line: &str, keyword: &str) -> Result<Option<String>, String> {
+    let s = line.trim();
+    let Some(rest) = s.strip_prefix(keyword) else {
+        return Ok(None);
+    };
+    let rest = rest.trim_start();
+    let Some(open) = rest.find('(') else {
+        return Err(format!("expected condition for {}", keyword));
+    };
+    let Some(close) = rest.rfind(')') else {
+        return Err(format!("expected ')' in {} condition", keyword));
+    };
+    let tail = rest[close + 1..].trim();
+    if tail != "{" {
+        return Err(format!(
+            "{} requires '{{' on the same line in this C subset",
+            keyword
+        ));
+    }
+    if open >= close {
+        return Err(format!("empty condition in {}", keyword));
+    }
+    Ok(Some(rest[open + 1..close].trim().to_string()))
+}
+
+fn emit_condition_false_jump(
+    cond_src: &str,
+    false_label: &str,
+    line_no: usize,
+    path: &Path,
+    vars: &HashMap<String, CVar>,
+    consts: &HashMap<String, u16>,
+    out: &mut Vec<(String, PathBuf, usize)>,
+    source_file: &Path,
+    label_counter: &mut usize,
+) -> Result<(), String> {
+    let (left, op, right) = parse_condition(cond_src).map_err(|e| {
+        format!(
+            "C parse error: {}:{}: invalid condition '{}': {}",
+            path.display(),
+            line_no,
+            cond_src,
+            e
+        )
+    })?;
+    emit_expr_into_a(&left, vars, consts, line_no, path, out, source_file)?;
+    out.push((
+        format!("STA ${:02X}", C_EXPR_TMP_CMP),
+        source_file.to_path_buf(),
+        line_no,
+    ));
+    emit_expr_into_a(&right, vars, consts, line_no, path, out, source_file)?;
+    out.push((
+        format!("STA ${:02X}", C_EXPR_TMP_RHS),
+        source_file.to_path_buf(),
+        line_no,
+    ));
+    out.push((
+        format!("LDA ${:02X}", C_EXPR_TMP_CMP),
+        source_file.to_path_buf(),
+        line_no,
+    ));
+    out.push((
+        format!("CMP ${:02X}", C_EXPR_TMP_RHS),
+        source_file.to_path_buf(),
+        line_no,
+    ));
+
+    match op {
+        CmpOp::Eq => out.push((
+            format!("BNE {}", false_label),
+            source_file.to_path_buf(),
+            line_no,
+        )),
+        CmpOp::Ne => out.push((
+            format!("BEQ {}", false_label),
+            source_file.to_path_buf(),
+            line_no,
+        )),
+        CmpOp::Lt => out.push((
+            format!("BCS {}", false_label),
+            source_file.to_path_buf(),
+            line_no,
+        )),
+        CmpOp::Ge => out.push((
+            format!("BCC {}", false_label),
+            source_file.to_path_buf(),
+            line_no,
+        )),
+        CmpOp::Gt => {
+            out.push((
+                format!("BCC {}", false_label),
+                source_file.to_path_buf(),
+                line_no,
+            ));
+            out.push((
+                format!("BEQ {}", false_label),
+                source_file.to_path_buf(),
+                line_no,
+            ));
+        }
+        CmpOp::Le => {
+            let ok_label = format!("CCMPOK{}", *label_counter);
+            *label_counter = label_counter.saturating_add(1);
+            out.push((
+                format!("BCC {}", ok_label),
+                source_file.to_path_buf(),
+                line_no,
+            ));
+            out.push((
+                format!("BEQ {}", ok_label),
+                source_file.to_path_buf(),
+                line_no,
+            ));
+            out.push((
+                format!("JMP {}", false_label),
+                source_file.to_path_buf(),
+                line_no,
+            ));
+            out.push((format!("{}:", ok_label), source_file.to_path_buf(), line_no));
+        }
+    }
+    Ok(())
+}
+
+fn parse_condition(src: &str) -> Result<(String, CmpOp, String), String> {
+    let ops: [(&str, CmpOp); 6] = [
+        ("==", CmpOp::Eq),
+        ("!=", CmpOp::Ne),
+        (">=", CmpOp::Ge),
+        ("<=", CmpOp::Le),
+        (">", CmpOp::Gt),
+        ("<", CmpOp::Lt),
+    ];
+    for (text, op) in ops {
+        if let Some(idx) = src.find(text) {
+            let left = src[..idx].trim();
+            let right = src[idx + text.len()..].trim();
+            if left.is_empty() || right.is_empty() {
+                return Err("missing left or right side".to_string());
+            }
+            return Ok((left.to_string(), op, right.to_string()));
+        }
+    }
+    Err("expected comparison operator".to_string())
+}
+
+fn compile_c_stmt(
+    stmt: &str,
+    line_no: usize,
+    path: &Path,
+    fn_name: &str,
+    vars: &HashMap<String, CVar>,
+    consts: &HashMap<String, u16>,
+    out: &mut Vec<(String, PathBuf, usize)>,
+    source_file: &Path,
+) -> Result<(), String> {
+    let s = stmt.trim();
+    if s == "return;" {
+        if fn_name == "Init" || fn_name == "Update" {
+            out.push(("BRK".to_string(), source_file.to_path_buf(), line_no));
+        } else {
+            out.push(("RTS".to_string(), source_file.to_path_buf(), line_no));
+        }
+        return Ok(());
+    }
+
+    if let Some(call) = s.strip_suffix(");") {
+        if let Some(name) = call.strip_suffix('(') {
+            let fn_ident = name.trim();
+            validate_ident(fn_ident).map_err(|e| {
+                format!(
+                    "C parse error: {}:{}: invalid call target: {}",
+                    path.display(),
+                    line_no,
+                    e
+                )
+            })?;
+            out.push((
+                format!("JSR {}", fn_ident),
+                source_file.to_path_buf(),
+                line_no,
+            ));
+            return Ok(());
+        }
+    }
+
+    if let Some(name) = s.strip_suffix("++;") {
+        let name = name.trim();
+        let Some(var) = vars.get(name) else {
+            return Err(format!(
+                "C parse error: {}:{}: unknown variable '{}'",
+                path.display(),
+                line_no,
+                name
+            ));
+        };
+        out.push((
+            format!("INC ${:02X}", var.addr),
+            source_file.to_path_buf(),
+            line_no,
+        ));
+        return Ok(());
+    }
+    if let Some(name) = s.strip_suffix("--;") {
+        let name = name.trim();
+        let Some(var) = vars.get(name) else {
+            return Err(format!(
+                "C parse error: {}:{}: unknown variable '{}'",
+                path.display(),
+                line_no,
+                name
+            ));
+        };
+        out.push((
+            format!("DEC ${:02X}", var.addr),
+            source_file.to_path_buf(),
+            line_no,
+        ));
+        return Ok(());
+    }
+
+    let Some(eq_idx) = s.find('=') else {
+        return Err(format!(
+            "C parse error: {}:{}: unsupported statement",
+            path.display(),
+            line_no
+        ));
+    };
+    let lhs = s[..eq_idx].trim();
+    let mut rhs = s[eq_idx + 1..].trim();
+    if let Some(stripped) = rhs.strip_suffix(';') {
+        rhs = stripped.trim();
+    } else {
+        return Err(format!(
+            "C parse error: {}:{}: expected ';'",
+            path.display(),
+            line_no
+        ));
+    }
+
+    if let Some(lhs_mem) = parse_mem_access_expr(lhs, vars, consts) {
+        let addr = parse_addr_expr(&lhs_mem, vars, consts).map_err(|e| {
+            format!(
+                "C parse error: {}:{}: invalid address expression: {}",
+                path.display(),
+                line_no,
+                e
+            )
+        })?;
+        emit_expr_into_a(rhs, vars, consts, line_no, path, out, source_file)?;
+        emit_store_addr(&addr, line_no, out, source_file);
+        return Ok(());
+    }
+
+    validate_ident(lhs).map_err(|e| {
+        format!(
+            "C parse error: {}:{}: invalid assignment target: {}",
+            path.display(),
+            line_no,
+            e
+        )
+    })?;
+    let Some(lhs_var) = vars.get(lhs) else {
+        return Err(format!(
+            "C parse error: {}:{}: unknown variable '{}'",
+            path.display(),
+            line_no,
+            lhs
+        ));
+    };
+
+    if let Some(rhs_mem) = parse_mem_access_expr(rhs, vars, consts) {
+        let addr = parse_addr_expr(&rhs_mem, vars, consts).map_err(|e| {
+            format!(
+                "C parse error: {}:{}: invalid address expression: {}",
+                path.display(),
+                line_no,
+                e
+            )
+        })?;
+        emit_load_addr(&addr, line_no, out, source_file);
+        out.push((
+            format!("STA ${:02X}", lhs_var.addr),
+            source_file.to_path_buf(),
+            line_no,
+        ));
+        return Ok(());
+    }
+
+    emit_expr_into_a(rhs, vars, consts, line_no, path, out, source_file)?;
+    out.push((
+        format!("STA ${:02X}", lhs_var.addr),
+        source_file.to_path_buf(),
+        line_no,
+    ));
+    Ok(())
+}
+
+fn parse_mem_access_expr(
+    expr: &str,
+    vars: &HashMap<String, CVar>,
+    consts: &HashMap<String, u16>,
+) -> Option<String> {
+    let s = expr.trim();
+    if s.starts_with('[') && s.ends_with(']') {
+        return Some(s[1..s.len() - 1].trim().to_string());
+    }
+    if let Some(rest) = s.strip_prefix("mem[") {
+        return rest.strip_suffix(']').map(|r| r.trim().to_string());
+    }
+    if let Some(rest) = s.strip_prefix("data[") {
+        return rest.strip_suffix(']').map(|r| r.trim().to_string());
+    }
+    if let Some(rest) = s.strip_prefix("sprite_data[") {
+        if let Some(inner) = rest.strip_suffix(']') {
+            return Some(format!("SPRITE_RAM + {}", inner.trim()));
+        }
+    }
+    parse_sprite_access_expr(s, vars, consts)
+}
+
+fn parse_sprite_access_expr(
+    s: &str,
+    vars: &HashMap<String, CVar>,
+    consts: &HashMap<String, u16>,
+) -> Option<String> {
+    let Some(rest) = s.strip_prefix("sprite[") else {
+        return None;
+    };
+    let close = rest.find(']')?;
+    let idx_tok = rest[..close].trim();
+    if idx_tok.is_empty() {
+        return None;
+    }
+    let after = rest[close + 1..].trim_start();
+    let field = after.strip_prefix('.')?.trim();
+    if field.is_empty() || field.contains(char::is_whitespace) {
+        return None;
+    }
+
+    let field_off = sprite_field_offset(field)?;
+    let idx = parse_u16_token(idx_tok, vars, consts).ok()?;
+    if idx > 63 {
+        return None;
+    }
+    let offset = idx.saturating_mul(8).saturating_add(field_off as u16);
+    Some(format!("SPRITE_RAM + {}", offset))
+}
+
+fn sprite_field_offset(field: &str) -> Option<u8> {
+    match field {
+        "x" => Some(0),
+        "y" => Some(1),
+        "tile" => Some(2),
+        "flags" => Some(3),
+        "c0" | "color0" => Some(4),
+        "c1" | "color1" => Some(5),
+        "c2" | "color2" => Some(6),
+        "reserved" => Some(7),
+        _ => None,
+    }
+}
+
+fn parse_addr_expr(
+    expr: &str,
+    vars: &HashMap<String, CVar>,
+    consts: &HashMap<String, u16>,
+) -> Result<AddrExpr, String> {
+    let parts: Vec<&str> = expr
+        .split('+')
+        .map(|p| p.trim())
+        .filter(|p| !p.is_empty())
+        .collect();
+    if parts.is_empty() || parts.len() > 2 {
+        return Err("only 'BASE' or 'BASE + OFFSET' is supported".to_string());
+    }
+    let base = parse_u16_token(parts[0], vars, consts)?;
+    let offset = if parts.len() == 2 {
+        Some(parse_term(parts[1], vars, consts)?)
+    } else {
+        None
+    };
+    Ok(AddrExpr { base, offset })
+}
+
+fn emit_load_addr(
+    addr: &AddrExpr,
+    line_no: usize,
+    out: &mut Vec<(String, PathBuf, usize)>,
+    source_file: &Path,
+) {
+    match &addr.offset {
+        None => out.push((
+            format!("LDA ${:04X}", addr.base),
+            source_file.to_path_buf(),
+            line_no,
+        )),
+        Some(CTerm::Imm(v)) => out.push((
+            format!("LDA ${:04X}", addr.base.wrapping_add(*v as u16)),
+            source_file.to_path_buf(),
+            line_no,
+        )),
+        Some(CTerm::Var(v)) => {
+            out.push((
+                format!("LDY ${:02X}", v),
+                source_file.to_path_buf(),
+                line_no,
+            ));
+            out.push((
+                format!("LDA ${:04X},Y", addr.base),
+                source_file.to_path_buf(),
+                line_no,
+            ));
+        }
+    }
+}
+
+fn emit_store_addr(
+    addr: &AddrExpr,
+    line_no: usize,
+    out: &mut Vec<(String, PathBuf, usize)>,
+    source_file: &Path,
+) {
+    match &addr.offset {
+        None => out.push((
+            format!("STA ${:04X}", addr.base),
+            source_file.to_path_buf(),
+            line_no,
+        )),
+        Some(CTerm::Imm(v)) => out.push((
+            format!("STA ${:04X}", addr.base.wrapping_add(*v as u16)),
+            source_file.to_path_buf(),
+            line_no,
+        )),
+        Some(CTerm::Var(v)) => {
+            out.push((
+                format!("LDY ${:02X}", v),
+                source_file.to_path_buf(),
+                line_no,
+            ));
+            out.push((
+                format!("STA ${:04X},Y", addr.base),
+                source_file.to_path_buf(),
+                line_no,
+            ));
+        }
+    }
+}
+
+fn emit_term_into_a(
+    term: &CTerm,
+    out: &mut Vec<(String, PathBuf, usize)>,
+    source_file: &Path,
+    line_no: usize,
+) {
+    match term {
+        CTerm::Imm(v) => out.push((
+            format!("LDA #${:02X}", v),
+            source_file.to_path_buf(),
+            line_no,
+        )),
+        CTerm::Var(v) => out.push((
+            format!("LDA ${:02X}", v),
+            source_file.to_path_buf(),
+            line_no,
+        )),
+    }
+}
+
+fn emit_expr_into_a(
+    expr: &str,
+    vars: &HashMap<String, CVar>,
+    consts: &HashMap<String, u16>,
+    line_no: usize,
+    path: &Path,
+    out: &mut Vec<(String, PathBuf, usize)>,
+    source_file: &Path,
+) -> Result<(), String> {
+    let toks = tokenize_expr(expr).map_err(|e| {
+        format!(
+            "C parse error: {}:{}: invalid expression '{}': {}",
+            path.display(),
+            line_no,
+            expr,
+            e
+        )
+    })?;
+    let mut idx = 0usize;
+    let parsed = parse_expr_or(&toks, &mut idx, vars, consts).map_err(|e| {
+        format!(
+            "C parse error: {}:{}: invalid expression '{}': {}",
+            path.display(),
+            line_no,
+            expr,
+            e
+        )
+    })?;
+    if idx != toks.len() {
+        return Err(format!(
+            "C parse error: {}:{}: invalid expression '{}': trailing token '{}'",
+            path.display(),
+            line_no,
+            expr,
+            toks[idx]
+        ));
+    }
+    emit_cexpr_into_a(&parsed, line_no, out, source_file)
+}
+
+fn tokenize_expr(expr: &str) -> Result<Vec<String>, String> {
+    let mut out = Vec::new();
+    let chars: Vec<char> = expr.chars().collect();
+    let mut i = 0usize;
+    while i < chars.len() {
+        let c = chars[i];
+        if c.is_ascii_whitespace() {
+            i += 1;
+            continue;
+        }
+        if i + 1 < chars.len() {
+            let two = [chars[i], chars[i + 1]];
+            if two == ['<', '<'] || two == ['>', '>'] {
+                out.push(two.iter().collect());
+                i += 2;
+                continue;
+            }
+        }
+        if matches!(c, '+' | '-' | '&' | '|' | '^' | '~' | '(' | ')') {
+            out.push(c.to_string());
+            i += 1;
+            continue;
+        }
+        let start = i;
+        while i < chars.len() {
+            let ch = chars[i];
+            if ch.is_ascii_whitespace()
+                || matches!(
+                    ch,
+                    '+' | '-' | '&' | '|' | '^' | '~' | '<' | '>' | '(' | ')'
+                )
+            {
+                break;
+            }
+            i += 1;
+        }
+        if start == i {
+            return Err(format!("unexpected token '{}'", chars[i]));
+        }
+        out.push(chars[start..i].iter().collect::<String>());
+    }
+    if out.is_empty() {
+        return Err("empty expression".to_string());
+    }
+    Ok(out)
+}
+
+fn parse_expr_or(
+    toks: &[String],
+    idx: &mut usize,
+    vars: &HashMap<String, CVar>,
+    consts: &HashMap<String, u16>,
+) -> Result<CExpr, String> {
+    let mut node = parse_expr_xor(toks, idx, vars, consts)?;
+    while *idx < toks.len() && toks[*idx] == "|" {
+        *idx += 1;
+        let rhs = parse_expr_xor(toks, idx, vars, consts)?;
+        node = CExpr::Bin(Box::new(node), CBinOp::Or, Box::new(rhs));
+    }
+    Ok(node)
+}
+
+fn parse_expr_xor(
+    toks: &[String],
+    idx: &mut usize,
+    vars: &HashMap<String, CVar>,
+    consts: &HashMap<String, u16>,
+) -> Result<CExpr, String> {
+    let mut node = parse_expr_and(toks, idx, vars, consts)?;
+    while *idx < toks.len() && toks[*idx] == "^" {
+        *idx += 1;
+        let rhs = parse_expr_and(toks, idx, vars, consts)?;
+        node = CExpr::Bin(Box::new(node), CBinOp::Xor, Box::new(rhs));
+    }
+    Ok(node)
+}
+
+fn parse_expr_and(
+    toks: &[String],
+    idx: &mut usize,
+    vars: &HashMap<String, CVar>,
+    consts: &HashMap<String, u16>,
+) -> Result<CExpr, String> {
+    let mut node = parse_expr_shift(toks, idx, vars, consts)?;
+    while *idx < toks.len() && toks[*idx] == "&" {
+        *idx += 1;
+        let rhs = parse_expr_shift(toks, idx, vars, consts)?;
+        node = CExpr::Bin(Box::new(node), CBinOp::And, Box::new(rhs));
+    }
+    Ok(node)
+}
+
+fn parse_expr_shift(
+    toks: &[String],
+    idx: &mut usize,
+    vars: &HashMap<String, CVar>,
+    consts: &HashMap<String, u16>,
+) -> Result<CExpr, String> {
+    let mut node = parse_expr_addsub(toks, idx, vars, consts)?;
+    while *idx < toks.len() && (toks[*idx] == "<<" || toks[*idx] == ">>") {
+        let op = if toks[*idx] == "<<" {
+            CBinOp::Shl
+        } else {
+            CBinOp::Shr
+        };
+        *idx += 1;
+        let rhs = parse_expr_addsub(toks, idx, vars, consts)?;
+        node = CExpr::Bin(Box::new(node), op, Box::new(rhs));
+    }
+    Ok(node)
+}
+
+fn parse_expr_addsub(
+    toks: &[String],
+    idx: &mut usize,
+    vars: &HashMap<String, CVar>,
+    consts: &HashMap<String, u16>,
+) -> Result<CExpr, String> {
+    let mut node = parse_expr_unary(toks, idx, vars, consts)?;
+    while *idx < toks.len() && (toks[*idx] == "+" || toks[*idx] == "-") {
+        let op = if toks[*idx] == "+" {
+            CBinOp::Add
+        } else {
+            CBinOp::Sub
+        };
+        *idx += 1;
+        let rhs = parse_expr_unary(toks, idx, vars, consts)?;
+        node = CExpr::Bin(Box::new(node), op, Box::new(rhs));
+    }
+    Ok(node)
+}
+
+fn parse_expr_unary(
+    toks: &[String],
+    idx: &mut usize,
+    vars: &HashMap<String, CVar>,
+    consts: &HashMap<String, u16>,
+) -> Result<CExpr, String> {
+    if *idx < toks.len() && toks[*idx] == "~" {
+        *idx += 1;
+        let inner = parse_expr_unary(toks, idx, vars, consts)?;
+        return Ok(CExpr::Not(Box::new(inner)));
+    }
+    if *idx < toks.len() && toks[*idx] == "(" {
+        *idx += 1;
+        let inner = parse_expr_or(toks, idx, vars, consts)?;
+        if *idx >= toks.len() || toks[*idx] != ")" {
+            return Err("expected ')'".to_string());
+        }
+        *idx += 1;
+        return Ok(inner);
+    }
+    if *idx >= toks.len() {
+        return Err("unexpected end of expression".to_string());
+    }
+    let tok = &toks[*idx];
+    if tok == ")" {
+        return Err("unexpected ')'".to_string());
+    }
+    if let Some(mem_expr) = parse_mem_access_expr(tok, vars, consts) {
+        let addr = parse_addr_expr(&mem_expr, vars, consts)?;
+        *idx += 1;
+        return Ok(CExpr::Mem(addr));
+    }
+    *idx += 1;
+    Ok(CExpr::Term(parse_term(tok, vars, consts)?))
+}
+
+fn emit_cexpr_into_a(
+    expr: &CExpr,
+    line_no: usize,
+    out: &mut Vec<(String, PathBuf, usize)>,
+    source_file: &Path,
+) -> Result<(), String> {
+    match expr {
+        CExpr::Term(t) => {
+            emit_term_into_a(t, out, source_file, line_no);
+            Ok(())
+        }
+        CExpr::Mem(addr) => {
+            emit_load_addr(addr, line_no, out, source_file);
+            Ok(())
+        }
+        CExpr::Not(inner) => {
+            emit_cexpr_into_a(inner, line_no, out, source_file)?;
+            out.push(("EOR #$FF".to_string(), source_file.to_path_buf(), line_no));
+            Ok(())
+        }
+        CExpr::Bin(lhs, op, rhs) => {
+            emit_cexpr_into_a(lhs, line_no, out, source_file)?;
+            out.push((
+                format!("STA ${:02X}", C_EXPR_TMP_LHS),
+                source_file.to_path_buf(),
+                line_no,
+            ));
+            emit_cexpr_into_a(rhs, line_no, out, source_file)?;
+            out.push((
+                format!("STA ${:02X}", C_EXPR_TMP_RHS),
+                source_file.to_path_buf(),
+                line_no,
+            ));
+            out.push((
+                format!("LDA ${:02X}", C_EXPR_TMP_LHS),
+                source_file.to_path_buf(),
+                line_no,
+            ));
+
+            match op {
+                CBinOp::Add => {
+                    out.push(("CLC".to_string(), source_file.to_path_buf(), line_no));
+                    out.push((
+                        format!("ADC ${:02X}", C_EXPR_TMP_RHS),
+                        source_file.to_path_buf(),
+                        line_no,
+                    ));
+                }
+                CBinOp::Sub => {
+                    out.push(("SEC".to_string(), source_file.to_path_buf(), line_no));
+                    out.push((
+                        format!("SBC ${:02X}", C_EXPR_TMP_RHS),
+                        source_file.to_path_buf(),
+                        line_no,
+                    ));
+                }
+                CBinOp::And => {
+                    out.push((
+                        format!("AND ${:02X}", C_EXPR_TMP_RHS),
+                        source_file.to_path_buf(),
+                        line_no,
+                    ));
+                }
+                CBinOp::Xor => {
+                    out.push((
+                        format!("EOR ${:02X}", C_EXPR_TMP_RHS),
+                        source_file.to_path_buf(),
+                        line_no,
+                    ));
+                }
+                CBinOp::Or => {
+                    out.push((
+                        format!("ORA ${:02X}", C_EXPR_TMP_RHS),
+                        source_file.to_path_buf(),
+                        line_no,
+                    ));
+                }
+                CBinOp::Shl | CBinOp::Shr => {
+                    let loop_label = format!("CEXSHIFT{}_{}", line_no, out.len());
+                    let done_label = format!("CEXDONE{}_{}", line_no, out.len());
+                    out.push((
+                        format!("STA ${:02X}", C_EXPR_TMP_LHS),
+                        source_file.to_path_buf(),
+                        line_no,
+                    ));
+                    out.push((
+                        format!("LDA ${:02X}", C_EXPR_TMP_RHS),
+                        source_file.to_path_buf(),
+                        line_no,
+                    ));
+                    out.push(("AND #$07".to_string(), source_file.to_path_buf(), line_no));
+                    out.push((
+                        format!("STA ${:02X}", C_EXPR_TMP_CNT),
+                        source_file.to_path_buf(),
+                        line_no,
+                    ));
+                    out.push((
+                        format!("{}:", loop_label),
+                        source_file.to_path_buf(),
+                        line_no,
+                    ));
+                    out.push((
+                        format!("LDA ${:02X}", C_EXPR_TMP_CNT),
+                        source_file.to_path_buf(),
+                        line_no,
+                    ));
+                    out.push((
+                        format!("BEQ {}", done_label),
+                        source_file.to_path_buf(),
+                        line_no,
+                    ));
+                    match op {
+                        CBinOp::Shl => {
+                            out.push((
+                                format!("ASL ${:02X}", C_EXPR_TMP_LHS),
+                                source_file.to_path_buf(),
+                                line_no,
+                            ));
+                        }
+                        CBinOp::Shr => {
+                            out.push((
+                                format!("LSR ${:02X}", C_EXPR_TMP_LHS),
+                                source_file.to_path_buf(),
+                                line_no,
+                            ));
+                        }
+                        _ => {}
+                    }
+                    out.push((
+                        format!("DEC ${:02X}", C_EXPR_TMP_CNT),
+                        source_file.to_path_buf(),
+                        line_no,
+                    ));
+                    out.push((
+                        format!("JMP {}", loop_label),
+                        source_file.to_path_buf(),
+                        line_no,
+                    ));
+                    out.push((
+                        format!("{}:", done_label),
+                        source_file.to_path_buf(),
+                        line_no,
+                    ));
+                    out.push((
+                        format!("LDA ${:02X}", C_EXPR_TMP_LHS),
+                        source_file.to_path_buf(),
+                        line_no,
+                    ));
+                }
+            }
+            Ok(())
+        }
+    }
+}
+
+fn parse_term(
+    token: &str,
+    vars: &HashMap<String, CVar>,
+    consts: &HashMap<String, u16>,
+) -> Result<CTerm, String> {
+    if let Some(var) = vars.get(token) {
+        return Ok(CTerm::Var(var.addr));
+    }
+    let value = parse_u16_token(token, vars, consts)?;
+    if value > 0xFF {
+        return Err(format!("value '{}' does not fit in 8 bits", token));
+    }
+    Ok(CTerm::Imm(value as u8))
+}
+
+fn parse_u16_token(
+    token: &str,
+    vars: &HashMap<String, CVar>,
+    consts: &HashMap<String, u16>,
+) -> Result<u16, String> {
+    if vars.contains_key(token) {
+        return Err(format!(
+            "variable '{}' is not allowed in this expression",
+            token
+        ));
+    }
+    if let Some(v) = consts.get(token) {
+        return Ok(*v);
+    }
+    if let Some(hex) = token.strip_prefix("0x") {
+        return u16::from_str_radix(hex, 16)
+            .map_err(|_| format!("invalid hex literal '{}'", token));
+    }
+    if let Some(hex) = token.strip_prefix('$') {
+        return u16::from_str_radix(hex, 16)
+            .map_err(|_| format!("invalid hex literal '{}'", token));
+    }
+    token
+        .parse::<u16>()
+        .map_err(|_| format!("unknown token '{}'", token))
+}
+
+fn validate_ident(name: &str) -> Result<(), String> {
+    let mut chars = name.chars();
+    let Some(first) = chars.next() else {
+        return Err("empty identifier".to_string());
+    };
+    if !(first.is_ascii_alphabetic() || first == '_') {
+        return Err(format!("'{}' is not a valid identifier", name));
+    }
+    if !chars.all(|c| c.is_ascii_alphanumeric() || c == '_') {
+        return Err(format!("'{}' is not a valid identifier", name));
+    }
+    Ok(())
 }
 
 fn save_rgba_png(width: u32, height: u32, rgba: &[u8], path: &Path) -> Result<(), String> {
@@ -1571,7 +3341,7 @@ fn write_embedded_file(asset_path: &str, dest: &Path) -> Result<(), String> {
         .map_err(|e| format!("Failed to write {}: {e}", dest.display()))
 }
 
-pub fn scaffold_project(name: PathBuf) {
+pub fn scaffold_project(name: PathBuf, lang: ScaffoldLanguage) {
     let root = name;
     if root.exists() {
         eprintln!("Refusing to overwrite existing path: {}", root.display());
@@ -1582,7 +3352,7 @@ pub fn scaffold_project(name: PathBuf) {
     // Create directory tree
     let dirs = [
         root.clone(),
-        root.join("asm/include"),
+        root.join("src/include"),
         root.join("build"),
         root.join("assets/palettes"),
         root.join("assets/bitmaps"),
@@ -1597,13 +3367,11 @@ pub fn scaffold_project(name: PathBuf) {
         }
     }
 
-    let writes = [
+    let mut writes = vec![
         ("chipcade.toml", paths.config.clone()),
-        ("asm/main.asm", paths.asm_main.clone()),
-        ("asm/gfx.asm", root.join("asm/gfx.asm")),
         (
             "asm/include/chipcade.inc",
-            root.join("asm/include/chipcade.inc"),
+            root.join("src/include/chipcade.inc"),
         ),
         (
             "assets/palettes/default.pal",
@@ -1616,6 +3384,13 @@ pub fn scaffold_project(name: PathBuf) {
         (".gitignore", root.join(".gitignore")),
         ("README.md", root.join("README.md")),
     ];
+    match lang {
+        ScaffoldLanguage::C => writes.push(("src/main.c", root.join("src/main.c"))),
+        ScaffoldLanguage::Asm => {
+            writes.push(("asm/main.asm", root.join("src/main.asm")));
+            writes.push(("asm/utils.asm", root.join("src/utils.asm")));
+        }
+    }
 
     for (asset_path, path) in writes {
         if path.exists() {

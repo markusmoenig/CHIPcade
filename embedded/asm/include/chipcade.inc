@@ -1,7 +1,12 @@
-; Chipcade hardware constants
-.const VRAM_BASE $2000
-.const PALETTE_BASE $8000
+; Chipcade hardware constants (defaults; regenerated on first build)
+.const VRAM $2000
+.const VRAM_SIZE $6000
+.const PALETTE $8000
 .const SPRITE_RAM $8030
+.const IO $8230
+.const ROM $8330
+.const VIDEO_WIDTH 256
+.const VIDEO_HEIGHT 192
 
 ; Sprites
 .const SPR_CHIPCADE 0

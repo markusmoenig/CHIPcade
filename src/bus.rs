@@ -165,6 +165,9 @@ pub struct ChipcadeBus {
     pub vram: VideoRam,
     pub sprite_ram: SpriteRam,
     pub sprites: SpritePack,
+    io_base: u16,
+    io_end: u16,
+    io_regs: Vec<u8>,
 }
 
 impl ChipcadeBus {
@@ -189,7 +192,24 @@ impl ChipcadeBus {
             vram,
             sprite_ram,
             sprites,
+            io_base: map.io,
+            io_end: map.io.saturating_add(0x00FF),
+            io_regs: vec![0; 0x0100],
         }
+    }
+
+    pub fn set_input_state(&mut self, bits: u8) {
+        if self.io_regs.len() < 6 {
+            return;
+        }
+        // IO + 0: packed bitfield
+        self.io_regs[0] = bits;
+        // IO + 1..5: per-button byte state for C subset ergonomics
+        self.io_regs[1] = if (bits & 0x01) != 0 { 1 } else { 0 }; // left
+        self.io_regs[2] = if (bits & 0x02) != 0 { 1 } else { 0 }; // right
+        self.io_regs[3] = if (bits & 0x04) != 0 { 1 } else { 0 }; // up
+        self.io_regs[4] = if (bits & 0x08) != 0 { 1 } else { 0 }; // down
+        self.io_regs[5] = if (bits & 0x10) != 0 { 1 } else { 0 }; // fire
     }
 
     fn palette_rgb(&self, color_index: u8) -> (u8, u8, u8) {
@@ -330,6 +350,10 @@ impl Bus for ChipcadeBus {
         if (self.vram.base..=self.vram.end).contains(&address) {
             return self.vram.read(address);
         }
+        if (self.io_base..=self.io_end).contains(&address) {
+            let idx = (address - self.io_base) as usize;
+            return self.io_regs.get(idx).copied().unwrap_or(0);
+        }
         self.mem.get_byte(address)
     }
 
@@ -344,6 +368,13 @@ impl Bus for ChipcadeBus {
         }
         if (self.vram.base..=self.vram.end).contains(&address) {
             self.vram.write(address, value);
+            return;
+        }
+        if (self.io_base..=self.io_end).contains(&address) {
+            let idx = (address - self.io_base) as usize;
+            if let Some(slot) = self.io_regs.get_mut(idx) {
+                *slot = value;
+            }
             return;
         }
         self.mem.set_byte(address, value);
