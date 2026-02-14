@@ -84,6 +84,9 @@ const config = {
     ],
   ],
   themeConfig: {
+    colorMode: {
+      respectPrefersColorScheme: true,
+    },
     prism: {
       theme: chipcadeLightTheme,
       darkTheme: chipcadeDarkTheme,

@@ -2,7 +2,7 @@
 
 ![Screenshot](images/screenshot.png)
 
-CHIPcade is a terminal-driven 6502 fantasy console for building games and demos.
+CHIPcade is a terminal-driven 6502 fantasy console with a built-in C-to-ASM compiler.
 
 ## What You Get
 

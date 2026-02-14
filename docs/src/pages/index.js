@@ -26,8 +26,8 @@ export default function Home() {
             <div style={{ minWidth: 280, flex: 1 }}>
               <h1 style={{ marginBottom: ".5rem" }}>CHIPcade</h1>
               <p style={{ fontSize: "1.1rem", maxWidth: 820, marginBottom: 0 }}>
-                CHIPcade is a terminal-driven 6502 fantasy console for building
-                games and demos.
+                CHIPcade is a terminal-driven 6502 fantasy console with a
+                built-in C-to-ASM compiler.
               </p>
               <div
                 style={{
