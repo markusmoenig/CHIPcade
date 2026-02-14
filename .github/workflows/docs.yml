@@ -34,8 +34,6 @@ jobs:
 
       - name: Build site
         working-directory: docs
-        env:
-          DOCS_BASE_URL: /CHIPcade/
         run: npm run build
 
       - name: Setup Pages
