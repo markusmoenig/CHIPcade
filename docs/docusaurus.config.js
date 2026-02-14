@@ -22,12 +22,14 @@ const chipcadeDarkTheme = {
   ],
 };
 
+const baseUrl = process.env.DOCS_BASE_URL || "/";
+
 const config = {
   title: "CHIPcade",
   tagline: "Terminal-driven 6502 game toolkit",
   favicon: "img/logo.png",
   url: "https://markusmoenig.github.io",
-  baseUrl: "/CHIPcade/",
+  baseUrl,
   organizationName: "markusmoenig",
   projectName: "CHIPcade",
   onBrokenLinks: "warn",

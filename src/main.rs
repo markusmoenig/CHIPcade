@@ -203,10 +203,9 @@ fn main() {
             let expression = expr.join(" ");
             match eval_expression(&expression) {
                 Ok(EvalResult { value }) => {
-                    let abs = value.saturating_abs() as u64;
-                    let sign = if value < 0 { "-" } else { "" };
-                    let hex = format!("{sign}${:X}", abs);
-                    let bin = format!("{sign}%{:b}", abs);
+                    let u8v = (value as i128).rem_euclid(256) as u8;
+                    let hex = format!("${:02X}", u8v);
+                    let bin = format!("%{u8v:08b}");
                     println!("dec = {value}, hex = {hex}, bin = {bin}");
                 }
                 Err(e) => eprintln!("Eval error: {e}"),
